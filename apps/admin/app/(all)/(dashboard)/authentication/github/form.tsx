@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { Monitor } from "lucide-react";
 // plane internal packages
-import { API_BASE_URL } from "@plane/constants";
+import { API_BASE_URL, WEB_BASE_URL } from "@plane/constants";
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IFormattedInstanceConfiguration, TInstanceGithubAuthenticationConfigurationKeys } from "@plane/types";
@@ -32,12 +32,20 @@ type Props = {
 
 type GithubConfigFormValues = Record<TInstanceGithubAuthenticationConfigurationKeys, string>;
 
+const GITHUB_APP_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
+function resolveOrigin(preferred: string): string {
+  if (!isEmpty(preferred)) return preferred.replace(/\/$/, "");
+  if (typeof window !== "undefined") return window.location.origin;
+  return "";
+}
+
 export function InstanceGithubConfigForm(props: Props) {
   const { config } = props;
   // states
   const [isDiscardChangesModalOpen, setIsDiscardChangesModalOpen] = useState(false);
   // store hooks
-  const { updateInstanceConfigurations } = useInstance();
+  const { updateInstanceConfigurations, config: instanceConfig } = useInstance();
   // form data
   const {
     handleSubmit,
@@ -46,6 +54,10 @@ export function InstanceGithubConfigForm(props: Props) {
     formState: { errors, isDirty, isSubmitting },
   } = useForm<GithubConfigFormValues>({
     defaultValues: {
+      GITHUB_APP_NAME: config["GITHUB_APP_NAME"] || "",
+      GITHUB_APP_ID: config["GITHUB_APP_ID"] || "",
+      GITHUB_PRIVATE_KEY: config["GITHUB_PRIVATE_KEY"] || "",
+      GITHUB_WEBHOOK_SECRET: config["GITHUB_WEBHOOK_SECRET"] || "",
       GITHUB_CLIENT_ID: config["GITHUB_CLIENT_ID"],
       GITHUB_CLIENT_SECRET: config["GITHUB_CLIENT_SECRET"],
       GITHUB_ORGANIZATION_ID: config["GITHUB_ORGANIZATION_ID"],
@@ -53,9 +65,66 @@ export function InstanceGithubConfigForm(props: Props) {
     },
   });
 
-  const originURL = !isEmpty(API_BASE_URL) ? API_BASE_URL : typeof window !== "undefined" ? window.location.origin : "";
+  const apiOrigin = resolveOrigin(API_BASE_URL);
+  const webOrigin = resolveOrigin(WEB_BASE_URL || instanceConfig?.app_base_url || API_BASE_URL);
 
   const GITHUB_FORM_FIELDS: TControllerInputFormField[] = [
+    {
+      key: "GITHUB_APP_NAME",
+      type: "text",
+      label: "GitHub App slug",
+      description: (
+        <>
+          The App slug from your{" "}
+          <a
+            tabIndex={-1}
+            href="https://github.com/settings/apps"
+            target="_blank"
+            className="text-accent-primary hover:underline"
+            rel="noreferrer"
+          >
+            GitHub App settings
+          </a>
+          . Used for Install URLs like <CodeBlock darkerShade>github.com/apps/&lt;slug&gt;</CodeBlock>. Paste only the
+          slug — never the webhook secret in this field.
+        </>
+      ),
+      placeholder: "plane-dev",
+      error: Boolean(errors.GITHUB_APP_NAME),
+      required: false,
+    },
+    {
+      key: "GITHUB_APP_ID",
+      type: "text",
+      label: "GitHub App ID",
+      description: <>Numeric App ID from the GitHub App settings page (required to create installation tokens).</>,
+      placeholder: "123456",
+      error: Boolean(errors.GITHUB_APP_ID),
+      required: false,
+    },
+    {
+      key: "GITHUB_PRIVATE_KEY",
+      type: "password",
+      label: "GitHub App private key",
+      description: <>PEM private key generated for the GitHub App (paste the full key including BEGIN/END lines).</>,
+      placeholder: "-----BEGIN RSA PRIVATE KEY-----",
+      error: Boolean(errors.GITHUB_PRIVATE_KEY),
+      required: false,
+    },
+    {
+      key: "GITHUB_WEBHOOK_SECRET",
+      type: "password",
+      label: "GitHub webhook secret",
+      description: (
+        <>
+          Webhook secret from the GitHub App. Required for Plane to accept webhook deliveries (commits, PRs). Set the
+          same value on the GitHub App and here.
+        </>
+      ),
+      placeholder: "your-webhook-secret",
+      error: Boolean(errors.GITHUB_WEBHOOK_SECRET),
+      required: false,
+    },
     {
       key: "GITHUB_CLIENT_ID",
       type: "text",
@@ -65,12 +134,12 @@ export function InstanceGithubConfigForm(props: Props) {
           You will get this from your{" "}
           <a
             tabIndex={-1}
-            href="https://github.com/settings/applications/new"
+            href="https://github.com/settings/apps"
             target="_blank"
             className="text-accent-primary hover:underline"
             rel="noreferrer"
           >
-            GitHub OAuth application settings.
+            GitHub App / OAuth settings.
           </a>
         </>
       ),
@@ -87,12 +156,12 @@ export function InstanceGithubConfigForm(props: Props) {
           Your client secret is also found in your{" "}
           <a
             tabIndex={-1}
-            href="https://github.com/settings/applications/new"
+            href="https://github.com/settings/apps"
             target="_blank"
             className="text-accent-primary hover:underline"
             rel="noreferrer"
           >
-            GitHub OAuth application settings.
+            GitHub App / OAuth settings.
           </a>
         </>
       ),
@@ -120,7 +189,7 @@ export function InstanceGithubConfigForm(props: Props) {
     {
       key: "Origin_URL",
       label: "Origin URL",
-      url: originURL,
+      url: webOrigin,
       description: (
         <>
           We will auto-generate this. Paste this into the <CodeBlock darkerShade>Authorized origin URL</CodeBlock> field{" "}
@@ -142,14 +211,14 @@ export function InstanceGithubConfigForm(props: Props) {
     {
       key: "Callback_URI",
       label: "Callback URI",
-      url: `${originURL}/auth/github/callback/`,
+      url: `${apiOrigin}/auth/github/callback/`,
       description: (
         <>
           We will auto-generate this. Paste this into your <CodeBlock darkerShade>Authorized Callback URI</CodeBlock>{" "}
           field{" "}
           <a
             tabIndex={-1}
-            href="https://github.com/settings/applications/new"
+            href="https://github.com/settings/apps"
             target="_blank"
             className="text-accent-primary hover:underline"
             rel="noreferrer"
@@ -159,10 +228,64 @@ export function InstanceGithubConfigForm(props: Props) {
         </>
       ),
     },
+    {
+      key: "App_Setup_URL",
+      label: "GitHub App setup URL",
+      url: `${webOrigin}/installations/github`,
+      description: (
+        <>
+          Paste this into the GitHub App <CodeBlock darkerShade>Setup URL</CodeBlock> (after installation callback).
+          Enable <CodeBlock darkerShade>Redirect on update</CodeBlock> so permission changes return to Plane.
+        </>
+      ),
+    },
+    {
+      key: "Webhook_URL",
+      label: "Webhook URL",
+      url: `${apiOrigin}/api/hooks/github/`,
+      description: (
+        <>
+          Paste this into the GitHub App <CodeBlock darkerShade>Webhook URL</CodeBlock> field. The URL must be publicly
+          reachable. Also set repository permissions: Contents (R/W), Metadata (R), Pull requests (R/W); subscribe to
+          create, push, and pull_request.
+        </>
+      ),
+    },
   ];
 
   const onSubmit = async (formData: GithubConfigFormValues) => {
-    const payload: Partial<GithubConfigFormValues> = { ...formData };
+    const rawSlug = formData.GITHUB_APP_NAME || "";
+    const sanitizedSlug = rawSlug.trim().split(/\s+/)[0] || "";
+    if (rawSlug.trim() && rawSlug.trim() !== sanitizedSlug) {
+      setToast({
+        type: TOAST_TYPE.INFO,
+        title: "App slug cleaned",
+        message: "Only the first token was saved as the App slug. Put secrets in the Webhook secret field instead.",
+      });
+    }
+    if (sanitizedSlug && !GITHUB_APP_SLUG_PATTERN.test(sanitizedSlug)) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Invalid App slug",
+        message: "GitHub App slug must be lowercase letters, numbers, and hyphens only.",
+      });
+      return;
+    }
+
+    const privateKey = (formData.GITHUB_PRIVATE_KEY || "").trim();
+    if (privateKey && (!privateKey.includes("BEGIN") || !privateKey.includes("PRIVATE KEY"))) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Invalid private key",
+        message: "Paste the full PEM including -----BEGIN ... PRIVATE KEY----- lines.",
+      });
+      return;
+    }
+
+    const payload: Partial<GithubConfigFormValues> = {
+      ...formData,
+      GITHUB_APP_NAME: sanitizedSlug,
+    };
 
     try {
       const response = await updateInstanceConfigurations(payload);
@@ -172,13 +295,23 @@ export function InstanceGithubConfigForm(props: Props) {
         message: "Your GitHub authentication is configured. You should test it now.",
       });
       reset({
+        GITHUB_APP_NAME: response.find((item) => item.key === "GITHUB_APP_NAME")?.value || "",
+        GITHUB_APP_ID: response.find((item) => item.key === "GITHUB_APP_ID")?.value || "",
+        GITHUB_PRIVATE_KEY: response.find((item) => item.key === "GITHUB_PRIVATE_KEY")?.value || "",
+        GITHUB_WEBHOOK_SECRET: response.find((item) => item.key === "GITHUB_WEBHOOK_SECRET")?.value || "",
         GITHUB_CLIENT_ID: response.find((item) => item.key === "GITHUB_CLIENT_ID")?.value,
         GITHUB_CLIENT_SECRET: response.find((item) => item.key === "GITHUB_CLIENT_SECRET")?.value,
         GITHUB_ORGANIZATION_ID: response.find((item) => item.key === "GITHUB_ORGANIZATION_ID")?.value,
         ENABLE_GITHUB_SYNC: response.find((item) => item.key === "ENABLE_GITHUB_SYNC")?.value,
       });
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      const message =
+        err?.data?.error || err?.response?.data?.error || "Could not save GitHub configuration. Please try again.";
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error",
+        message,
+      });
     }
   };
 
