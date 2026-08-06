@@ -17,6 +17,7 @@ import type { IIssueDisplayProperties, TIssue, TIssueMap } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // components
 import { DropIndicator } from "@plane/ui";
+import { cn } from "@plane/utils";
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 import { ListLoaderItemRow } from "@/components/ui/loader/layouts/list-layout-loader";
 // hooks
@@ -48,6 +49,8 @@ type Props = {
   isEpic?: boolean;
 };
 
+type TDropInstruction = "DRAG_OVER" | "DRAG_BELOW" | "MAKE_CHILD" | undefined;
+
 export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
   const {
     issueId,
@@ -70,16 +73,18 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
   } = props;
   // states
   const [isExpanded, setExpanded] = useState<boolean>(false);
-  const [instruction, setInstruction] = useState<"DRAG_OVER" | "DRAG_BELOW" | undefined>(undefined);
+  const [instruction, setInstruction] = useState<TDropInstruction>(undefined);
   const [isCurrentBlockDragging, setIsCurrentBlockDragging] = useState(false);
   // ref
   const issueBlockRef = useRef<HTMLDivElement | null>(null);
   // hooks
   const { isMobile } = usePlatformOS();
-  // store hooks
-  const { subIssues: subIssuesStore } = useIssueDetail(isEpic ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES);
+  // Always use ISSUES for sub-issue hierarchy (epics are Issue rows; CE has no /epics/ hierarchy routes)
+  const { subIssues: subIssuesStore } = useIssueDetail(EIssueServiceType.ISSUES);
 
   const isSubIssue = nestingLevel !== 0;
+  // Allow drop for nesting even when reorder is disabled (e.g. order_by !== sort_order)
+  const canAcceptDrop = !isSubIssue && (canDropOverIssue || isDragAllowed);
 
   useEffect(() => {
     const blockElement = issueBlockRef.current;
@@ -89,22 +94,28 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
     return combine(
       dropTargetForElements({
         element: blockElement,
-        canDrop: ({ source }) => source?.data?.id !== issueId && !isSubIssue && canDropOverIssue,
+        canDrop: ({ source }) => source?.data?.id !== issueId && canAcceptDrop,
         getData: ({ input, element }) => {
           const data = { id: issueId, type: "ISSUE" };
 
-          // attach instruction for last in list
+          // When reorder is disabled, only allow make-child (nest under this row)
+          const block = canDropOverIssue ? [] : (["reorder-above", "reorder-below"] as const);
+
           return attachInstruction(data, {
             input,
             element,
             currentLevel: 0,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
+            block: [...block],
           });
         },
         onDrag: ({ self }) => {
           const extractedInstruction = extractInstruction(self?.data)?.type;
-          // check if the highlight is to be shown above or below
+          if (extractedInstruction === "make-child") {
+            setInstruction("MAKE_CHILD");
+            return;
+          }
           setInstruction(
             extractedInstruction
               ? extractedInstruction === "reorder-below" && isLastChild
@@ -121,7 +132,7 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
         },
       })
     );
-  }, [issueId, isLastChild, issueBlockRef, isSubIssue, canDropOverIssue, setInstruction]);
+  }, [issueId, isLastChild, issueBlockRef, canAcceptDrop, canDropOverIssue, setInstruction]);
 
   useOutsideClickDetector(issueBlockRef, () => {
     issueBlockRef?.current?.classList?.remove(HIGHLIGHT_CLASS);
@@ -131,7 +142,13 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
 
   const subIssues = subIssuesStore.subIssuesByIssueId(issueId);
   return (
-    <div className="relative" ref={issueBlockRef} id={getIssueBlockId(issueId, groupId)}>
+    <div
+      className={cn("relative", {
+        "rounded-sm ring-2 ring-accent-strong/40 ring-inset": instruction === "MAKE_CHILD",
+      })}
+      ref={issueBlockRef}
+      id={getIssueBlockId(issueId, groupId)}
+    >
       <DropIndicator classNames={"absolute top-0 z-[2]"} isVisible={instruction === "DRAG_OVER"} />
       <RenderIfVisible
         key={`${issueId}`}
@@ -163,7 +180,6 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
       </RenderIfVisible>
 
       {isExpanded &&
-        !isEpic &&
         subIssues?.map((subIssueId) => (
           <IssueBlockRoot
             key={`${subIssueId}`}
@@ -182,6 +198,7 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
             canDropOverIssue={canDropOverIssue}
             isParentIssueBeingDragged={isParentIssueBeingDragged || isCurrentBlockDragging}
             shouldRenderByDefault={isExpanded}
+            isEpic={isEpic}
           />
         ))}
       {isLastChild && <DropIndicator classNames={"absolute z-[2]"} isVisible={instruction === "DRAG_BELOW"} />}

@@ -14,7 +14,6 @@ import type { TEstimateSystemKeys } from "@plane/types";
 import { convertMinutesToHoursMinutesString } from "@plane/utils";
 // plane web imports
 import { isEstimateSystemEnabled } from "@/plane-web/components/estimates/helper";
-import { UpgradeBadge } from "@/plane-web/components/workspace/upgrade-badge";
 import { RadioInput } from "../radio-select";
 // local imports
 
@@ -50,11 +49,6 @@ export function EstimateCreateStageOne(props: TEstimateCreateStageOne) {
                       <Info size={12} />
                     </Tooltip>
                   </div>
-                ) : !isEnabled ? (
-                  <div className="relative flex cursor-no-drop items-center gap-2 text-tertiary">
-                    {t(ESTIMATE_SYSTEMS[currentSystem]?.i18n_name)}
-                    <UpgradeBadge />
-                  </div>
                 ) : (
                   <div>{t(ESTIMATE_SYSTEMS[currentSystem]?.i18n_name)}</div>
                 ),
@@ -80,6 +74,7 @@ export function EstimateCreateStageOne(props: TEstimateCreateStageOne) {
               {t("project_settings.estimates.create.start_from_scratch")}
             </div>
             <button
+              type="button"
               className="block w-full space-y-1 rounded-md border border-subtle p-3 py-2.5 text-left hover:bg-layer-transparent-hover"
               onClick={() => handleEstimatePoints("custom")}
             >
@@ -100,6 +95,7 @@ export function EstimateCreateStageOne(props: TEstimateCreateStageOne) {
                 currentEstimateSystem.templates[name]?.hide ? null : (
                   <button
                     key={name}
+                    type="button"
                     className="space-y-1 rounded-md border border-subtle p-3 py-2.5 text-left hover:bg-surface-2"
                     onClick={() => handleEstimatePoints(name)}
                   >

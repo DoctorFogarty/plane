@@ -7,17 +7,24 @@
 import type { RefObject } from "react";
 import { useState } from "react";
 import { observer } from "mobx-react";
+import { useParams } from "next/navigation";
 // ui
-import { GANTT_TIMELINE_TYPE } from "@plane/types";
-import type { IBlockUpdateData } from "@plane/types";
+import { GANTT_TIMELINE_TYPE, EIssueServiceType, EIssuesStoreType } from "@plane/types";
+import type { IBlockUpdateData, TIssue } from "@plane/types";
 import { Loader } from "@plane/ui";
 // components
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
+import { canNestUnder } from "@/components/issues/issue-layouts/hierarchy.helpers";
+import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 import { GanttLayoutListItemLoader } from "@/components/ui/loader/layouts/gantt-layout-loader";
 //hooks
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssueType } from "@/hooks/store/use-issue-type";
+import { useProject } from "@/hooks/store/use-project";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 import { useIssuesStore } from "@/hooks/use-issue-layout-store";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
+import { useIssuesActions } from "@/hooks/use-issues-actions";
 // local imports
 import { useTimeLineChart } from "../../../../hooks/use-timeline-chart";
 import { GanttDnDHOC } from "../gantt-dnd-HOC";
@@ -35,6 +42,9 @@ type Props = {
   showAllBlocks?: boolean;
   selectionHelpers?: TSelectionHelper;
   isEpic?: boolean;
+  expandedIds: Set<string>;
+  nestingLevels: Record<string, number>;
+  onToggleExpand: (blockId: string) => void;
 };
 
 export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Props) {
@@ -49,15 +59,23 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
     showAllBlocks = false,
     selectionHelpers,
     isEpic = false,
+    expandedIds,
+    nestingLevels,
+    onToggleExpand,
   } = props;
 
+  const { workspaceSlug } = useParams();
   const { getBlockById } = useTimeLineChart(GANTT_TIMELINE_TYPE.ISSUE);
-
   const {
     issues: { getIssueLoader },
   } = useIssuesStore();
+  const { subIssues: subIssuesStore, issue: issueStore } = useIssueDetail(EIssueServiceType.ISSUES);
+  const { updateIssue } = useIssuesActions(EIssuesStoreType.PROJECT);
+  const { getProjectById } = useProject();
+  const { isIssueTypeEnabled } = useIssueType();
 
   const [intersectionElement, setIntersectionElement] = useState<HTMLDivElement | null>(null);
+  const [createChildParentId, setCreateChildParentId] = useState<string | null>(null);
 
   const isPaginating = !!getIssueLoader();
 
@@ -71,21 +89,69 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
   const handleOnDrop = (
     draggingBlockId: string | undefined,
     droppedBlockId: string | undefined,
-    dropAtEndOfList: boolean
+    dropAtEndOfList: boolean,
+    makeChild?: boolean
   ) => {
+    if (makeChild && draggingBlockId && droppedBlockId) {
+      const parent = issueStore.getIssueById(droppedBlockId);
+      const child = issueStore.getIssueById(draggingBlockId);
+      const projectId = child?.project_id;
+      if (!projectId || !workspaceSlug) return;
+      const projectDetails = getProjectById(projectId);
+      const typesEnabled = isIssueTypeEnabled(projectId) || Boolean(projectDetails?.is_issue_type_enabled);
+      if (!canNestUnder(parent, child, { typesEnabled })) return;
+      const oldParentId = child?.parent_id ?? null;
+      void (async () => {
+        await updateIssue?.(projectId, draggingBlockId, { parent_id: droppedBlockId });
+        if (oldParentId) {
+          await subIssuesStore.fetchSubIssues(workspaceSlug.toString(), projectId, oldParentId);
+        }
+        await subIssuesStore.fetchSubIssues(workspaceSlug.toString(), projectId, droppedBlockId);
+        if (!expandedIds.has(droppedBlockId)) onToggleExpand(droppedBlockId);
+      })();
+      return;
+    }
     handleOrderChange(draggingBlockId, droppedBlockId, dropAtEndOfList, blockIds, getBlockById, blockUpdateHandler);
   };
 
+  const createChildIssue = createChildParentId ? issueStore.getIssueById(createChildParentId) : undefined;
+
+  // Allow nest drag even when reorder (manual sort) is disabled
+  const isNestDragEnabled = true;
+
   return (
     <div>
+      <CreateUpdateIssueModal
+        isOpen={!!createChildParentId}
+        onClose={() => setCreateChildParentId(null)}
+        data={{
+          parent_id: createChildParentId ?? undefined,
+          project_id: createChildIssue?.project_id,
+        }}
+        onSubmit={async () => {
+          if (workspaceSlug && createChildIssue?.project_id && createChildParentId) {
+            await subIssuesStore.fetchSubIssues(
+              workspaceSlug.toString(),
+              createChildIssue.project_id,
+              createChildParentId
+            );
+            if (!expandedIds.has(createChildParentId)) onToggleExpand(createChildParentId);
+          }
+        }}
+        storeType={EIssuesStoreType.PROJECT}
+      />
       {blockIds ? (
         <>
           {blockIds.map((blockId, index) => {
             const block = getBlockById(blockId);
             const isBlockVisibleOnSidebar = block?.start_date && block?.target_date;
+            const nestingLevel = nestingLevels[blockId] ?? 0;
 
             // hide the block if it doesn't have start and target dates and showAllBlocks is false
             if (!block || (!showAllBlocks && !isBlockVisibleOnSidebar)) return;
+
+            const issue = issueStore.getIssueById(blockId) as TIssue | undefined;
+            const subIssuesCount = issue?.sub_issues_count ?? 0;
 
             return (
               <RenderIfVisible
@@ -99,7 +165,8 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
                 <GanttDnDHOC
                   id={block.id}
                   isLastChild={index === blockIds.length - 1}
-                  isDragEnabled={enableReorder}
+                  isDragEnabled={enableReorder || isNestDragEnabled}
+                  enableReorderOnly={enableReorder}
                   onDrop={handleOnDrop}
                 >
                   {(isDragging: boolean) => (
@@ -109,6 +176,11 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
                       isDragging={isDragging}
                       selectionHelpers={selectionHelpers}
                       isEpic={isEpic}
+                      nestingLevel={nestingLevel}
+                      subIssuesCount={subIssuesCount}
+                      isExpanded={expandedIds.has(blockId)}
+                      onToggleExpand={() => onToggleExpand(blockId)}
+                      onAddChild={() => setCreateChildParentId(blockId)}
                     />
                   )}
                 </GanttDnDHOC>

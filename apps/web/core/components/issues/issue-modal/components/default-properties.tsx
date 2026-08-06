@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import type { Control } from "react-hook-form";
-import { Controller } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 import { ETabIndices, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { ParentPropertyIcon } from "@plane/propel/icons";
@@ -29,6 +29,7 @@ import { IssueLabelSelect } from "@/components/issues/select";
 // helpers
 // hooks
 import { useProjectEstimates } from "@/hooks/store/estimates";
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -71,8 +72,14 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
   const { getProjectById } = useProject();
   const { isMobile } = usePlatformOS();
   const { allowPermissions } = useUserPermissions();
+  const { typeMap, isIssueTypeEnabled } = useIssueType();
+  const typeId = useWatch({ control, name: "type_id" });
   // derived values
   const projectDetails = getProjectById(projectId);
+  const selectedType = typeId ? typeMap[typeId] : undefined;
+  const typesEnabled =
+    (projectId ? isIssueTypeEnabled(projectId) : false) || Boolean(projectDetails?.is_issue_type_enabled);
+  const searchEpicParents = typesEnabled && !selectedType?.is_epic;
 
   const { getIndex } = getTabIndex(ETabIndices.ISSUE_FORM, isMobile);
 
@@ -335,6 +342,7 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
             }}
             projectId={projectId ?? undefined}
             issueId={isDraft ? undefined : id}
+            searchEpic={searchEpicParents}
           />
         )}
       />

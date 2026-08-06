@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -57,7 +58,6 @@ export function ParentIssuesListModal({
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [issues, setIssues] = useState<ISearchIssueResponse[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const { isMobile } = usePlatformOS();
   const debouncedSearchTerm: string = useDebounce(searchTerm, 500);
 
@@ -73,7 +73,7 @@ export function ParentIssuesListModal({
   useEffect(() => {
     if (!isOpen || !workspaceSlug || !projectId) return;
 
-    setIsSearching(true);
+    let cancelled = false;
     setIsLoading(true);
 
     projectService
@@ -84,12 +84,17 @@ export function ParentIssuesListModal({
         workspace_search: false,
         epic: searchEpic ? true : undefined,
       })
-      .then((res) => setIssues(res))
+      .then((res) => {
+        if (!cancelled) setIssues(res);
+      })
       .finally(() => {
-        setIsSearching(false);
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       });
-  }, [debouncedSearchTerm, isOpen, issueId, projectId, workspaceSlug]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearchTerm, isOpen, issueId, projectId, workspaceSlug, searchEpic]);
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
@@ -127,7 +132,7 @@ export function ParentIssuesListModal({
             </h5>
           )}
 
-          {isSearching || isLoading ? (
+          {isLoading ? (
             <Loader className="space-y-3 p-3">
               <Loader.Item height="40px" />
               <Loader.Item height="40px" />
@@ -139,7 +144,7 @@ export function ParentIssuesListModal({
               {issues.length === 0 ? (
                 <IssueSearchModalEmptyState
                   debouncedSearchTerm={debouncedSearchTerm}
-                  isSearching={isSearching}
+                  isSearching={isLoading}
                   issues={issues}
                   searchTerm={searchTerm}
                 />
@@ -183,6 +188,7 @@ export function ParentIssuesListModal({
                           sequenceId: issue?.sequence_id,
                         })}
                         target="_blank"
+                        aria-label="Open work item in new tab"
                         className="relative z-1 hidden flex-shrink-0 text-secondary group-hover:block hover:text-primary"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}

@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow, no-unused-expressions, promise/always-return */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -12,21 +13,31 @@ import { observer } from "mobx-react";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { DropIndicator } from "@plane/ui";
+import { cn } from "@plane/utils";
 import { HIGHLIGHT_WITH_LINE, highlightIssueOnDrop } from "@/components/issues/issue-layouts/utils";
 
 type Props = {
   id: string;
   isLastChild: boolean;
   isDragEnabled: boolean;
+  /** When false, only make-child nest drops are allowed (reorder blocked) */
+  enableReorderOnly?: boolean;
   children: (isDragging: boolean) => React.ReactNode;
-  onDrop: (draggingBlockId: string | undefined, droppedBlockId: string | undefined, dropAtEndOfList: boolean) => void;
+  onDrop: (
+    draggingBlockId: string | undefined,
+    droppedBlockId: string | undefined,
+    dropAtEndOfList: boolean,
+    makeChild?: boolean
+  ) => void;
 };
 
+type TInstruction = "DRAG_OVER" | "DRAG_BELOW" | "MAKE_CHILD" | undefined;
+
 export const GanttDnDHOC = observer(function GanttDnDHOC(props: Props) {
-  const { id, isLastChild, children, onDrop, isDragEnabled } = props;
+  const { id, isLastChild, children, onDrop, isDragEnabled, enableReorderOnly = true } = props;
   // states
   const [isDragging, setIsDragging] = useState(false);
-  const [instruction, setInstruction] = useState<"DRAG_OVER" | "DRAG_BELOW" | undefined>(undefined);
+  const [instruction, setInstruction] = useState<TInstruction>(undefined);
   // refs
   const blockRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,18 +64,23 @@ export const GanttDnDHOC = observer(function GanttDnDHOC(props: Props) {
         getData: ({ input, element }) => {
           const data = { id };
 
-          // attach instruction for last in list
+          const block = enableReorderOnly ? [] : (["reorder-above", "reorder-below"] as const);
+
           return attachInstruction(data, {
             input,
             element,
             currentLevel: 0,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
+            block: [...block],
           });
         },
         onDrag: ({ self }) => {
           const extractedInstruction = extractInstruction(self?.data)?.type;
-          // check if the highlight is to be shown above or below
+          if (extractedInstruction === "make-child") {
+            setInstruction("MAKE_CHILD");
+            return;
+          }
           setInstruction(
             extractedInstruction
               ? extractedInstruction === "reorder-below" && isLastChild
@@ -79,29 +95,38 @@ export const GanttDnDHOC = observer(function GanttDnDHOC(props: Props) {
         onDrop: ({ self, source }) => {
           setInstruction(undefined);
           const extractedInstruction = extractInstruction(self?.data)?.type;
+
+          const sourceId = source?.data?.id as string | undefined;
+          const destinationId = self?.data?.id as string | undefined;
+
+          if (extractedInstruction === "make-child") {
+            onDrop(sourceId, destinationId, false, true);
+            highlightIssueOnDrop(source?.element?.id, false, true);
+            return;
+          }
+
           const currentInstruction = extractedInstruction
             ? extractedInstruction === "reorder-below" && isLastChild
               ? "DRAG_BELOW"
               : "DRAG_OVER"
             : undefined;
-          if (!currentInstruction) return;
+          if (!currentInstruction || !enableReorderOnly) return;
 
-          const sourceId = source?.data?.id as string | undefined;
-          const destinationId = self?.data?.id as string | undefined;
-
-          onDrop(sourceId, destinationId, currentInstruction === "DRAG_BELOW");
+          onDrop(sourceId, destinationId, currentInstruction === "DRAG_BELOW", false);
           highlightIssueOnDrop(source?.element?.id, false, true);
         },
       })
     );
-  }, [blockRef?.current, isLastChild, onDrop]);
+  }, [blockRef, isLastChild, onDrop, isDragEnabled, enableReorderOnly, id]);
 
   useOutsideClickDetector(blockRef, () => blockRef?.current?.classList?.remove(HIGHLIGHT_WITH_LINE));
 
   return (
     <div
       id={`draggable-${id}`}
-      className={"relative"}
+      className={cn("relative", {
+        "rounded-sm ring-2 ring-accent-strong/40 ring-inset": instruction === "MAKE_CHILD",
+      })}
       ref={blockRef}
       onDragStart={() => {
         if (!isDragEnabled) {

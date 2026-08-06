@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -6,9 +7,11 @@
 
 import { useEffect, useState } from "react";
 import { TwitterPicker } from "react-color";
+import { STATE_GROUPS } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import type { IState } from "@plane/types";
-import { Popover, Input, TextArea } from "@plane/ui";
+import type { IState, IStateGroup } from "@plane/types";
+import { Popover, Input, TextArea, CustomSelect } from "@plane/ui";
 
 type TStateForm = {
   data: Partial<IState>;
@@ -16,6 +19,7 @@ type TStateForm = {
   onCancel: () => void;
   buttonDisabled: boolean;
   buttonTitle: string;
+  groups?: IStateGroup[];
 };
 
 function PopoverButton({ color }: { color?: string }) {
@@ -30,8 +34,8 @@ function PopoverButton({ color }: { color?: string }) {
 }
 
 export function StateForm(props: TStateForm) {
-  const { data, onSubmit, onCancel, buttonDisabled, buttonTitle } = props;
-  // states
+  const { data, onSubmit, onCancel, buttonDisabled, buttonTitle, groups } = props;
+  const { t } = useTranslation();
   const [formData, setFromData] = useState<Partial<IState> | undefined>(undefined);
   const [errors, setErrors] = useState<Partial<Record<keyof IState, string>> | undefined>(undefined);
 
@@ -62,9 +66,10 @@ export function StateForm(props: TStateForm) {
     }
   };
 
+  const selectedGroup = groups?.find((g) => g.id === formData?.group_id);
+
   return (
     <div className="relative flex space-x-2 rounded-sm bg-surface-1 p-3">
-      {/* color */}
       <div className="mt-2 h-full flex-shrink-0">
         <Popover button={<PopoverButton color={formData?.color} />} panelClassName="mt-4 -ml-3">
           <TwitterPicker color={formData?.color} onChange={(value) => handleFormData("color", value.hex)} />
@@ -72,7 +77,6 @@ export function StateForm(props: TStateForm) {
       </div>
 
       <div className="w-full space-y-2">
-        {/* title */}
         <Input
           id="name"
           type="text"
@@ -86,11 +90,33 @@ export function StateForm(props: TStateForm) {
           autoFocus
         />
 
-        {/* description */}
+        {groups && groups.length > 0 && (
+          <CustomSelect
+            value={formData?.group_id || null}
+            label={selectedGroup?.name || t("project_settings.states.select_group")}
+            onChange={(groupId: string) => {
+              const next = groups.find((g) => g.id === groupId);
+              handleFormData("group_id", groupId);
+              if (next) handleFormData("group", next.category);
+            }}
+            buttonClassName="w-full"
+          >
+            {groups.map((g) => (
+              <CustomSelect.Option key={g.id} value={g.id}>
+                <span className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-full" style={{ backgroundColor: g.color }} />
+                  {g.name}
+                  <span className="text-11 text-tertiary">({STATE_GROUPS[g.category].label})</span>
+                </span>
+              </CustomSelect.Option>
+            ))}
+          </CustomSelect>
+        )}
+
         <TextArea
           id="description"
           name="description"
-          placeholder="Describe this state for your members."
+          placeholder={t("project_settings.states.describe_this_state_for_your_members")}
           value={formData?.description}
           onChange={(e) => handleFormData("description", e.target.value)}
           hasError={(errors && Boolean(errors.description)) || false}

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -11,14 +12,16 @@ import { attachClosestEdge, extractClosestEdge } from "@atlaskit/pragmatic-drag-
 import { observer } from "mobx-react";
 // Plane
 import type { TDraggableData } from "@plane/constants";
-import type { IState, TStateGroups, TStateOperationsCallbacks } from "@plane/types";
+import type { IState, IStateGroup, TStateGroups, TStateOperationsCallbacks } from "@plane/types";
 import { DropIndicator } from "@plane/ui";
 import { cn, getCurrentStateSequence } from "@plane/utils";
 // components
 import { StateItemTitle, StateUpdate } from "@/components/project-states";
-// helpers
+
 type TStateItem = {
   groupKey: TStateGroups;
+  groupId: string;
+  groups: IStateGroup[];
   groupedStates: Record<string, IState[]>;
   totalStates: number;
   state: IState;
@@ -31,6 +34,8 @@ type TStateItem = {
 export const StateItem = observer(function StateItem(props: TStateItem) {
   const {
     groupKey,
+    groupId,
+    groups,
     groupedStates,
     totalStates,
     state,
@@ -39,15 +44,12 @@ export const StateItem = observer(function StateItem(props: TStateItem) {
     disabled = false,
     stateItemClassName,
   } = props;
-  // ref
   const draggableElementRef = useRef<HTMLDivElement | null>(null);
-  // states
   const [updateStateModal, setUpdateStateModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggedOver, setIsDraggedOver] = useState(false);
   const [closestEdge, setClosestEdge] = useState<string | null>(null);
-  // derived values
-  const isDraggable = totalStates === 1 ? false : true;
+
   const commonStateItemListProps = {
     stateCount: totalStates,
     state: state,
@@ -68,25 +70,29 @@ export const StateItem = observer(function StateItem(props: TStateItem) {
 
   useEffect(() => {
     const elementRef = draggableElementRef.current;
-    const initialData: TDraggableData = { groupKey: groupKey, id: state.id };
+    const initialData: TDraggableData = { groupKey, groupId, id: state.id };
 
     if (elementRef && state) {
-      combine(
+      return combine(
         draggable({
           element: elementRef,
-          getInitialData: () => initialData,
+          getInitialData: () => ({ ...initialData, type: "STATE_ITEM" }),
           onDragStart: () => setIsDragging(true),
           onDrop: () => setIsDragging(false),
-          canDrag: () => isDraggable && !disabled,
+          canDrag: () => !disabled,
         }),
         dropTargetForElements({
           element: elementRef,
+          canDrop: ({ source }) => source.data.type === "STATE_ITEM",
           getData: ({ input, element }) =>
-            attachClosestEdge(initialData, {
-              input,
-              element,
-              allowedEdges: ["top", "bottom"],
-            }),
+            attachClosestEdge(
+              { ...initialData, type: "STATE_ITEM" },
+              {
+                input,
+                element,
+                allowedEdges: ["top", "bottom"],
+              }
+            ),
           onDragEnter: (args) => {
             setIsDraggedOver(true);
             setClosestEdge(extractClosestEdge(args.self.data));
@@ -103,11 +109,15 @@ export const StateItem = observer(function StateItem(props: TStateItem) {
 
             if (sourceData && destinationData && sourceData.id) {
               const destinationGroupKey = destinationData.groupKey;
+              const destinationGroupId = destinationData.groupId;
               const edge = extractClosestEdge(destinationData) || undefined;
+              const destinationStates =
+                (destinationGroupId && groupedStates[destinationGroupId]) || groupedStates[destinationGroupKey] || [];
               const payload: Partial<IState> = {
                 id: sourceData.id,
                 group: destinationGroupKey,
-                sequence: getCurrentStateSequence(groupedStates[destinationGroupKey], destinationData, edge),
+                group_id: destinationGroupId,
+                sequence: getCurrentStateSequence(destinationStates, destinationData, edge),
               };
               handleStateSequence(payload);
             }
@@ -115,8 +125,7 @@ export const StateItem = observer(function StateItem(props: TStateItem) {
         })
       );
     }
-  }, [draggableElementRef, state, groupKey, isDraggable, groupedStates, handleStateSequence, disabled]);
-  // DND ends
+  }, [state, groupKey, groupId, groupedStates, handleStateSequence, disabled]);
 
   if (updateStateModal)
     return (
@@ -125,19 +134,19 @@ export const StateItem = observer(function StateItem(props: TStateItem) {
         updateStateCallback={stateOperationsCallbacks.updateState}
         shouldTrackEvents={shouldTrackEvents}
         handleClose={() => setUpdateStateModal(false)}
+        groups={groups}
       />
     );
 
   return (
     <Fragment>
-      {/* draggable drop top indicator */}
       <DropIndicator isVisible={isDraggedOver && closestEdge === "top"} />
       <div
         ref={draggableElementRef}
         className={cn(
-          "group relative rounded-sm border border-subtle bg-surface-1 px-3.5 py-3",
+          "group relative rounded-sm border border-subtle bg-surface-1 px-3 py-2.5",
           isDragging ? `opacity-50` : `opacity-100`,
-          totalStates === 1 ? `cursor-auto` : `cursor-grab`,
+          disabled ? `cursor-auto` : `cursor-grab`,
           stateItemClassName
         )}
       >
@@ -155,7 +164,6 @@ export const StateItem = observer(function StateItem(props: TStateItem) {
           />
         )}
       </div>
-      {/* draggable drop bottom indicator */}
       <DropIndicator isVisible={isDraggedOver && closestEdge === "bottom"} />
     </Fragment>
   );

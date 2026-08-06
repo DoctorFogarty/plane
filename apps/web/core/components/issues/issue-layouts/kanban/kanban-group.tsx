@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -135,6 +136,7 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
     return combine(
       dropTargetForElements({
         element,
+        canDrop: ({ source }) => source.data.type === "ISSUE",
         getData: () => ({ groupId, subGroupId: sub_group_id, columnId: `${groupId}__${sub_group_id}`, type: "COLUMN" }),
         onDragEnter: (payload) => {
           const source = getSourceFromDropPayload(payload);

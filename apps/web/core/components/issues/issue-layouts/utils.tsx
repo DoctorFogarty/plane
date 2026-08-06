@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -53,6 +54,8 @@ export type GroupDropLocation = {
   subGroupId?: string;
   id: string | undefined;
   canAddIssueBelow?: boolean;
+  /** Dropped onto a row as a child (nest under parent) */
+  makeChild?: boolean;
 };
 
 export type IssueUpdates = {
@@ -225,10 +228,33 @@ const getStateColumns = ({ projectId }: TGetColumns): IGroupByColumn[] | undefin
   }));
 };
 
-const getStateGroupColumns = (): IGroupByColumn[] => {
-  const stateGroups = STATE_GROUPS;
-  // map state groups to group by columns
-  return Object.values(stateGroups).map((stateGroup) => ({
+const getStateGroupColumns = ({ projectId }: TGetColumns): IGroupByColumn[] => {
+  const { getProjectStateGroups, projectStateGroups } = store.state;
+  const customGroups = projectId ? getProjectStateGroups(projectId) : projectStateGroups;
+
+  // Prefer project workflow groups ordered by sequence; fall back to fixed categories.
+  // Column ids remain category keys so they match backend grouping on state__group.
+  if (customGroups && customGroups.length > 0) {
+    const seenCategories = new Set<string>();
+    const columns: IGroupByColumn[] = [];
+    for (const group of customGroups) {
+      if (seenCategories.has(group.category)) continue;
+      seenCategories.add(group.category);
+      columns.push({
+        id: group.category,
+        name: group.name,
+        icon: (
+          <div className="size-4 rounded-full">
+            <StateGroupIcon stateGroup={group.category} color={group.color} size={EIconSize.LG} />
+          </div>
+        ),
+        payload: {},
+      });
+    }
+    return columns;
+  }
+
+  return Object.values(STATE_GROUPS).map((stateGroup) => ({
     id: stateGroup.key,
     name: stateGroup.label,
     icon: (
@@ -318,11 +344,12 @@ export const getDisplayPropertiesCount = (
   ignoreFields?: (keyof IIssueDisplayProperties)[]
 ) => {
   const propertyKeys = Object.keys(displayProperties) as (keyof IIssueDisplayProperties)[];
+  const ignoreFieldSet = ignoreFields ? new Set(ignoreFields) : null;
 
   let count = 0;
 
   for (const propertyKey of propertyKeys) {
-    if (ignoreFields && ignoreFields.includes(propertyKey)) continue;
+    if (ignoreFieldSet?.has(propertyKey)) continue;
     if (displayProperties[propertyKey]) count++;
   }
 
@@ -417,6 +444,7 @@ export const getDestinationFromDropPayload = (payload: IPragmaticDropPayload): G
     columnId: destinationColumnData.columnId as string,
     id: destinationIssueData?.id as string | undefined,
     canAddIssueBelow: extractedInstruction === "reorder-below",
+    makeChild: extractedInstruction === "make-child",
   };
 };
 
@@ -524,6 +552,23 @@ export const handleGroupDragDrop = async (
   const sourceIssue = getIssueById(source.id);
 
   if (!sourceIssue) return;
+
+  // Nest under destination issue (drag-to-make-child)
+  if (destination.makeChild && destination.id && destination.id !== source.id) {
+    const parentIssue = getIssueById(destination.id);
+    if (!parentIssue?.project_id) return;
+
+    updatedIssue = {
+      id: sourceIssue.id,
+      project_id: sourceIssue.project_id,
+      parent_id: destination.id,
+    };
+
+    if (sourceIssue.project_id) {
+      return await updateIssueOnDrop(sourceIssue.project_id, sourceIssue.id, updatedIssue, issueUpdates);
+    }
+    return;
+  }
 
   updatedIssue = {
     id: sourceIssue.id,

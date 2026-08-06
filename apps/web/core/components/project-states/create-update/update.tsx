@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IState, TStateOperationsCallbacks } from "@plane/types";
+import type { IState, IStateGroup, TStateOperationsCallbacks } from "@plane/types";
 // components
 import { StateForm } from "@/components/project-states";
 
@@ -16,11 +16,11 @@ type TStateUpdate = {
   updateStateCallback: TStateOperationsCallbacks["updateState"];
   shouldTrackEvents: boolean;
   handleClose: () => void;
+  groups?: IStateGroup[];
 };
 
 export const StateUpdate = observer(function StateUpdate(props: TStateUpdate) {
-  const { state, updateStateCallback, handleClose } = props;
-  // states
+  const { state, updateStateCallback, handleClose, groups } = props;
   const [loader, setLoader] = useState(false);
 
   const onCancel = () => {
@@ -67,6 +67,7 @@ export const StateUpdate = observer(function StateUpdate(props: TStateUpdate) {
       onCancel={onCancel}
       buttonDisabled={loader}
       buttonTitle={loader ? `Updating` : `Update`}
+      groups={groups}
     />
   );
 });

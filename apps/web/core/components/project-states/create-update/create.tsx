@@ -14,15 +14,15 @@ import { StateForm } from "@/components/project-states";
 
 type TStateCreate = {
   groupKey: TStateGroups;
+  groupId: string;
   shouldTrackEvents?: boolean;
   createStateCallback: TStateOperationsCallbacks["createState"];
   handleClose: () => void;
 };
 
 export const StateCreate = observer(function StateCreate(props: TStateCreate) {
-  const { groupKey, createStateCallback, handleClose } = props;
+  const { groupKey, groupId, createStateCallback, handleClose } = props;
 
-  // states
   const [loader, setLoader] = useState(false);
 
   const onCancel = () => {
@@ -31,10 +31,10 @@ export const StateCreate = observer(function StateCreate(props: TStateCreate) {
   };
 
   const onSubmit = async (formData: Partial<IState>) => {
-    if (!groupKey) return { status: "error" };
+    if (!groupKey || !groupId) return { status: "error" };
 
     try {
-      await createStateCallback({ ...formData, group: groupKey });
+      await createStateCallback({ ...formData, group: groupKey, group_id: groupId });
 
       setToast({
         type: TOAST_TYPE.SUCCESS,
@@ -65,7 +65,7 @@ export const StateCreate = observer(function StateCreate(props: TStateCreate) {
 
   return (
     <StateForm
-      data={{ name: "", description: "", color: STATE_GROUPS[groupKey].color }}
+      data={{ name: "", description: "", color: STATE_GROUPS[groupKey].color, group: groupKey, group_id: groupId }}
       onSubmit={onSubmit}
       onCancel={onCancel}
       buttonDisabled={loader}

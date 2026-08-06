@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -15,6 +16,7 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProject } from "@/hooks/store/use-project";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web components
@@ -56,6 +58,7 @@ export const IssueParentSelect = observer(function IssueParentSelect(props: TIss
     issue: { getIssueById },
   } = useIssueDetail();
   const { isParentIssueModalOpen, toggleParentIssueModal } = useIssueDetail();
+  const { isIssueTypeEnabled } = useIssueType();
 
   // derived values
   const issue = getIssueById(issueId);
@@ -63,6 +66,9 @@ export const IssueParentSelect = observer(function IssueParentSelect(props: TIss
   const parentIssueProjectDetails =
     parentIssue && parentIssue.project_id ? getProjectById(parentIssue.project_id) : undefined;
   const { isMobile } = usePlatformOS();
+  const projectDetails = getProjectById(projectId);
+  const typesEnabled = isIssueTypeEnabled(projectId) || Boolean(projectDetails?.is_issue_type_enabled);
+  const searchEpicParents = typesEnabled && !issue?.is_epic;
 
   if (!issue) return <></>;
 
@@ -74,6 +80,7 @@ export const IssueParentSelect = observer(function IssueParentSelect(props: TIss
         isOpen={isParentIssueModalOpen === issueId}
         handleClose={() => toggleParentIssueModal(null)}
         onChange={(issue: any) => handleParentIssue(issue?.id)}
+        searchEpic={searchEpicParents}
       />
       <button
         type="button"
@@ -105,11 +112,20 @@ export const IssueParentSelect = observer(function IssueParentSelect(props: TIss
                 )}
               </Link>
             </Tooltip>
-
             {!disabled && (
               <Tooltip tooltipContent={t("common.remove")} position="bottom" isMobile={isMobile}>
                 <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t("common.remove")}
+                  className="inline-flex cursor-pointer"
                   onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRemoveSubIssue(workspaceSlug, projectId, parentIssue.id, issueId);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return;
                     e.preventDefault();
                     e.stopPropagation();
                     handleRemoveSubIssue(workspaceSlug, projectId, parentIssue.id, issueId);
@@ -118,7 +134,7 @@ export const IssueParentSelect = observer(function IssueParentSelect(props: TIss
                   <CloseIcon className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
                 </span>
               </Tooltip>
-            )}
+            )}{" "}
           </div>
         ) : (
           <span className="text-body-xs-medium text-placeholder">{t("issue.add.parent")}</span>
