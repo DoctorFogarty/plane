@@ -30,6 +30,7 @@ export interface IPartialProject {
   module_view: boolean;
   page_view: boolean;
   inbox_view: boolean;
+  is_issue_type_enabled?: boolean;
   guest_view_all_features?: boolean;
   project_lead?: IUserLite | string | null;
   network?: number;
@@ -134,15 +135,35 @@ export type IProjectMemberPreferencesFullResponse = IProjectMemberPreferencesRes
 };
 
 export interface IGithubRepository {
-  id: string;
+  id: number;
+  name: string;
   full_name: string;
   html_url: string;
+  owner: {
+    login: string;
+  };
   url: string;
 }
 
 export interface GithubRepositoriesResponse {
   repositories: IGithubRepository[];
   total_count: number;
+}
+
+export interface IProjectGithubRepositorySync {
+  id: string;
+  repository: string;
+  repo_detail: {
+    id: string;
+    name: string;
+    owner: string;
+    repository_id: number;
+    url: string;
+  };
+}
+
+export interface ISyncGithubRepositoryPayload {
+  repository_id: number;
 }
 
 export type TProjectIssuesSearchParams = {
@@ -170,7 +191,7 @@ export interface ISearchIssueResponse {
   state__group: TStateGroups;
   state__name: string;
   workspace__slug: string;
-  type_id: string;
+  type_id: string | null;
 }
 
 export type TPartialProject = IPartialProject;

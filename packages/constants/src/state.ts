@@ -8,7 +8,14 @@ import type { TStateGroups } from "@plane/types";
 
 export type TDraggableData = {
   groupKey: TStateGroups;
+  /** Project-scoped workflow group id (preferred over groupKey when present) */
+  groupId?: string;
   id: string;
+};
+
+export type TGroupDraggableData = {
+  id: string;
+  category: TStateGroups;
 };
 
 export const STATE_GROUPS: {

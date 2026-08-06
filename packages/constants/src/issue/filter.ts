@@ -149,6 +149,7 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
       "assignee_id",
       "created_by_id",
       "label_id",
+      "type_id",
       "start_date",
       "target_date",
     ],
@@ -214,6 +215,7 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
       "mention_id",
       "created_by_id",
       "label_id",
+      "type_id",
       "start_date",
       "target_date",
     ],
@@ -225,9 +227,10 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
           order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority", "target_date"],
           type: ["active", "backlog"],
         },
+        // Hierarchy layouts nest children under parents; hide flat "show sub-work items" toggle
         extra_options: {
           access: true,
-          values: ["show_empty_groups", "sub_issue"],
+          values: ["show_empty_groups"],
         },
       },
       kanban: {
@@ -259,9 +262,10 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
           order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority"],
           type: ["active", "backlog"],
         },
+        // Hierarchy layouts nest children under parents; hide flat "show sub-work items" toggle
         extra_options: {
-          access: true,
-          values: ["sub_issue"],
+          access: false,
+          values: [],
         },
       },
       gantt_chart: {
@@ -270,9 +274,10 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
           order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority"],
           type: ["active", "backlog"],
         },
+        // Hierarchy layouts nest children under parents; hide flat "show sub-work items" toggle
         extra_options: {
-          access: true,
-          values: ["sub_issue"],
+          access: false,
+          values: [],
         },
       },
     },
@@ -350,10 +355,10 @@ export const defaultActivityFilters: TActivityFilters[] = [
 ];
 
 export const filterActivityOnSelectedFilters = (
-  activity: TIssueActivityComment[],
+  activities: TIssueActivityComment[],
   filters: TActivityFilters[]
 ): TIssueActivityComment[] =>
-  activity.filter((activity) => {
+  activities.filter((activity) => {
     if (activity.activity_type === EActivityFilterType.DEFAULT) return true;
     return filters.includes(activity.activity_type as TActivityFilters);
   });

@@ -100,12 +100,26 @@ export const PROJECT_SETTINGS: Record<TProjectSettingsTabs, TProjectSettingsItem
     access: [EUserProjectRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/estimates/`,
   },
+  work_item_types: {
+    key: "work_item_types",
+    i18n_label: "project_settings.work_item_types.heading",
+    href: `/work-item-types`,
+    access: [EUserProjectRoles.ADMIN],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/work-item-types/`,
+  },
   automations: {
     key: "automations",
     i18n_label: "project_settings.automations.label",
     href: `/automations`,
     access: [EUserProjectRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/automations/`,
+  },
+  integrations: {
+    key: "integrations",
+    i18n_label: "workspace_settings.settings.integrations.title",
+    href: `/integrations`,
+    access: [EUserProjectRoles.ADMIN],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/integrations/`,
   },
 };
 
@@ -124,6 +138,7 @@ export const GROUPED_PROJECT_SETTINGS: Record<PROJECT_SETTINGS_CATEGORY, TProjec
     PROJECT_SETTINGS["states"],
     PROJECT_SETTINGS["labels"],
     PROJECT_SETTINGS["estimates"],
+    PROJECT_SETTINGS["work_item_types"],
   ],
-  [PROJECT_SETTINGS_CATEGORY.EXECUTION]: [PROJECT_SETTINGS["automations"]],
+  [PROJECT_SETTINGS_CATEGORY.EXECUTION]: [PROJECT_SETTINGS["automations"], PROJECT_SETTINGS["integrations"]],
 };

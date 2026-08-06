@@ -6,12 +6,27 @@
 
 export type TStateGroups = "backlog" | "unstarted" | "started" | "completed" | "cancelled";
 
+export interface IStateGroup {
+  readonly id: string;
+  name: string;
+  description?: string;
+  color: string;
+  sequence: number;
+  category: TStateGroups;
+  is_system: boolean;
+  project_id: string;
+  workspace_id: string;
+}
+
 export interface IState {
   readonly id: string;
   color: string;
   default: boolean;
   description: string;
+  /** Behavioral category (backlog | unstarted | …) */
   group: TStateGroups;
+  /** Project-scoped display group id */
+  group_id?: string | null;
   name: string;
   project_id: string;
   sequence: number;
@@ -22,6 +37,7 @@ export interface IState {
 export interface IStateLite {
   color: string;
   group: TStateGroups;
+  group_id?: string | null;
   id: string;
   name: string;
 }
@@ -36,4 +52,15 @@ export type TStateOperationsCallbacks = {
   deleteState: (stateId: string) => Promise<void>;
   moveStatePosition: (stateId: string, data: Partial<IState>) => Promise<void>;
   markStateAsDefault: (stateId: string) => Promise<void>;
+  createGroup?: (data: Partial<IStateGroup>) => Promise<IStateGroup>;
+  updateGroup?: (groupId: string, data: Partial<IStateGroup>) => Promise<IStateGroup | undefined>;
+  deleteGroup?: (groupId: string) => Promise<void>;
+  moveGroupPosition?: (groupId: string, data: Partial<IStateGroup>) => Promise<void>;
+};
+
+export type TStateGroupOperationsCallbacks = {
+  createGroup: (data: Partial<IStateGroup>) => Promise<IStateGroup>;
+  updateGroup: (groupId: string, data: Partial<IStateGroup>) => Promise<IStateGroup | undefined>;
+  deleteGroup: (groupId: string) => Promise<void>;
+  moveGroupPosition: (groupId: string, data: Partial<IStateGroup>) => Promise<void>;
 };

@@ -39,6 +39,10 @@ export type TInstanceGoogleAuthenticationConfigurationKeys =
   | "ENABLE_GOOGLE_SYNC";
 
 export type TInstanceGithubAuthenticationConfigurationKeys =
+  | "GITHUB_APP_NAME"
+  | "GITHUB_APP_ID"
+  | "GITHUB_PRIVATE_KEY"
+  | "GITHUB_WEBHOOK_SECRET"
   | "GITHUB_CLIENT_ID"
   | "GITHUB_CLIENT_SECRET"
   | "GITHUB_ORGANIZATION_ID"
