@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-// plane types
 import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
+import { DevelopmentCollapsible } from "./development/root";
 
 export type TWorkItemAdditionalWidgetCollapsiblesProps = {
   disabled: boolean;
@@ -16,6 +16,18 @@ export type TWorkItemAdditionalWidgetCollapsiblesProps = {
   workspaceSlug: string;
 };
 
-export function WorkItemAdditionalWidgetCollapsibles(_props: TWorkItemAdditionalWidgetCollapsiblesProps) {
-  return null;
+export function WorkItemAdditionalWidgetCollapsibles(props: TWorkItemAdditionalWidgetCollapsiblesProps) {
+  const { disabled, hideWidgets, issueServiceType, projectId, workItemId, workspaceSlug } = props;
+
+  if (hideWidgets?.includes("development")) return null;
+
+  return (
+    <DevelopmentCollapsible
+      workspaceSlug={workspaceSlug}
+      projectId={projectId}
+      issueId={workItemId}
+      disabled={disabled}
+      issueServiceType={issueServiceType}
+    />
+  );
 }

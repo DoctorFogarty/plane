@@ -11,3 +11,4 @@ export * from "./issue-type-activity";
 export * from "./parent-select-root";
 export * from "./issue-creator";
 export * from "./additional-activity-root";
+export * from "./additional-properties";

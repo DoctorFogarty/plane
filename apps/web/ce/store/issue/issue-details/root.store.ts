@@ -4,8 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { makeObservable } from "mobx";
+import { makeObservable, override } from "mobx";
 import type { TIssueServiceType } from "@plane/types";
+import { connectCodeModalStore } from "@/plane-web/store/connect-code-modal.store";
 import type { IIssueDetail as IIssueDetailCore } from "@/store/issue/issue-details/root.store";
 import { IssueDetail as IssueDetailCore } from "@/store/issue/issue-details/root.store";
 import type { IIssueRootStore } from "@/store/issue/root.store";
@@ -16,7 +17,14 @@ export class IssueDetail extends IssueDetailCore {
   constructor(rootStore: IIssueRootStore, serviceType: TIssueServiceType) {
     super(rootStore, serviceType);
     makeObservable(this, {
-      // observables
+      isAnyModalOpen: override,
     });
+  }
+
+  override get isAnyModalOpen(): boolean {
+    const isConnectCodeOpenForPeek =
+      connectCodeModalStore.isOpen && connectCodeModalStore.workItemId === this.peekIssue?.issueId;
+
+    return super.isAnyModalOpen || isConnectCodeOpenForPeek;
   }
 }

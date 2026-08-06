@@ -4,8 +4,10 @@
  * See the LICENSE file for details.
  */
 
-// plane types
+import { GitBranchPlus } from "lucide-react";
 import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
+import { IssueDetailWidgetButton } from "@/components/issues/issue-detail-widgets/widget-button";
+import { connectCodeModalStore } from "@/plane-web/store/connect-code-modal.store";
 
 export type TWorkItemAdditionalWidgetActionButtonsProps = {
   disabled: boolean;
@@ -16,6 +18,17 @@ export type TWorkItemAdditionalWidgetActionButtonsProps = {
   workspaceSlug: string;
 };
 
-export function WorkItemAdditionalWidgetActionButtons(_props: TWorkItemAdditionalWidgetActionButtonsProps) {
-  return null;
+export function WorkItemAdditionalWidgetActionButtons(props: TWorkItemAdditionalWidgetActionButtonsProps) {
+  const { disabled, hideWidgets, workItemId } = props;
+
+  if (hideWidgets?.includes("development")) return null;
+
+  return (
+    <IssueDetailWidgetButton
+      title="Connect code"
+      icon={<GitBranchPlus className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={2} />}
+      disabled={disabled}
+      onClick={() => connectCodeModalStore.open(workItemId, "create_branch")}
+    />
+  );
 }

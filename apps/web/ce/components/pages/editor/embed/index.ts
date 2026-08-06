@@ -4,4 +4,5 @@
  * See the LICENSE file for details.
  */
 
-export * from "./issue-embed-upgrade-card";
+/** Self-host CE: paid issue-embed upgrade card intentionally omitted. */
+export const ISSUE_EMBED_UPGRADE_DISABLED = true;
