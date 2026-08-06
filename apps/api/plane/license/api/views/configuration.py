@@ -41,20 +41,58 @@ class InstanceConfigurationEndpoint(BaseAPIView):
     @invalidate_cache(path="/api/instances/configurations/", user=False)
     @invalidate_cache(path="/api/instances/", user=False)
     def patch(self, request):
-        configurations = InstanceConfiguration.objects.filter(key__in=request.data.keys())
+        from plane.utils.github import normalize_github_app_name, validate_private_key
+        from plane.utils.instance_config_variables import instance_config_variables
 
-        bulk_configurations = []
-        for configuration in configurations:
-            raw_value = request.data.get(configuration.key, configuration.value)
+        config_meta = {item.get("key"): item for item in instance_config_variables}
+        existing = {
+            configuration.key: configuration
+            for configuration in InstanceConfiguration.objects.filter(key__in=request.data.keys())
+        }
+
+        bulk_update = []
+        created = []
+        for key, raw_value in request.data.items():
             value = "" if raw_value is None else str(raw_value).strip()
-            if configuration.is_encrypted:
-                configuration.value = encrypt_data(value)
+            if key == "GITHUB_APP_NAME":
+                value = normalize_github_app_name(value)
+            elif key == "GITHUB_PRIVATE_KEY":
+                try:
+                    value = validate_private_key(value)
+                except ValueError as exc:
+                    return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+            meta = config_meta.get(key, {})
+            is_encrypted = bool(meta.get("is_encrypted", False))
+            stored_value = encrypt_data(value) if is_encrypted else value
+
+            configuration = existing.get(key)
+            if configuration:
+                configuration.value = stored_value
+                # Keep encryption flag in sync with the catalog when known
+                if key in config_meta:
+                    configuration.is_encrypted = is_encrypted
+                    if meta.get("category"):
+                        configuration.category = meta.get("category")
+                bulk_update.append(configuration)
             else:
-                configuration.value = value
-            bulk_configurations.append(configuration)
+                created.append(
+                    InstanceConfiguration(
+                        key=key,
+                        value=stored_value,
+                        category=meta.get("category") or "GITHUB",
+                        is_encrypted=is_encrypted,
+                    )
+                )
 
-        InstanceConfiguration.objects.bulk_update(bulk_configurations, ["value"], batch_size=100)
+        if bulk_update:
+            InstanceConfiguration.objects.bulk_update(
+                bulk_update, ["value", "is_encrypted", "category"], batch_size=100
+            )
+        if created:
+            InstanceConfiguration.objects.bulk_create(created, batch_size=100)
 
+        configurations = InstanceConfiguration.objects.filter(key__in=request.data.keys())
         serializer = InstanceConfigurationSerializer(configurations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

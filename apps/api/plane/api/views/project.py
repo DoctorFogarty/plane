@@ -29,6 +29,7 @@ from plane.db.models import (
     ProjectMember,
     State,
     DEFAULT_STATES,
+    seed_project_state_groups,
     Workspace,
     UserFavorite,
     Label,
@@ -252,6 +253,10 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
                             role=20,
                         )
 
+                    category_to_group = seed_project_state_groups(
+                        serializer.instance, created_by=request.user
+                    )
+
                     State.objects.bulk_create(
                         [
                             State(
@@ -261,6 +266,7 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
                                 sequence=state["sequence"],
                                 workspace=serializer.instance.workspace,
                                 group=state["group"],
+                                workflow_group=category_to_group.get(state["group"]),
                                 default=state.get("default", False),
                                 created_by=request.user,
                             )

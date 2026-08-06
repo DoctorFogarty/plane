@@ -8,5 +8,7 @@ from .github import (
     GithubRepositorySync,
     GithubIssueSync,
     GithubCommentSync,
+    IssueGithubBranch,
+    IssueGithubPullRequest,
 )
 from .slack import SlackProjectSync

@@ -80,6 +80,10 @@ def create_project_members(workspace, project, members):
 
 
 def create_states(workspace, project, user_id):
+    from plane.db.models import seed_project_state_groups
+
+    category_to_group = seed_project_state_groups(project, created_by=user_id)
+
     states = [
         {
             "name": "Backlog",
@@ -113,6 +117,7 @@ def create_states(workspace, project, user_id):
                 sequence=state["sequence"],
                 workspace=workspace,
                 group=state["group"],
+                workflow_group=category_to_group.get(state["group"]),
                 default=state.get("default", False),
                 created_by_id=user_id,
             )

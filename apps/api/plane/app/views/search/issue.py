@@ -100,6 +100,7 @@ class IssueSearchEndpoint(BaseAPIView):
         query = request.query_params.get("search", False)
         workspace_search = request.query_params.get("workspace_search", "false")
         parent = request.query_params.get("parent", "false")
+        epic = request.query_params.get("epic", "false")
         issue_relation = request.query_params.get("issue_relation", "false")
         cycle = request.query_params.get("cycle", "false")
         module = request.query_params.get("module", False)
@@ -122,6 +123,11 @@ class IssueSearchEndpoint(BaseAPIView):
 
         if parent == "true" and issue_id:
             issues = self.search_issues_and_excluding_parent(issues, issue_id)
+
+        if epic == "true":
+            issues = issues.filter(type__is_epic=True)
+            if issue_id:
+                issues = self.search_issues_and_excluding_parent(issues, issue_id)
 
         if issue_relation == "true" and issue_id:
             issues = self.filter_issues_excluding_related_issues(issue_id, issues)
@@ -156,6 +162,7 @@ class IssueSearchEndpoint(BaseAPIView):
                 "state__name",
                 "state__group",
                 "state__color",
+                "type_id",
             )[:100],
             status=status.HTTP_200_OK,
         )

@@ -85,3 +85,52 @@ class GithubCommentSync(ProjectBaseModel):
         verbose_name_plural = "Github Comment Syncs"
         db_table = "github_comment_syncs"
         ordering = ("-created_at",)
+
+
+class IssueGithubBranch(ProjectBaseModel):
+    issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="github_branches")
+    repository = models.ForeignKey(
+        "db.GithubRepository", on_delete=models.CASCADE, related_name="issue_branches"
+    )
+    name = models.CharField(max_length=500)
+    head_sha = models.CharField(max_length=64, blank=True, default="")
+    url = models.URLField(blank=True, default="")
+    status = models.CharField(max_length=50, default="active")
+    metadata = models.JSONField(default=dict)
+
+    def __str__(self):
+        return f"{self.name} <{self.issue_id}>"
+
+    class Meta:
+        unique_together = ["issue", "repository", "name"]
+        verbose_name = "Issue Github Branch"
+        verbose_name_plural = "Issue Github Branches"
+        db_table = "issue_github_branches"
+        ordering = ("-created_at",)
+
+
+class IssueGithubPullRequest(ProjectBaseModel):
+    issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="github_pull_requests")
+    repository = models.ForeignKey(
+        "db.GithubRepository", on_delete=models.CASCADE, related_name="issue_pull_requests"
+    )
+    number = models.PositiveIntegerField()
+    github_id = models.BigIntegerField(null=True, blank=True)
+    title = models.CharField(max_length=500, blank=True, default="")
+    state = models.CharField(max_length=50, default="open")
+    draft = models.BooleanField(default=False)
+    merged = models.BooleanField(default=False)
+    html_url = models.URLField(blank=True, default="")
+    head_branch = models.CharField(max_length=500, blank=True, default="")
+    base_branch = models.CharField(max_length=500, blank=True, default="")
+    metadata = models.JSONField(default=dict)
+
+    def __str__(self):
+        return f"PR #{self.number} <{self.issue_id}>"
+
+    class Meta:
+        unique_together = ["issue", "repository", "number"]
+        verbose_name = "Issue Github Pull Request"
+        verbose_name_plural = "Issue Github Pull Requests"
+        db_table = "issue_github_pull_requests"
+        ordering = ("-created_at",)

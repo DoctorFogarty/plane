@@ -30,7 +30,7 @@ from .issue import (
     IssueRelationSerializer,
     RelatedIssueSerializer,
 )
-from .state import StateLiteSerializer, StateSerializer
+from .state import StateLiteSerializer, StateSerializer, ProjectStateGroupSerializer
 from .cycle import (
     CycleSerializer,
     CycleIssueSerializer,

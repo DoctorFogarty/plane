@@ -45,7 +45,7 @@ from .project import (
     ProjectMemberRoleSerializer,
     ProjectMemberPreferenceSerializer,
 )
-from .state import StateSerializer, StateLiteSerializer
+from .state import StateSerializer, StateLiteSerializer, ProjectStateGroupSerializer
 from .view import IssueViewSerializer, ViewIssueListSerializer
 from .cycle import (
     CycleSerializer,
@@ -134,4 +134,20 @@ from .draft import (
     DraftIssueCreateSerializer,
     DraftIssueSerializer,
     DraftIssueDetailSerializer,
+)
+
+from .issue_type import (
+    IssueTypeSerializer,
+    IssuePropertySerializer,
+    IssuePropertyOptionSerializer,
+    IssuePropertyValueSerializer,
+)
+
+from .integration import (
+    IntegrationSerializer,
+    WorkspaceIntegrationSerializer,
+    GithubRepositorySerializer,
+    GithubRepositorySyncSerializer,
+    IssueGithubBranchSerializer,
+    IssueGithubPullRequestSerializer,
 )

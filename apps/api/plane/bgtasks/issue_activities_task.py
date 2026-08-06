@@ -25,6 +25,7 @@ from plane.db.models import (
     IssueComment,
     IssueReaction,
     IssueSubscriber,
+    IssueType,
     Label,
     Module,
     Project,
@@ -180,6 +181,46 @@ def track_priority(
                 project_id=project_id,
                 workspace_id=workspace_id,
                 comment="updated the priority to",
+                epoch=epoch,
+            )
+        )
+
+
+# Track changes in work item type
+def track_type(
+    requested_data,
+    current_instance,
+    issue_id,
+    project_id,
+    workspace_id,
+    actor_id,
+    issue_activities,
+    epoch,
+):
+    current_type_id = current_instance.get("type_id") or current_instance.get("type")
+    requested_type_id = requested_data.get("type_id") or requested_data.get("type")
+
+    if current_type_id is not None and not is_valid_uuid(str(current_type_id)):
+        current_type_id = None
+    if requested_type_id is not None and not is_valid_uuid(str(requested_type_id)):
+        requested_type_id = None
+
+    if str(current_type_id) != str(requested_type_id):
+        old_type = IssueType.objects.filter(pk=current_type_id).first() if current_type_id else None
+        new_type = IssueType.objects.filter(pk=requested_type_id).first() if requested_type_id else None
+        issue_activities.append(
+            IssueActivity(
+                issue_id=issue_id,
+                actor_id=actor_id,
+                verb="updated",
+                old_value=old_type.name if old_type else None,
+                new_value=new_type.name if new_type else None,
+                field="type",
+                project_id=project_id,
+                workspace_id=workspace_id,
+                comment="updated the work item type to",
+                old_identifier=old_type.id if old_type else None,
+                new_identifier=new_type.id if new_type else None,
                 epoch=epoch,
             )
         )
@@ -614,6 +655,8 @@ def update_issue_activity(
         "estimate_point": track_estimate_points,
         "archived_at": track_archive_at,
         "closed_to": track_closed_to,
+        "type_id": track_type,
+        "type": track_type,
         # External endpoint keys
         "parent": track_parent,
         "state": track_state,
@@ -1008,6 +1051,116 @@ def delete_link_activity(
             actor_id=actor_id,
             field="link",
             old_value=current_instance.get("url", ""),
+            new_value="",
+            epoch=epoch,
+        )
+    )
+
+
+def create_github_branch_activity(
+    requested_data,
+    current_instance,
+    issue_id,
+    project_id,
+    actor_id,
+    workspace_id,
+    issue_activities,
+    epoch,
+):
+    requested_data = json.loads(requested_data) if requested_data is not None else None
+    issue_activities.append(
+        IssueActivity(
+            issue_id=issue_id,
+            project_id=project_id,
+            workspace_id=workspace_id,
+            comment="linked a GitHub branch",
+            verb="created",
+            actor_id=actor_id,
+            field="github_branch",
+            new_value=(requested_data or {}).get("name", ""),
+            new_identifier=(requested_data or {}).get("id", None),
+            epoch=epoch,
+        )
+    )
+
+
+def delete_github_branch_activity(
+    requested_data,
+    current_instance,
+    issue_id,
+    project_id,
+    workspace_id,
+    actor_id,
+    issue_activities,
+    epoch,
+):
+    requested_data = json.loads(requested_data) if requested_data is not None else None
+    issue_activities.append(
+        IssueActivity(
+            issue_id=issue_id,
+            project_id=project_id,
+            workspace_id=workspace_id,
+            comment="unlinked a GitHub branch",
+            verb="deleted",
+            actor_id=actor_id,
+            field="github_branch",
+            old_value=(requested_data or {}).get("name", ""),
+            new_value="",
+            epoch=epoch,
+        )
+    )
+
+
+def create_github_pull_request_activity(
+    requested_data,
+    current_instance,
+    issue_id,
+    project_id,
+    actor_id,
+    workspace_id,
+    issue_activities,
+    epoch,
+):
+    requested_data = json.loads(requested_data) if requested_data is not None else None
+    title = (requested_data or {}).get("title") or f"#{(requested_data or {}).get('number', '')}"
+    issue_activities.append(
+        IssueActivity(
+            issue_id=issue_id,
+            project_id=project_id,
+            workspace_id=workspace_id,
+            comment="linked a GitHub pull request",
+            verb="created",
+            actor_id=actor_id,
+            field="github_pull_request",
+            new_value=title,
+            new_identifier=(requested_data or {}).get("id", None),
+            epoch=epoch,
+        )
+    )
+
+
+def delete_github_pull_request_activity(
+    requested_data,
+    current_instance,
+    issue_id,
+    project_id,
+    workspace_id,
+    actor_id,
+    issue_activities,
+    epoch,
+):
+    requested_data = json.loads(requested_data) if requested_data is not None else None
+    title = (requested_data or {}).get("title") or f"#{(requested_data or {}).get('number', '')}"
+    issue_activities.append(
+        IssueActivity(
+            issue_id=issue_id,
+            project_id=project_id,
+            workspace_id=workspace_id,
+            comment="unlinked a GitHub pull request",
+            verb="deleted",
+            actor_id=actor_id,
+            field="github_pull_request",
+            old_value=title,
             new_value="",
             epoch=epoch,
         )
@@ -1551,6 +1704,10 @@ def issue_activity(
             "link.activity.created": create_link_activity,
             "link.activity.updated": update_link_activity,
             "link.activity.deleted": delete_link_activity,
+            "github_branch.activity.created": create_github_branch_activity,
+            "github_branch.activity.deleted": delete_github_branch_activity,
+            "github_pull_request.activity.created": create_github_pull_request_activity,
+            "github_pull_request.activity.deleted": delete_github_pull_request_activity,
             "attachment.activity.created": create_attachment_activity,
             "attachment.activity.deleted": delete_attachment_activity,
             "issue_relation.activity.created": create_issue_relation_activity,

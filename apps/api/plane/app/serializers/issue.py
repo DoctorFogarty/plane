@@ -42,6 +42,8 @@ from plane.db.models import (
     IssueDescriptionVersion,
     ProjectMember,
     EstimatePoint,
+    IssueType,
+    Project,
 )
 from plane.utils.content_validator import (
     validate_html_content,
@@ -87,6 +89,9 @@ class IssueCreateSerializer(BaseSerializer):
     parent_id = serializers.PrimaryKeyRelatedField(
         source="parent", queryset=Issue.objects.all(), required=False, allow_null=True
     )
+    type_id = serializers.PrimaryKeyRelatedField(
+        source="type", queryset=IssueType.objects.all(), required=False, allow_null=True
+    )
     label_ids = serializers.ListField(
         child=serializers.PrimaryKeyRelatedField(queryset=Label.objects.all()),
         write_only=True,
@@ -119,6 +124,8 @@ class IssueCreateSerializer(BaseSerializer):
         data["assignee_ids"] = assignee_ids if assignee_ids else []
         label_ids = self.initial_data.get("label_ids")
         data["label_ids"] = label_ids if label_ids else []
+        data["type_id"] = str(instance.type_id) if instance.type_id else None
+        data["is_epic"] = bool(instance.type.is_epic) if instance.type_id and instance.type else False
         return data
 
     def validate(self, attrs):
@@ -203,6 +210,17 @@ class IssueCreateSerializer(BaseSerializer):
         project_id = self.context["project_id"]
         workspace_id = self.context["workspace_id"]
         default_assignee_id = self.context["default_assignee_id"]
+
+        # Assign default work item type when enabled and not provided
+        if not validated_data.get("type"):
+            project = Project.objects.filter(pk=project_id).only("is_issue_type_enabled").first()
+            if project and project.is_issue_type_enabled:
+                default_type = IssueType.objects.filter(
+                    project_issue_types__project_id=project_id,
+                    project_issue_types__is_default=True,
+                ).first()
+                if default_type:
+                    validated_data["type"] = default_type
 
         # Create Issue
         issue = Issue.objects.create(**validated_data, project_id=project_id)
@@ -780,6 +798,7 @@ class IssueSerializer(DynamicBaseSerializer):
     sub_issues_count = serializers.IntegerField(read_only=True)
     attachment_count = serializers.IntegerField(read_only=True)
     link_count = serializers.IntegerField(read_only=True)
+    is_epic = serializers.SerializerMethodField()
 
     class Meta:
         model = Issue
@@ -809,8 +828,16 @@ class IssueSerializer(DynamicBaseSerializer):
             "link_count",
             "is_draft",
             "archived_at",
+            "type_id",
+            "is_epic",
         ]
         read_only_fields = fields
+
+    def get_is_epic(self, obj):
+        if not obj.type_id:
+            return False
+        issue_type = getattr(obj, "type", None)
+        return bool(issue_type.is_epic) if issue_type else False
 
     def validate(self, data):
         if (
@@ -867,6 +894,8 @@ class IssueListDetailSerializer(serializers.Serializer):
             "sub_issues_count": instance.sub_issues_count,
             "attachment_count": instance.attachment_count,
             "link_count": instance.link_count,
+            "type_id": instance.type_id,
+            "is_epic": bool(instance.type.is_epic) if instance.type_id and instance.type else False,
         }
 
         # Handle expanded fields only when requested - using direct field access

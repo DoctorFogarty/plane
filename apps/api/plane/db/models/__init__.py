@@ -25,6 +25,8 @@ from .integration import (
     GithubRepository,
     GithubRepositorySync,
     Integration,
+    IssueGithubBranch,
+    IssueGithubPullRequest,
     SlackProjectSync,
     WorkspaceIntegration,
 )
@@ -61,7 +63,15 @@ from .project import (
 )
 from .session import Session
 from .social_connection import SocialLoginConnection
-from .state import State, StateGroup, DEFAULT_STATES
+from .state import (
+    State,
+    StateGroup,
+    ProjectStateGroup,
+    DEFAULT_STATES,
+    DEFAULT_STATE_GROUPS,
+    REQUIRED_STATE_GROUP_CATEGORIES,
+    seed_project_state_groups,
+)
 from .user import Account, Profile, User, BotTypeEnum
 from .view import IssueView
 from .webhook import Webhook, WebhookLog
@@ -79,7 +89,14 @@ from .workspace import (
 
 from .favorite import UserFavorite
 
-from .issue_type import IssueType
+from .issue_type import IssueType, ProjectIssueType
+
+from .issue_property import (
+    IssueProperty,
+    IssuePropertyOption,
+    IssuePropertyValue,
+    IssuePropertyType,
+)
 
 from .recent_visit import UserRecentVisit
 

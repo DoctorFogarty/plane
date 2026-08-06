@@ -5,7 +5,17 @@
 # Django imports
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import Q, UUIDField, Value, QuerySet, OuterRef, Subquery
+from django.db.models import (
+    BooleanField,
+    Case,
+    Q,
+    QuerySet,
+    OuterRef,
+    Subquery,
+    UUIDField,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce
 
 # Module imports
@@ -127,6 +137,8 @@ def issue_on_results(
         "is_draft",
         "archived_at",
         "state__group",
+        "type_id",
+        "is_epic",
     ]
 
     if group_by in FIELD_MAPPER:
@@ -138,6 +150,13 @@ def issue_on_results(
         original_list.append(sub_group_by)
 
     required_fields.extend(original_list)
+    issues = issues.annotate(
+        is_epic=Case(
+            When(type__is_epic=True, then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    )
     return list(issues.values(*required_fields))
 
 

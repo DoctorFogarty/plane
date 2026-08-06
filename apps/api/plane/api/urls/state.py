@@ -8,6 +8,10 @@ from plane.api.views import (
     StateListCreateAPIEndpoint,
     StateDetailAPIEndpoint,
 )
+from plane.api.views.state_group import (
+    StateGroupListCreateAPIEndpoint,
+    StateGroupDetailAPIEndpoint,
+)
 
 urlpatterns = [
     path(
@@ -19,5 +23,15 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/states/<uuid:state_id>/",
         StateDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
         name="states",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/state-groups/",
+        StateGroupListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
+        name="state-groups",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/state-groups/<uuid:group_id>/",
+        StateGroupDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
+        name="state-groups",
     ),
 ]

@@ -136,8 +136,11 @@ class InstanceEndpoint(BaseAPIView):
         data["is_magic_login_enabled"] = ENABLE_MAGIC_LINK_LOGIN == "1"
         data["is_email_password_enabled"] = ENABLE_EMAIL_PASSWORD == "1"
 
-        # Github app name
-        data["github_app_name"] = str(GITHUB_APP_NAME)
+        # Github app slug only (never secrets pasted into the same field)
+        from plane.utils.github import GitHubAppClient, normalize_github_app_name
+
+        data["github_app_name"] = normalize_github_app_name(str(GITHUB_APP_NAME or ""))
+        data["is_github_app_configured"] = GitHubAppClient().is_configured and bool(data["github_app_name"])
 
         # Slack client
         data["slack_client_id"] = SLACK_CLIENT_ID

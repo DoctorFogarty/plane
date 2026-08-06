@@ -11,6 +11,8 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.contrib.postgres.fields import ArrayField
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import (
+    BooleanField,
+    Case,
     Count,
     Exists,
     F,
@@ -21,6 +23,7 @@ from django.db.models import (
     Subquery,
     UUIDField,
     Value,
+    When,
 )
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -160,33 +163,44 @@ class IssueListEndpoint(BaseAPIView):
         if self.fields or self.expand:
             issues = IssueSerializer(issue_queryset, many=True, fields=self.fields, expand=self.expand).data
         else:
-            issues = issue_queryset.values(
-                "id",
-                "name",
-                "state_id",
-                "sort_order",
-                "completed_at",
-                "estimate_point",
-                "priority",
-                "start_date",
-                "target_date",
-                "sequence_id",
-                "project_id",
-                "parent_id",
-                "cycle_id",
-                "module_ids",
-                "label_ids",
-                "assignee_ids",
-                "sub_issues_count",
-                "created_at",
-                "updated_at",
-                "created_by",
-                "updated_by",
-                "attachment_count",
-                "link_count",
-                "is_draft",
-                "archived_at",
-                "deleted_at",
+            issues = (
+                issue_queryset.annotate(
+                    is_epic=Case(
+                        When(type__is_epic=True, then=Value(True)),
+                        default=Value(False),
+                        output_field=BooleanField(),
+                    )
+                )
+                .values(
+                    "id",
+                    "name",
+                    "state_id",
+                    "sort_order",
+                    "completed_at",
+                    "estimate_point",
+                    "priority",
+                    "start_date",
+                    "target_date",
+                    "sequence_id",
+                    "project_id",
+                    "parent_id",
+                    "cycle_id",
+                    "module_ids",
+                    "label_ids",
+                    "assignee_ids",
+                    "sub_issues_count",
+                    "created_at",
+                    "updated_at",
+                    "created_by",
+                    "updated_by",
+                    "attachment_count",
+                    "link_count",
+                    "is_draft",
+                    "archived_at",
+                    "deleted_at",
+                    "type_id",
+                    "is_epic",
+                )
             )
             datetime_fields = ["created_at", "updated_at"]
             issues = user_timezone_converter(issues, datetime_fields, request.user.user_timezone)
@@ -425,6 +439,13 @@ class IssueViewSet(BaseViewSet):
                     group_by=None,
                     sub_group_by=None,
                 )
+                .annotate(
+                    is_epic=Case(
+                        When(type__is_epic=True, then=Value(True)),
+                        default=Value(False),
+                        output_field=BooleanField(),
+                    )
+                )
                 .values(
                     "id",
                     "name",
@@ -452,6 +473,8 @@ class IssueViewSet(BaseViewSet):
                     "is_draft",
                     "archived_at",
                     "deleted_at",
+                    "type_id",
+                    "is_epic",
                 )
                 .first()
             )
@@ -487,7 +510,7 @@ class IssueViewSet(BaseViewSet):
                 workspace__slug=self.kwargs.get("slug"),
                 pk=pk,
             )
-            .select_related("state")
+            .select_related("state", "type")
             .annotate(cycle_id=Subquery(CycleIssue.objects.filter(issue=OuterRef("id")).values("cycle_id")[:1]))
             .annotate(
                 link_count=Subquery(
@@ -809,7 +832,7 @@ class IssuePaginatedViewSet(BaseViewSet):
         issue_queryset = Issue.issue_objects.filter(workspace__slug=workspace_slug, project_id=project_id)
 
         return (
-            issue_queryset.select_related("state")
+            issue_queryset.select_related("state", "type")
             .annotate(cycle_id=Subquery(CycleIssue.objects.filter(issue=OuterRef("id")).values("cycle_id")[:1]))
             .annotate(
                 link_count=Subquery(
@@ -883,6 +906,8 @@ class IssuePaginatedViewSet(BaseViewSet):
             "link_count",
             "attachment_count",
             "sub_issues_count",
+            "type_id",
+            "is_epic",
         ]
 
         if str(is_description_required).lower() == "true":

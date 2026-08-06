@@ -7,7 +7,20 @@ import json
 
 # Django imports
 from django.utils import timezone
-from django.db.models import OuterRef, Func, F, Q, Value, UUIDField, Subquery, Count, IntegerField
+from django.db.models import (
+    OuterRef,
+    Func,
+    F,
+    Q,
+    Value,
+    UUIDField,
+    Subquery,
+    Count,
+    IntegerField,
+    Case,
+    When,
+    BooleanField,
+)
 from django.utils.decorators import method_decorator
 from django.views.decorators.gzip import gzip_page
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -128,6 +141,13 @@ class SubIssuesEndpoint(BaseAPIView):
                 ),
             )
             .annotate(state_group=F("state__group"))
+            .annotate(
+                is_epic=Case(
+                    When(type__is_epic=True, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
         )
 
         # Ordering
@@ -165,6 +185,8 @@ class SubIssuesEndpoint(BaseAPIView):
                 "is_draft",
                 "archived_at",
                 "state_group",
+                "type_id",
+                "is_epic",
             )
         )
 

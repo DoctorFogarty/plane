@@ -84,6 +84,7 @@ from .workspace.quick_link import QuickLinkViewSet
 from .workspace.sticky import WorkspaceStickyViewSet
 
 from .state.base import StateViewSet, IntakeStateEndpoint
+from .state.group import ProjectStateGroupViewSet
 from .view.base import (
     WorkspaceViewViewSet,
     WorkspaceViewIssuesViewSet,
@@ -153,6 +154,15 @@ from .issue.sub_issue import SubIssuesEndpoint
 from .issue.subscriber import IssueSubscriberViewSet
 
 from .issue.version import IssueVersionEndpoint, WorkItemDescriptionVersionEndpoint
+
+from .issue.type import (
+    IssueTypeEnableEndpoint,
+    IssueTypeViewSet,
+    IssueTypePropertiesAndOptionsEndpoint,
+    IssuePropertyViewSet,
+    IssuePropertyOptionViewSet,
+    IssuePropertyValueEndpoint,
+)
 
 from .module.base import (
     ModuleViewSet,
@@ -238,3 +248,13 @@ from .notification.base import MarkAllReadNotificationViewSet
 from .user.base import AccountEndpoint, ProfileEndpoint, UserSessionEndpoint
 
 from .timezone.base import TimezoneEndpoint
+
+from .integration import (
+    IntegrationListEndpoint,
+    WorkspaceIntegrationEndpoint,
+    WorkspaceIntegrationDeleteEndpoint,
+    GithubRepositoryListEndpoint,
+    GithubRepositorySyncEndpoint,
+    IssueGithubDevelopmentEndpoint,
+    GithubWebhookEndpoint,
+)

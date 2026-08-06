@@ -28,6 +28,7 @@ ISSUE_ORDER_BY_ALLOWLIST = frozenset({
     "priority",
     "state__name",
     "state__group",
+    "state__workflow_group__sequence",
     "assignees__first_name",
     "labels__name",
     "issue_module__module__name",
@@ -115,17 +116,29 @@ def order_issue_queryset(issue_queryset, order_by_param="-created_at"):
             )
         ).order_by("priority_order", "-created_at")
         order_by_param = "priority_order" if order_by_param.startswith("-") else "-priority_order"
-    # State Ordering
-    elif order_by_param in ["state__group", "-state__group"]:
-        state_order = STATE_ORDER if order_by_param in ["state__name", "state__group"] else STATE_ORDER[::-1]
-        issue_queryset = issue_queryset.annotate(
-            state_order=Case(
-                *[When(state__group=state_group, then=Value(i)) for i, state_group in enumerate(state_order)],
-                default=Value(len(state_order)),
-                output_field=CharField(),
+    # State Ordering — prefer workflow group sequence, fall back to category order
+    elif order_by_param in [
+        "state__group",
+        "-state__group",
+        "state__workflow_group__sequence",
+        "-state__workflow_group__sequence",
+    ]:
+        descending = order_by_param.startswith("-")
+        # Order by custom group sequence first, then state sequence within group
+        if descending:
+            issue_queryset = issue_queryset.order_by(
+                "-state__workflow_group__sequence",
+                "-state__sequence",
+                "-created_at",
             )
-        ).order_by("state_order", "-created_at")
-        order_by_param = "-state_order" if order_by_param.startswith("-") else "state_order"
+            order_by_param = "-state__workflow_group__sequence"
+        else:
+            issue_queryset = issue_queryset.order_by(
+                "state__workflow_group__sequence",
+                "state__sequence",
+                "-created_at",
+            )
+            order_by_param = "state__workflow_group__sequence"
     # assignee and label ordering
     elif order_by_param in [
         "labels__name",

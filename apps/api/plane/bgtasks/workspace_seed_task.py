@@ -186,12 +186,19 @@ def create_project_states(
     Returns:
         A mapping of seed state IDs to actual state IDs
     """
+    from plane.db.models import Project, seed_project_state_groups
 
     state_seeds = read_seed_file("states.json")
     state_map: Dict[int, uuid.UUID] = {}
 
     if not state_seeds:
         return state_map
+
+    # Ensure each project has workflow groups before creating states
+    for project_uuid in set(project_map.values()):
+        project = Project.objects.filter(id=project_uuid).first()
+        if project:
+            seed_project_state_groups(project, created_by=bot_user)
 
     for state_seed in state_seeds:
         state_id = state_seed.pop("id")
