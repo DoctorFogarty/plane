@@ -4,13 +4,23 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect } from "react";
 import type { TIssueServiceType } from "@plane/types";
+import { useIssueType } from "@/hooks/store/use-issue-type";
 
 export const useWorkItemProperties = (
-  projectId: string | null | undefined,
-  workspaceSlug: string | null | undefined,
-  workItemId: string | null | undefined,
-  _issueServiceType: TIssueServiceType
+  projectId: string | undefined | null,
+  workspaceSlug: string | undefined | null,
+  workItemId: string | undefined | null,
+  _issueServiceType?: TIssueServiceType
 ) => {
-  if (!projectId || !workspaceSlug || !workItemId) return;
+  const issueTypeStore = useIssueType();
+
+  useEffect(() => {
+    if (!projectId || !workspaceSlug || !workItemId) return;
+    if (!issueTypeStore.fetchedMap[projectId]) {
+      void issueTypeStore.fetchWorkItemTypesPropertiesAndOptions(workspaceSlug, projectId);
+    }
+    void issueTypeStore.fetchPropertyValues(workspaceSlug, projectId, workItemId);
+  }, [projectId, workspaceSlug, workItemId, issueTypeStore]);
 };

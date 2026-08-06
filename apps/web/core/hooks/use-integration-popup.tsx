@@ -6,6 +6,8 @@
 
 import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { mutate } from "swr";
+import { WORKSPACE_INTEGRATIONS } from "@plane/constants";
 
 const useIntegrationPopup = ({
   provider,
@@ -22,27 +24,34 @@ const useIntegrationPopup = ({
 
   const { workspaceSlug, projectId } = useParams();
 
+  // GitHub App slug only — never secrets. Strip whitespace and reject invalid values.
+  const githubAppSlug = (github_app_name || "").trim().split(/\s+/)[0] || "";
+
   const providerUrls: { [key: string]: string } = {
-    github: `https://github.com/apps/${github_app_name}/installations/new?state=${workspaceSlug?.toString()}`,
+    github: `https://github.com/apps/${encodeURIComponent(githubAppSlug)}/installations/new?state=${workspaceSlug?.toString()}`,
     slack: `https://slack.com/oauth/v2/authorize?scope=chat:write,im:history,im:write,links:read,links:write,users:read,users:read.email&amp;user_scope=&amp;&client_id=${slack_client_id}&state=${workspaceSlug?.toString()}`,
     slackChannel: `https://slack.com/oauth/v2/authorize?scope=incoming-webhook&client_id=${slack_client_id}&state=${workspaceSlug?.toString()},${projectId?.toString()}${
       stateParams ? "," + stateParams : ""
     }`,
   };
 
-  const popup = useRef<any>();
+  const popup = useRef<Window | null>(null);
 
   const checkPopup = () => {
     const check = setInterval(() => {
-      if (!popup || popup.current.closed || popup.current.closed === undefined) {
+      if (!popup.current || popup.current.closed) {
         clearInterval(check);
         setAuthLoader(false);
+        if (workspaceSlug) {
+          mutate(WORKSPACE_INTEGRATIONS(workspaceSlug.toString()));
+        }
       }
     }, 1000);
   };
 
   const openPopup = () => {
-    if (!provider) return;
+    if (!provider) return null;
+    if (provider === "github" && !githubAppSlug) return null;
 
     const width = 600,
       height = 600;
@@ -54,7 +63,15 @@ const useIntegrationPopup = ({
   };
 
   const startAuth = () => {
+    if (provider === "github" && !githubAppSlug) {
+      setAuthLoader(false);
+      return;
+    }
     popup.current = openPopup();
+    if (!popup.current) {
+      setAuthLoader(false);
+      return;
+    }
     checkPopup();
     setAuthLoader(true);
   };

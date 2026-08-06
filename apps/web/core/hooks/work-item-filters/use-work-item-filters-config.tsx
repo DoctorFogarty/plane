@@ -1,10 +1,11 @@
+/* eslint-disable no-shadow, no-unused-expressions, promise/always-return */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { AtSign, Briefcase } from "lucide-react";
 // plane imports
 import { Logo } from "@plane/propel/emoji-icon-picker";
@@ -22,6 +23,7 @@ import {
   DueDatePropertyIcon,
   UserCirclePropertyIcon,
   PriorityPropertyIcon,
+  WorkItemsIcon,
 } from "@plane/propel/icons";
 import type {
   ICycle,
@@ -31,6 +33,7 @@ import type {
   IIssueLabel,
   IModule,
   IProject,
+  TLogoProps,
   TWorkItemFilterProperty,
 } from "@plane/types";
 import { Avatar } from "@plane/ui";
@@ -40,6 +43,7 @@ import {
   getCreatedByFilterConfig,
   getCycleFilterConfig,
   getFileURL,
+  getIssueTypeFilterConfig,
   getLabelFilterConfig,
   getMentionFilterConfig,
   getModuleFilterConfig,
@@ -55,6 +59,7 @@ import {
 } from "@plane/utils";
 // store hooks
 import { useCycle } from "@/hooks/store/use-cycle";
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useLabel } from "@/hooks/store/use-label";
 import { useMember } from "@/hooks/store/use-member";
 import { useModule } from "@/hooks/store/use-module";
@@ -98,6 +103,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
   const { getModuleById } = useModule();
   const { getStateById } = useProjectState();
   const { getUserDetails } = useMember();
+  const issueTypeStore = useIssueType();
   // derived values
   const operatorConfigs = useFiltersOperatorConfigs({ workspaceSlug });
   const filtersToShow = useMemo(() => new Set(allowedFilters), [allowedFilters]);
@@ -105,37 +111,70 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
   const members: IUserLite[] | undefined = useMemo(
     () =>
       memberIds
-        ? (memberIds.map((memberId) => getUserDetails(memberId)).filter((member) => member) as IUserLite[])
+        ? (memberIds.flatMap((memberId) => {
+            const member = getUserDetails(memberId);
+            return member ? [member] : [];
+          }) as IUserLite[])
         : undefined,
     [memberIds, getUserDetails]
   );
   const workItemStates: IState[] | undefined = useMemo(
     () =>
-      stateIds ? (stateIds.map((stateId) => getStateById(stateId)).filter((state) => state) as IState[]) : undefined,
+      stateIds
+        ? (stateIds.flatMap((stateId) => {
+            const state = getStateById(stateId);
+            return state ? [state] : [];
+          }) as IState[])
+        : undefined,
     [stateIds, getStateById]
   );
   const workItemLabels: IIssueLabel[] | undefined = useMemo(
     () =>
       labelIds
-        ? (labelIds.map((labelId) => getLabelById(labelId)).filter((label) => label) as IIssueLabel[])
+        ? (labelIds.flatMap((labelId) => {
+            const label = getLabelById(labelId);
+            return label ? [label] : [];
+          }) as IIssueLabel[])
         : undefined,
     [labelIds, getLabelById]
   );
   const cycles = useMemo(
-    () => (cycleIds ? (cycleIds.map((cycleId) => getCycleById(cycleId)).filter((cycle) => cycle) as ICycle[]) : []),
+    () =>
+      cycleIds
+        ? (cycleIds.flatMap((cycleId) => {
+            const cycle = getCycleById(cycleId);
+            return cycle ? [cycle] : [];
+          }) as ICycle[])
+        : [],
     [cycleIds, getCycleById]
   );
   const modules = useMemo(
     () =>
-      moduleIds ? (moduleIds.map((moduleId) => getModuleById(moduleId)).filter((module) => module) as IModule[]) : [],
+      moduleIds
+        ? (moduleIds.flatMap((moduleId) => {
+            const module = getModuleById(moduleId);
+            return module ? [module] : [];
+          }) as IModule[])
+        : [],
     [moduleIds, getModuleById]
   );
   const projects = useMemo(
     () =>
       projectIds
-        ? (projectIds.map((projectId) => getProjectById(projectId)).filter((project) => project) as IProject[])
+        ? (projectIds.flatMap((projectId) => {
+            const project = getProjectById(projectId);
+            return project ? [project] : [];
+          }) as IProject[])
         : [],
     [projectIds, getProjectById]
+  );
+  const areIssueTypesFetched = projectId ? !!issueTypeStore.fetchedMap[projectId] : false;
+  const areIssueTypesEnabled = projectId ? issueTypeStore.isIssueTypeEnabled(projectId) : false;
+  const issueTypes = useMemo(
+    () => (projectId ? issueTypeStore.getActiveProjectIssueTypes(projectId) : []),
+    // MobX: re-read when typeMap / fetchedMap updates for this project
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [projectId, issueTypeStore, areIssueTypesFetched, issueTypeStore.typeMap]
   );
   const areAllConfigsInitialized = useMemo(() => isLoaderReady(projectLoader), [projectLoader]);
 
@@ -146,6 +185,13 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
    * @returns True if the filter is enabled, false otherwise.
    */
   const isFilterEnabled = useCallback((key: TWorkItemFilterProperty) => filtersToShow.has(key), [filtersToShow]);
+
+  useEffect(() => {
+    if (!workspaceSlug || !projectId) return;
+    if (!isFilterEnabled("type_id")) return;
+    if (issueTypeStore.fetchedMap[projectId]) return;
+    void issueTypeStore.fetchWorkItemTypesPropertiesAndOptions(workspaceSlug, projectId);
+  }, [workspaceSlug, projectId, isFilterEnabled, issueTypeStore]);
 
   // state group filter config
   const stateGroupFilterConfig = useMemo(
@@ -211,6 +257,24 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
         ...operatorConfigs,
       }),
     [isFilterEnabled, project?.module_view, modules, operatorConfigs]
+  );
+
+  // work item type filter config
+  const issueTypeFilterConfig = useMemo(
+    () =>
+      getIssueTypeFilterConfig<TWorkItemFilterProperty>("type_id")({
+        isEnabled: isFilterEnabled("type_id") && areIssueTypesEnabled && areIssueTypesFetched,
+        filterIcon: WorkItemsIcon,
+        issueTypes,
+        getOptionIcon: (issueType) =>
+          issueType.logo_props ? (
+            <Logo logo={issueType.logo_props as TLogoProps} size={12} />
+          ) : (
+            <WorkItemsIcon className="h-3 w-3 flex-shrink-0" />
+          ),
+        ...operatorConfigs,
+      }),
+    [isFilterEnabled, areIssueTypesEnabled, areIssueTypesFetched, issueTypes, operatorConfigs]
   );
 
   // assignee filter config
@@ -374,6 +438,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
       labelFilterConfig,
       cycleFilterConfig,
       moduleFilterConfig,
+      issueTypeFilterConfig,
       startDateFilterConfig,
       targetDateFilterConfig,
       createdAtFilterConfig,
@@ -388,6 +453,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
       label_id: labelFilterConfig,
       cycle_id: cycleFilterConfig,
       module_id: moduleFilterConfig,
+      type_id: issueTypeFilterConfig,
       assignee_id: assigneeFilterConfig,
       mention_id: mentionFilterConfig,
       created_by_id: createdByFilterConfig,

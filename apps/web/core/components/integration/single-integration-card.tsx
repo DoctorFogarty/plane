@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow, no-unused-expressions, promise/always-return */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -60,9 +61,15 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
 
   const isUserAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
   const { isMobile } = usePlatformOS();
+  const githubAppName = (config?.github_app_name || "").trim().split(/\s+/)[0] || "";
+  const isGithubProvider = integration.provider === "github";
+  // Prefer server readiness flag; fall back to slug for older API payloads
+  const isGithubAppConfigured =
+    !isGithubProvider ||
+    (typeof config?.is_github_app_configured === "boolean" ? config.is_github_app_configured : Boolean(githubAppName));
   const { startAuth, isConnecting: isInstalling } = useIntegrationPopup({
     provider: integration.provider,
-    github_app_name: config?.github_app_name || "",
+    github_app_name: githubAppName,
     slack_client_id: config?.slack_client_id || "",
   });
 
@@ -111,7 +118,7 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
       <div className="flex items-start gap-4">
         <div className="h-10 w-10 flex-shrink-0">
           <img
-            src={integrationDetails[integration.provider].logo}
+            src={integrationDetails[integration.provider]?.logo || GithubLogo}
             className="h-full w-full object-cover"
             alt={`${integration.title} Logo`}
           />
@@ -126,8 +133,11 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
           <p className="text-body-xs-regular text-secondary">
             {workspaceIntegrations
               ? isInstalled
-                ? integrationDetails[integration.provider].installed
-                : integrationDetails[integration.provider].notInstalled
+                ? integrationDetails[integration.provider]?.installed || "Connected to this workspace."
+                : !isGithubAppConfigured
+                  ? "GitHub App is not configured. Set App slug, App ID, and private key in God Mode (Authentication → GitHub), then try again."
+                  : integrationDetails[integration.provider]?.notInstalled ||
+                    "Connect this integration to your Plane workspace."
               : "Loading..."}
           </p>
         </div>
@@ -156,16 +166,23 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
         ) : (
           <Tooltip
             isMobile={isMobile}
-            disabled={isUserAdmin}
-            tooltipContent={!isUserAdmin ? "You don't have permission to perform this" : null}
+            disabled={isUserAdmin && isGithubAppConfigured}
+            tooltipContent={
+              !isUserAdmin
+                ? "You don't have permission to perform this"
+                : !isGithubAppConfigured
+                  ? "Configure App slug, App ID, and private key in God Mode before installing"
+                  : null
+            }
           >
             <Button
-              className={`${!isUserAdmin ? "hover:cursor-not-allowed" : ""}`}
+              className={`${!isUserAdmin || !isGithubAppConfigured ? "hover:cursor-not-allowed" : ""}`}
               variant="primary"
               onClick={() => {
-                if (!isUserAdmin) return;
+                if (!isUserAdmin || !isGithubAppConfigured) return;
                 startAuth();
               }}
+              disabled={!isUserAdmin || !isGithubAppConfigured}
               loading={isInstalling}
             >
               {isInstalling ? "Installing..." : "Install"}

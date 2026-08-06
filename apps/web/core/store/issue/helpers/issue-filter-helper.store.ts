@@ -68,8 +68,6 @@ export interface IIssueFilterHelperStore {
 }
 
 export class IssueFilterHelperStore implements IIssueFilterHelperStore {
-  constructor() {}
-
   /**
    * @description This method is used to apply the display filters on the issues
    * @param {IIssueFilters} filters
@@ -94,13 +92,19 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
     displayFilters: IIssueDisplayFilterOptions | undefined,
     acceptableParamsByLayout: TIssueParams[]
   ): Partial<Record<TIssueParams, string | boolean>> => {
+    // List / Spreadsheet / Gantt nest children under parents — never fetch children as root rows
+    const isHierarchyLayout =
+      displayFilters?.layout === EIssueLayoutTypes.LIST ||
+      displayFilters?.layout === EIssueLayoutTypes.SPREADSHEET ||
+      displayFilters?.layout === EIssueLayoutTypes.GANTT;
+
     const computedDisplayFilters: Partial<Record<TIssueParams, undefined | string[] | boolean | string>> = {
       group_by: displayFilters?.group_by ? EIssueGroupByToServerOptions[displayFilters.group_by] : undefined,
       sub_group_by: displayFilters?.sub_group_by
         ? EIssueGroupByToServerOptions[displayFilters.sub_group_by]
         : undefined,
       order_by: displayFilters?.order_by || undefined,
-      sub_issue: displayFilters?.sub_issue ?? true,
+      sub_issue: isHierarchyLayout ? false : (displayFilters?.sub_issue ?? true),
     };
 
     const issueFiltersParams: Partial<Record<TIssueParams, boolean | string>> = {};
@@ -113,6 +117,12 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
           ? nonEmptyArrayValue.join(",")
           : nonEmptyArrayValue;
     });
+
+    // Hierarchy layouts always exclude parented issues from the root list, even when the
+    // sub_issue toggle is not part of acceptableParamsByLayout (toggle is hidden there).
+    if (isHierarchyLayout) {
+      issueFiltersParams.sub_issue = false;
+    }
 
     // work item filters
     if (richFilters) issueFiltersParams.filters = JSON.stringify(richFilters);

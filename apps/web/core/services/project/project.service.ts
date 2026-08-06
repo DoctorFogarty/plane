@@ -7,8 +7,10 @@
 import { API_BASE_URL } from "@plane/constants";
 import type {
   GithubRepositoriesResponse,
+  IProjectGithubRepositorySync,
   IProjectUserPropertiesResponse,
   ISearchIssueResponse,
+  ISyncGithubRepositoryPayload,
   TProjectAnalyticsCount,
   TProjectAnalyticsCountParams,
   TProjectIssuesSearchParams,
@@ -133,13 +135,8 @@ export class ProjectService extends APIService {
     workspaceSlug: string,
     projectId: string,
     workspaceIntegrationId: string,
-    data: {
-      name: string;
-      owner: string;
-      repository_id: string;
-      url: string;
-    }
-  ): Promise<any> {
+    data: ISyncGithubRepositoryPayload
+  ): Promise<IProjectGithubRepositorySync> {
     return this.post(
       `/api/workspaces/${workspaceSlug}/projects/${projectId}/workspace-integrations/${workspaceIntegrationId}/github-repository-sync/`,
       data
@@ -150,7 +147,11 @@ export class ProjectService extends APIService {
       });
   }
 
-  async getProjectGithubRepository(workspaceSlug: string, projectId: string, integrationId: string): Promise<any> {
+  async getProjectGithubRepository(
+    workspaceSlug: string,
+    projectId: string,
+    integrationId: string
+  ): Promise<IProjectGithubRepositorySync[]> {
     return this.get(
       `/api/workspaces/${workspaceSlug}/projects/${projectId}/workspace-integrations/${integrationId}/github-repository-sync/`
     )

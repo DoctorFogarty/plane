@@ -7,7 +7,7 @@
 import { useParams } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IWorkspaceIntegration } from "@plane/types";
+import type { IGithubRepository, IWorkspaceIntegration } from "@plane/types";
 // assets
 import GithubLogo from "@/app/assets/logos/github-square.png?url";
 import SlackLogo from "@/app/assets/services/slack.png?url";
@@ -46,40 +46,31 @@ export function IntegrationCard({ integration }: Props) {
       : null
   );
 
-  const handleChange = (repo: any) => {
+  const handleChange = async (repo: IGithubRepository) => {
     if (!workspaceSlug || !projectId || !integration) return;
 
-    const {
-      html_url,
-      owner: { login },
-      id,
-      name,
-    } = repo;
+    const { id, name } = repo;
+    const { login } = repo.owner;
 
-    projectService
-      .syncGithubRepository(workspaceSlug, projectId, integration.id, {
-        name,
-        owner: login,
+    try {
+      await projectService.syncGithubRepository(workspaceSlug, projectId, integration.id, {
         repository_id: id,
-        url: html_url,
-      })
-      .then(() => {
-        mutate(PROJECT_GITHUB_REPOSITORY(projectId));
-
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: `${login}/${name} repository synced with the project successfully.`,
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Repository could not be synced with the project. Please try again.",
-        });
       });
+      await mutate(PROJECT_GITHUB_REPOSITORY(projectId));
+
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: `${login}/${name} repository synced with the project successfully.`,
+      });
+    } catch (error) {
+      console.error(error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Repository could not be synced with the project. Please try again.",
+      });
+    }
   };
 
   return (
@@ -106,7 +97,7 @@ export function IntegrationCard({ integration }: Props) {
               integration={integration}
               value={
                 syncedGithubRepository && syncedGithubRepository.length > 0
-                  ? `${syncedGithubRepository[0].repo_detail.owner}/${syncedGithubRepository[0].repo_detail.name}`
+                  ? syncedGithubRepository[0].repo_detail.repository_id
                   : null
               }
               label={

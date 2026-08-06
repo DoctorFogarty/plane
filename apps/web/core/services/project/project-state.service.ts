@@ -6,17 +6,15 @@
 
 // services
 import { API_BASE_URL } from "@plane/constants";
-import type { IIntakeState, IState } from "@plane/types";
+import type { IIntakeState, IState, IStateGroup } from "@plane/types";
 import { APIService } from "@/services/api.service";
-// helpers
-// types
 
 export class ProjectStateService extends APIService {
   constructor() {
     super(API_BASE_URL);
   }
 
-  async createState(workspaceSlug: string, projectId: string, data: any): Promise<IState> {
+  async createState(workspaceSlug: string, projectId: string, data: Partial<IState>): Promise<IState> {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/states/`, data)
       .then((response) => response?.data)
       .catch((error) => {
@@ -48,7 +46,7 @@ export class ProjectStateService extends APIService {
       });
   }
 
-  async getState(workspaceSlug: string, projectId: string, stateId: string): Promise<any> {
+  async getState(workspaceSlug: string, projectId: string, stateId: string): Promise<IState> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/states/${stateId}/`)
       .then((response) => response?.data)
       .catch((error) => {
@@ -56,7 +54,7 @@ export class ProjectStateService extends APIService {
       });
   }
 
-  async updateState(workspaceSlug: string, projectId: string, stateId: string, data: IState): Promise<any> {
+  async updateState(workspaceSlug: string, projectId: string, stateId: string, data: IState): Promise<IState> {
     return this.put(`/api/workspaces/${workspaceSlug}/projects/${projectId}/states/${stateId}/`, data)
       .then((response) => response?.data)
       .catch((error) => {
@@ -64,7 +62,7 @@ export class ProjectStateService extends APIService {
       });
   }
 
-  async patchState(workspaceSlug: string, projectId: string, stateId: string, data: Partial<IState>): Promise<any> {
+  async patchState(workspaceSlug: string, projectId: string, stateId: string, data: Partial<IState>): Promise<IState> {
     return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/states/${stateId}/`, data)
       .then((response) => response?.data)
       .catch((error) => {
@@ -72,7 +70,7 @@ export class ProjectStateService extends APIService {
       });
   }
 
-  async deleteState(workspaceSlug: string, projectId: string, stateId: string): Promise<any> {
+  async deleteState(workspaceSlug: string, projectId: string, stateId: string): Promise<void> {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/states/${stateId}/`)
       .then((response) => response?.data)
       .catch((error) => {
@@ -82,6 +80,44 @@ export class ProjectStateService extends APIService {
 
   async getWorkspaceStates(workspaceSlug: string): Promise<IState[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/states/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  // State groups
+  async getStateGroups(workspaceSlug: string, projectId: string): Promise<IStateGroup[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/state-groups/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async createStateGroup(workspaceSlug: string, projectId: string, data: Partial<IStateGroup>): Promise<IStateGroup> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/state-groups/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async patchStateGroup(
+    workspaceSlug: string,
+    projectId: string,
+    groupId: string,
+    data: Partial<IStateGroup>
+  ): Promise<IStateGroup> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/state-groups/${groupId}/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async deleteStateGroup(workspaceSlug: string, projectId: string, groupId: string): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/state-groups/${groupId}/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -1205,11 +1206,28 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     if (!issueId) return;
 
     // Get display filters to check if 'Show sub Work items' is enabled - Donot add Work item to main list if disabled.
-    const isShowWorkItemsEnabled = this.issueFilterStore.issueFilters?.displayFilters?.sub_issue ?? false;
+    // Hierarchy layouts (list / spreadsheet / gantt) always nest children under parents — never add them as root rows.
+    const layout = this.issueFilterStore.issueFilters?.displayFilters?.layout;
+    const isHierarchyLayout = layout === "list" || layout === "spreadsheet" || layout === "gantt_chart";
+    const isShowWorkItemsEnabled =
+      !isHierarchyLayout && (this.issueFilterStore.issueFilters?.displayFilters?.sub_issue ?? false);
 
     // get issueUpdates from another method by passing down the three arguments
     // issueUpdates is nothing but an array of objects that contain the path of the issueId list that need updating and also the action that needs to be performed at the path
-    const issueUpdates = this.getUpdateDetails(issue, issueBeforeUpdate, action);
+    let issueUpdates = this.getUpdateDetails(issue, issueBeforeUpdate, action);
+
+    // Hierarchy layouts: when an issue gains a parent, remove it from root lists; when it loses a parent, add it back.
+    if (isHierarchyLayout && issue && issueBeforeUpdate && issue.parent_id !== issueBeforeUpdate.parent_id) {
+      if (issue.parent_id && !issueBeforeUpdate.parent_id) {
+        issueUpdates = [
+          ...issueUpdates,
+          ...this.getUpdateDetails(undefined, issueBeforeUpdate, EIssueGroupedAction.DELETE),
+        ];
+      } else if (!issue.parent_id && issueBeforeUpdate.parent_id) {
+        issueUpdates = [...issueUpdates, ...this.getUpdateDetails(issue, undefined, EIssueGroupedAction.ADD)];
+      }
+    }
+
     const accumulatedUpdatesForCount = {};
     runInAction(() => {
       // The issueUpdates

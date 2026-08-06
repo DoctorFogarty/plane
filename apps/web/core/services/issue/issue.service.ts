@@ -257,10 +257,10 @@ export class IssueService extends APIService {
     issueId: string,
     queries?: Partial<Record<TIssueParams, string | boolean>>
   ): Promise<TIssueSubIssues> {
-    return this.get(
-      `/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/${this.serviceType === EIssueServiceType.EPICS ? "issues" : "sub-issues"}/`,
-      { params: queries }
-    )
+    // Epics are Issue rows; use the issues/sub-issues API (no separate /epics/ hierarchy routes in CE).
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/sub-issues/`, {
+      params: queries,
+    })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -273,10 +273,7 @@ export class IssueService extends APIService {
     issueId: string,
     data: { sub_issue_ids: string[] }
   ): Promise<TIssueSubIssues> {
-    return this.post(
-      `/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/${this.serviceType === EIssueServiceType.EPICS ? "issues" : "sub-issues"}/`,
-      data
-    )
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/sub-issues/`, data)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

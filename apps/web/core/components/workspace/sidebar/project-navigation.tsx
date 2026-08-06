@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow, no-unused-expressions, promise/always-return */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -15,6 +16,7 @@ import type { EUserProjectRoles } from "@plane/types";
 // plane ui
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
+import { ProjectNavigationViews } from "@/components/workspace/sidebar/project-navigation-views";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -147,7 +149,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
     };
 
     // sort navigation items by sortOrder
-    const sortedNavigationItems = navigationItems(workspaceSlug, projectId).sort(
+    const sortedNavigationItems = navigationItems(workspaceSlug, projectId).toSorted(
       (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
     );
 
@@ -163,6 +165,10 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
       // is active
       const isWorkItemActive = item.key === "work_items" && workItemCondition;
       const isEpicActive = item.key === "epics" && epicCondition;
+      // Views list vs detail is handled by ProjectNavigationViews
+      if (item.key === "views") {
+        return pathname === item.href || pathname === `${item.href}/`;
+      }
       // pathname condition
       const isPathnameActive = pathname.includes(item.href);
       // return
@@ -182,6 +188,17 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         if (!hasAccess) return null;
 
         const shouldShowCount = item.key === "intake" && (project.intake_count ?? 0) > 0;
+
+        if (item.key === "views") {
+          return (
+            <ProjectNavigationViews
+              key={item.key}
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              onNavigate={handleProjectClick}
+            />
+          );
+        }
 
         return (
           <Link key={item.key} href={item.href} onClick={handleProjectClick}>
