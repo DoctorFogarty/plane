@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "Alihkan menu tindakan cepat",
       "open_project_menu": "Buka menu proyek",
       "close_project_menu": "Tutup menu proyek",
+      "open_views_menu": "Buka menu tampilan",
+      "close_views_menu": "Tutup menu tampilan",
       "collapse_sidebar": "Tutup sidebar",
       "expand_sidebar": "Perluas sidebar",
       "edition_badge": "Buka modal paket berbayar"

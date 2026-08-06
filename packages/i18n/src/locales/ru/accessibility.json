@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "Переключить меню быстрых действий",
       "open_project_menu": "Открыть меню проекта",
       "close_project_menu": "Закрыть меню проекта",
+      "open_views_menu": "Открыть меню представлений",
+      "close_views_menu": "Закрыть меню представлений",
       "collapse_sidebar": "Свернуть боковую панель",
       "expand_sidebar": "Развернуть боковую панель",
       "edition_badge": "Открыть модал платных планов"

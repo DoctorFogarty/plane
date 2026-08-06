@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "狀態",
-      "description": "定義並自訂工作流程狀態以追蹤工作事項的進度。",
+      "description": "打造你的工作流軌道——新增分組、調整欄順序，並自訂工作如何推進。",
       "describe_this_state_for_your_members": "為您的成員描述此狀態。",
       "empty_state": {
-        "title": "{groupKey} 群組沒有可用的狀態",
+        "title": "{groupKey} 中沒有狀態",
         "description": "請建立新狀態"
-      }
+      },
+      "add_group": "新增分組",
+      "group_name_placeholder": "分組名稱",
+      "category": "類別",
+      "select_group": "選擇分組",
+      "group_created": "分組建立成功。",
+      "group_create_failed": "無法建立分組，請再試一次。",
+      "group_update_failed": "無法更新分組，請再試一次。",
+      "group_deleted": "分組已刪除。",
+      "group_delete_failed": "無法刪除分組，請再試一次。"
     },
     "labels": {
       "heading": "標籤",

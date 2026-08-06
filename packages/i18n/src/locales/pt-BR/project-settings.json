@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Estados",
-      "description": "Defina e personalize os estados de fluxo de trabalho para acompanhar o progresso dos seus itens de trabalho.",
+      "description": "Modele seu trilho de fluxo de trabalho — adicione grupos, reordene colunas e personalize como o trabalho avança.",
       "describe_this_state_for_your_members": "Descreva este estado para seus membros.",
       "empty_state": {
-        "title": "Nenhum estado disponível para o grupo {groupKey}",
+        "title": "Nenhum estado em {groupKey}",
         "description": "Por favor, crie um novo estado"
-      }
+      },
+      "add_group": "Adicionar grupo",
+      "group_name_placeholder": "Nome do grupo",
+      "category": "Categoria",
+      "select_group": "Selecionar grupo",
+      "group_created": "Grupo criado com sucesso.",
+      "group_create_failed": "Não foi possível criar o grupo. Tente novamente.",
+      "group_update_failed": "Não foi possível atualizar o grupo. Tente novamente.",
+      "group_deleted": "Grupo excluído com sucesso.",
+      "group_delete_failed": "Não foi possível excluir o grupo. Tente novamente."
     },
     "labels": {
       "heading": "Etiquetas",

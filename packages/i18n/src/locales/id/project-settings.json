@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Status",
-      "description": "Tentukan dan sesuaikan status alur kerja untuk melacak kemajuan item kerja Anda.",
+      "description": "Bentuk rel alur kerja Anda — tambahkan grup, urutkan ulang kolom, dan sesuaikan cara pekerjaan bergerak.",
       "describe_this_state_for_your_members": "Jelaskan status ini untuk anggota Anda.",
       "empty_state": {
-        "title": "Tidak ada status yang tersedia untuk grup {groupKey}",
+        "title": "Tidak ada status di {groupKey}",
         "description": "Silakan buat status baru"
-      }
+      },
+      "add_group": "Tambah grup",
+      "group_name_placeholder": "Nama grup",
+      "category": "Kategori",
+      "select_group": "Pilih grup",
+      "group_created": "Grup berhasil dibuat.",
+      "group_create_failed": "Grup tidak dapat dibuat. Silakan coba lagi.",
+      "group_update_failed": "Grup tidak dapat diperbarui. Silakan coba lagi.",
+      "group_deleted": "Grup berhasil dihapus.",
+      "group_delete_failed": "Grup tidak dapat dihapus. Silakan coba lagi."
     },
     "labels": {
       "heading": "Label",

@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "Hızlı eylemler menüsünü aç/kapat",
       "open_project_menu": "Proje menüsünü aç",
       "close_project_menu": "Proje menüsünü kapat",
+      "open_views_menu": "Görünümler menüsünü aç",
+      "close_views_menu": "Görünümler menüsünü kapat",
       "collapse_sidebar": "Kenar çubuğunu daralt",
       "expand_sidebar": "Kenar çubuğunu genişlet",
       "edition_badge": "Ücretli planlar modalını aç"

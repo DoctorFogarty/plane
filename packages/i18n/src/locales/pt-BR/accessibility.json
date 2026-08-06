@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "Alternar menu de ações rápidas",
       "open_project_menu": "Abrir menu do projeto",
       "close_project_menu": "Fechar menu do projeto",
+      "open_views_menu": "Abrir menu de visualizações",
+      "close_views_menu": "Fechar menu de visualizações",
       "collapse_sidebar": "Recolher barra lateral",
       "expand_sidebar": "Expandir barra lateral",
       "edition_badge": "Abrir modal de planos pagos"

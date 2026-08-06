@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "切换快速操作菜单",
       "open_project_menu": "打开项目菜单",
       "close_project_menu": "关闭项目菜单",
+      "open_views_menu": "打开视图菜单",
+      "close_views_menu": "关闭视图菜单",
       "collapse_sidebar": "折叠侧边栏",
       "expand_sidebar": "展开侧边栏",
       "edition_badge": "打开付费计划模态框"

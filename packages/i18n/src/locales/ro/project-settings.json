@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Stări",
-      "description": "Definește și personalizează stările fluxului de lucru pentru a urmări progresul activităților tale.",
+      "description": "Modelează șina fluxului de lucru — adaugă grupuri, reordonează coloanele și personalizează cum avansează munca.",
       "describe_this_state_for_your_members": "Descrie această stare pentru membrii tăi.",
       "empty_state": {
-        "title": "Nicio stare disponibilă pentru grupul {groupKey}",
+        "title": "Nicio stare în {groupKey}",
         "description": "Te rog să creezi o stare nouă"
-      }
+      },
+      "add_group": "Adaugă grup",
+      "group_name_placeholder": "Numele grupului",
+      "category": "Categorie",
+      "select_group": "Selectează grupul",
+      "group_created": "Grup creat cu succes.",
+      "group_create_failed": "Grupul nu a putut fi creat. Încearcă din nou.",
+      "group_update_failed": "Grupul nu a putut fi actualizat. Încearcă din nou.",
+      "group_deleted": "Grup șters cu succes.",
+      "group_delete_failed": "Grupul nu a putut fi șters. Încearcă din nou."
     },
     "labels": {
       "heading": "Etichete",

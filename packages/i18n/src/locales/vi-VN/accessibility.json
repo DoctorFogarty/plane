@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "Bật/tắt menu hành động nhanh",
       "open_project_menu": "Mở menu dự án",
       "close_project_menu": "Đóng menu dự án",
+      "open_views_menu": "Mở menu chế độ xem",
+      "close_views_menu": "Đóng menu chế độ xem",
       "collapse_sidebar": "Thu gọn thanh bên",
       "expand_sidebar": "Mở rộng thanh bên",
       "edition_badge": "Mở modal gói trả phí"

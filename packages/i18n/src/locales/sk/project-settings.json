@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Stavy",
-      "description": "Definujte a prispôsobte stavy pracovného postupu na sledovanie priebehu vašich pracovných položiek.",
+      "description": "Upravte koľajnicu pracovného postupu — pridávajte skupiny, meňte poradie stĺpcov a prispôsobte pohyb práce.",
       "describe_this_state_for_your_members": "Opíšte tento stav členom.",
       "empty_state": {
-        "title": "Žiadne stavy pre skupinu {groupKey}",
+        "title": "Žiadne stavy v {groupKey}",
         "description": "Vytvorte nový stav"
-      }
+      },
+      "add_group": "Pridať skupinu",
+      "group_name_placeholder": "Názov skupiny",
+      "category": "Kategória",
+      "select_group": "Vybrať skupinu",
+      "group_created": "Skupina bola úspešne vytvorená.",
+      "group_create_failed": "Skupinu sa nepodarilo vytvoriť. Skúste to znova.",
+      "group_update_failed": "Skupinu sa nepodarilo aktualizovať. Skúste to znova.",
+      "group_deleted": "Skupina bola úspešne odstránená.",
+      "group_delete_failed": "Skupinu sa nepodarilo odstrániť. Skúste to znova."
     },
     "labels": {
       "heading": "Štítky",

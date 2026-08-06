@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Trạng thái",
-      "description": "Xác định và tùy chỉnh trạng thái quy trình làm việc để theo dõi tiến độ các mục công việc của bạn.",
+      "description": "Định hình đường ray quy trình — thêm nhóm, sắp xếp lại cột và tùy chỉnh cách công việc di chuyển.",
       "describe_this_state_for_your_members": "Mô tả trạng thái này cho thành viên của bạn.",
       "empty_state": {
-        "title": "Không có trạng thái trong nhóm {groupKey}",
+        "title": "Không có trạng thái trong {groupKey}",
         "description": "Vui lòng tạo một trạng thái mới"
-      }
+      },
+      "add_group": "Thêm nhóm",
+      "group_name_placeholder": "Tên nhóm",
+      "category": "Danh mục",
+      "select_group": "Chọn nhóm",
+      "group_created": "Đã tạo nhóm thành công.",
+      "group_create_failed": "Không thể tạo nhóm. Vui lòng thử lại.",
+      "group_update_failed": "Không thể cập nhật nhóm. Vui lòng thử lại.",
+      "group_deleted": "Đã xóa nhóm thành công.",
+      "group_delete_failed": "Không thể xóa nhóm. Vui lòng thử lại."
     },
     "labels": {
       "heading": "Nhãn",

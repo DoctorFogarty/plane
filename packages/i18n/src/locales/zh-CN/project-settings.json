@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "状态",
-      "description": "定义和自定义工作流状态以跟踪工作项的进度。",
+      "description": "打造你的工作流轨道——添加分组、调整列顺序，并自定义工作如何推进。",
       "describe_this_state_for_your_members": "为您的成员描述此状态。",
       "empty_state": {
-        "title": "{groupKey} 组中没有状态",
+        "title": "{groupKey} 中没有状态",
         "description": "请创建一个新状态"
-      }
+      },
+      "add_group": "添加分组",
+      "group_name_placeholder": "分组名称",
+      "category": "类别",
+      "select_group": "选择分组",
+      "group_created": "分组创建成功。",
+      "group_create_failed": "无法创建分组，请重试。",
+      "group_update_failed": "无法更新分组，请重试。",
+      "group_deleted": "分组已删除。",
+      "group_delete_failed": "无法删除分组，请重试。"
     },
     "labels": {
       "heading": "标签",

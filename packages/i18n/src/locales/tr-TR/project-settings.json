@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Durumlar",
-      "description": "İş öğelerinizin ilerlemesini izlemek için iş akışı durumlarını tanımlayın ve özelleştirin.",
+      "description": "İş akışı rayınızı şekillendirin — gruplar ekleyin, sütunları yeniden sıralayın ve işin nasıl ilerlediğini özelleştirin.",
       "describe_this_state_for_your_members": "Bu durumu üyeleriniz için açıklayın.",
       "empty_state": {
-        "title": "{groupKey} grubu için durum yok",
+        "title": "{groupKey} içinde durum yok",
         "description": "Lütfen yeni bir durum oluşturun"
-      }
+      },
+      "add_group": "Grup ekle",
+      "group_name_placeholder": "Grup adı",
+      "category": "Kategori",
+      "select_group": "Grup seç",
+      "group_created": "Grup başarıyla oluşturuldu.",
+      "group_create_failed": "Grup oluşturulamadı. Lütfen tekrar deneyin.",
+      "group_update_failed": "Grup güncellenemedi. Lütfen tekrar deneyin.",
+      "group_deleted": "Grup başarıyla silindi.",
+      "group_delete_failed": "Grup silinemedi. Lütfen tekrar deneyin."
     },
     "labels": {
       "heading": "Etiketler",
