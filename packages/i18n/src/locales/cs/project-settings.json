@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Stavy",
-      "description": "Definujte a přizpůsobte stavy workflow pro sledování průběhu vašich pracovních položek.",
+      "description": "Upravte kolejnici pracovního postupu — přidávejte skupiny, měňte pořadí sloupců a přizpůsobte pohyb práce.",
       "describe_this_state_for_your_members": "Popište tento stav členům.",
       "empty_state": {
-        "title": "Žádné stavy pro skupinu {groupKey}",
+        "title": "Žádné stavy ve skupině {groupKey}",
         "description": "Vytvořte nový stav"
-      }
+      },
+      "add_group": "Přidat skupinu",
+      "group_name_placeholder": "Název skupiny",
+      "category": "Kategorie",
+      "select_group": "Vybrat skupinu",
+      "group_created": "Skupina byla úspěšně vytvořena.",
+      "group_create_failed": "Skupinu se nepodařilo vytvořit. Zkuste to znovu.",
+      "group_update_failed": "Skupinu se nepodařilo aktualizovat. Zkuste to znovu.",
+      "group_deleted": "Skupina byla úspěšně odstraněna.",
+      "group_delete_failed": "Skupinu se nepodařilo odstranit. Zkuste to znovu."
     },
     "labels": {
       "heading": "Štítky",

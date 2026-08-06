@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "Attiva/disattiva menu azioni rapide",
       "open_project_menu": "Apri menu progetto",
       "close_project_menu": "Chiudi menu progetto",
+      "open_views_menu": "Apri menu viste",
+      "close_views_menu": "Chiudi menu viste",
       "collapse_sidebar": "Comprimi barra laterale",
       "expand_sidebar": "Espandi barra laterale",
       "edition_badge": "Apri modal piani a pagamento"

@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "États",
-      "description": "Définissez et personnalisez les états du flux de travail pour suivre la progression de vos éléments de travail.",
+      "description": "Façonnez votre rail de workflow — ajoutez des groupes, réordonnez les colonnes et personnalisez le parcours du travail.",
       "describe_this_state_for_your_members": "Décrivez cet état pour vos membres.",
       "empty_state": {
-        "title": "Aucun état disponible pour le groupe {groupKey}",
+        "title": "Aucun état dans {groupKey}",
         "description": "Veuillez créer un nouvel état"
-      }
+      },
+      "add_group": "Ajouter un groupe",
+      "group_name_placeholder": "Nom du groupe",
+      "category": "Catégorie",
+      "select_group": "Sélectionner un groupe",
+      "group_created": "Groupe créé avec succès.",
+      "group_create_failed": "Impossible de créer le groupe. Veuillez réessayer.",
+      "group_update_failed": "Impossible de mettre à jour le groupe. Veuillez réessayer.",
+      "group_deleted": "Groupe supprimé avec succès.",
+      "group_delete_failed": "Impossible de supprimer le groupe. Veuillez réessayer."
     },
     "labels": {
       "heading": "Étiquettes",

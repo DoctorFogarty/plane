@@ -38,10 +38,19 @@
     },
     "states": {
       "heading": "States",
-      "description": "Define and customize workflow states to track the progress of your work items.",
+      "description": "Shape your workflow rail — add groups, reorder columns, and customize how work moves.",
       "describe_this_state_for_your_members": "Describe this state for your members.",
+      "add_group": "Add group",
+      "group_name_placeholder": "Group name",
+      "category": "Category",
+      "select_group": "Select group",
+      "group_created": "Group created successfully.",
+      "group_create_failed": "Group could not be created. Please try again.",
+      "group_update_failed": "Group could not be updated. Please try again.",
+      "group_deleted": "Group deleted successfully.",
+      "group_delete_failed": "Group could not be deleted. Please try again.",
       "empty_state": {
-        "title": "No states available for the {groupKey} group",
+        "title": "No states in {groupKey}",
         "description": "Please create a new state"
       }
     },

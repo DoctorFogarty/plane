@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "Toggle quick actions menu",
       "open_project_menu": "Open project menu",
       "close_project_menu": "Close project menu",
+      "open_views_menu": "Open views menu",
+      "close_views_menu": "Close views menu",
       "collapse_sidebar": "Collapse sidebar",
       "expand_sidebar": "Expand sidebar",
       "edition_badge": "Open paid plans' modal"

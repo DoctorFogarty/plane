@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Stany",
-      "description": "Definiuj i dostosowuj stany przepływu pracy, aby śledzić postęp elementów pracy.",
+      "description": "Ukształtuj szynę przepływu pracy — dodawaj grupy, zmieniaj kolejność kolumn i dostosuj przebieg pracy.",
       "describe_this_state_for_your_members": "Opisz ten stan członkom projektu.",
       "empty_state": {
-        "title": "Brak stanów w grupie {groupKey}",
+        "title": "Brak stanów w {groupKey}",
         "description": "Utwórz nowy stan"
-      }
+      },
+      "add_group": "Dodaj grupę",
+      "group_name_placeholder": "Nazwa grupy",
+      "category": "Kategoria",
+      "select_group": "Wybierz grupę",
+      "group_created": "Grupa została utworzona.",
+      "group_create_failed": "Nie udało się utworzyć grupy. Spróbuj ponownie.",
+      "group_update_failed": "Nie udało się zaktualizować grupy. Spróbuj ponownie.",
+      "group_deleted": "Grupa została usunięta.",
+      "group_delete_failed": "Nie udało się usunąć grupy. Spróbuj ponownie."
     },
     "labels": {
       "heading": "Etykiety",

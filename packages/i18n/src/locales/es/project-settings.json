@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Estados",
-      "description": "Define y personaliza los estados del flujo de trabajo para rastrear el progreso de tus elementos de trabajo.",
+      "description": "Da forma a tu riel de flujo de trabajo: añade grupos, reordena columnas y personaliza cómo avanza el trabajo.",
       "describe_this_state_for_your_members": "Describe este estado para tus miembros.",
       "empty_state": {
-        "title": "No estados disponibles para el grupo {groupKey}",
+        "title": "No hay estados en {groupKey}",
         "description": "Por favor, crea un nuevo estado"
-      }
+      },
+      "add_group": "Añadir grupo",
+      "group_name_placeholder": "Nombre del grupo",
+      "category": "Categoría",
+      "select_group": "Seleccionar grupo",
+      "group_created": "Grupo creado correctamente.",
+      "group_create_failed": "No se pudo crear el grupo. Inténtalo de nuevo.",
+      "group_update_failed": "No se pudo actualizar el grupo. Inténtalo de nuevo.",
+      "group_deleted": "Grupo eliminado correctamente.",
+      "group_delete_failed": "No se pudo eliminar el grupo. Inténtalo de nuevo."
     },
     "labels": {
       "heading": "Etiquetas",

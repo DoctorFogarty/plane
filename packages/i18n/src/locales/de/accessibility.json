@@ -19,6 +19,8 @@
       "toggle_quick_actions_menu": "Schnellaktionen-Menü umschalten",
       "open_project_menu": "Projekt-Menü öffnen",
       "close_project_menu": "Projekt-Menü schließen",
+      "open_views_menu": "Ansichtsmenü öffnen",
+      "close_views_menu": "Ansichtsmenü schließen",
       "collapse_sidebar": "Seitenleiste einklappen",
       "expand_sidebar": "Seitenleiste ausklappen",
       "edition_badge": "Modal für kostenpflichtige Pläne öffnen"

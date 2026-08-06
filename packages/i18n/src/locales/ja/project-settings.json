@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "ステータス",
-      "description": "作業項目の進捗を追跡するためのワークフローのステータスを定義してカスタマイズします。",
+      "description": "ワークフローレールを整えましょう。グループの追加、列の並べ替え、作業の流れのカスタマイズができます。",
       "describe_this_state_for_your_members": "このステータスについてメンバーに説明してください。",
       "empty_state": {
-        "title": "{groupKey}グループのステータスがありません",
+        "title": "{groupKey} に状態がありません",
         "description": "新しいステータスを作成してください"
-      }
+      },
+      "add_group": "グループを追加",
+      "group_name_placeholder": "グループ名",
+      "category": "カテゴリ",
+      "select_group": "グループを選択",
+      "group_created": "グループを作成しました。",
+      "group_create_failed": "グループを作成できませんでした。もう一度お試しください。",
+      "group_update_failed": "グループを更新できませんでした。もう一度お試しください。",
+      "group_deleted": "グループを削除しました。",
+      "group_delete_failed": "グループを削除できませんでした。もう一度お試しください。"
     },
     "labels": {
       "heading": "ラベル",

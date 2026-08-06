@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Stati",
-      "description": "Definisci e personalizza gli stati del flusso di lavoro per tracciare l'avanzamento dei tuoi elementi di lavoro.",
+      "description": "Modella il tuo binario di workflow — aggiungi gruppi, riordina le colonne e personalizza come avanza il lavoro.",
       "describe_this_state_for_your_members": "Descrivi questo stato per i tuoi membri.",
       "empty_state": {
-        "title": "Nessuno stato disponibile per il gruppo {groupKey}",
+        "title": "Nessuno stato in {groupKey}",
         "description": "Crea un nuovo stato"
-      }
+      },
+      "add_group": "Aggiungi gruppo",
+      "group_name_placeholder": "Nome del gruppo",
+      "category": "Categoria",
+      "select_group": "Seleziona gruppo",
+      "group_created": "Gruppo creato correttamente.",
+      "group_create_failed": "Impossibile creare il gruppo. Riprova.",
+      "group_update_failed": "Impossibile aggiornare il gruppo. Riprova.",
+      "group_deleted": "Gruppo eliminato correttamente.",
+      "group_delete_failed": "Impossibile eliminare il gruppo. Riprova."
     },
     "labels": {
       "heading": "Etichette",

@@ -38,12 +38,21 @@
     },
     "states": {
       "heading": "Status",
-      "description": "Definieren und passen Sie Workflow-Status an, um den Fortschritt Ihrer Arbeitselemente zu verfolgen.",
+      "description": "Gestalten Sie Ihre Workflow-Schiene — Gruppen hinzufügen, Spalten neu ordnen und den Arbeitsfluss anpassen.",
       "describe_this_state_for_your_members": "Beschreiben Sie diesen Status für Ihre Mitglieder.",
       "empty_state": {
-        "title": "Keine Status für die Gruppe {groupKey}",
+        "title": "Keine Status in {groupKey}",
         "description": "Erstellen Sie einen neuen Status"
-      }
+      },
+      "add_group": "Gruppe hinzufügen",
+      "group_name_placeholder": "Gruppenname",
+      "category": "Kategorie",
+      "select_group": "Gruppe auswählen",
+      "group_created": "Gruppe erfolgreich erstellt.",
+      "group_create_failed": "Gruppe konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "group_update_failed": "Gruppe konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "group_deleted": "Gruppe erfolgreich gelöscht.",
+      "group_delete_failed": "Gruppe konnte nicht gelöscht werden. Bitte versuchen Sie es erneut."
     },
     "labels": {
       "heading": "Labels",
