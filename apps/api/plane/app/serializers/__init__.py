@@ -154,3 +154,12 @@ from .integration import (
     IssueGithubBranchSerializer,
     IssueGithubPullRequestSerializer,
 )
+
+from .automation import (
+    AutomationSerializer,
+    AutomationListSerializer,
+    AutomationConditionSerializer,
+    AutomationActionSerializer,
+    AutomationRunSerializer,
+    AutomationRunStepSerializer,
+)

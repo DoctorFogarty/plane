@@ -266,3 +266,5 @@ from .integration import (
     IssueGithubDevelopmentEndpoint,
     GithubWebhookEndpoint,
 )
+
+from .automation import AutomationViewSet, AutomationRunViewSet

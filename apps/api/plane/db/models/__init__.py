@@ -108,3 +108,12 @@ from .device import Device, DeviceSession
 from .sticky import Sticky
 
 from .description import Description, DescriptionVersion
+
+from .automation import (
+    Automation,
+    AutomationCondition,
+    AutomationAction,
+    AutomationRun,
+    AutomationRunStep,
+    WorkspaceAutomationBot,
+)

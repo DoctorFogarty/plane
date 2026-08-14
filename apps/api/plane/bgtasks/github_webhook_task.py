@@ -51,7 +51,21 @@ def _upsert_branch_for_issue(issue, repository, branch_name: str, head_sha: str 
     )
 
 
-def _handle_create(payload: dict):
+def _dispatch_github_automation(issue, trigger_type: str, delivery_id: str, payload: dict):
+    from plane.bgtasks.automation_task import evaluate_automations
+
+    evaluate_automations.delay(
+        project_id=str(issue.project_id),
+        issue_id=str(issue.id),
+        trigger_types=[trigger_type],
+        trigger_payload=payload,
+        event_key=f"{delivery_id}:{trigger_type}:{issue.id}" if delivery_id else "",
+        changed_fields=[],
+        skip_if_automation=False,
+    )
+
+
+def _handle_create(payload: dict, delivery_id: str = ""):
     if payload.get("ref_type") != "branch":
         return
     branch_name = payload.get("ref") or ""
@@ -67,6 +81,16 @@ def _handle_create(payload: dict):
         issue = _find_issue_for_identifier(repository.workspace_id, identifier)
         if issue and issue.project_id == repository.project_id:
             _upsert_branch_for_issue(issue, repository, branch_name)
+            _dispatch_github_automation(
+                issue,
+                "github.branch_created",
+                delivery_id,
+                {
+                    "branch": branch_name,
+                    "repository": f"{repository.owner}/{repository.name}",
+                    "event": "create",
+                },
+            )
 
 
 def _handle_push(payload: dict):
@@ -97,7 +121,20 @@ def _handle_push(payload: dict):
             _upsert_branch_for_issue(issue, repository, branch_name, head_sha=head_sha)
 
 
-def _handle_pull_request(payload: dict):
+def _github_pr_trigger(action: str, pr: dict) -> str | None:
+    merged = bool(pr.get("merged_at") or pr.get("merged"))
+    if action == "opened":
+        return "github.pr_opened"
+    if action == "ready_for_review":
+        return "github.pr_ready_for_review"
+    if action == "closed" and merged:
+        return "github.pr_merged"
+    if action == "closed" and not merged:
+        return "github.pr_closed"
+    return None
+
+
+def _handle_pull_request(payload: dict, delivery_id: str = ""):
     action = payload.get("action")
     if action not in {
         "opened",
@@ -141,6 +178,7 @@ def _handle_pull_request(payload: dict):
         if not issue:
             continue
 
+        merged = bool(pr.get("merged_at") or pr.get("merged"))
         IssueGithubPullRequest.objects.update_or_create(
             issue=issue,
             repository=repository,
@@ -151,7 +189,7 @@ def _handle_pull_request(payload: dict):
                 "title": title,
                 "state": pr.get("state") or "open",
                 "draft": bool(pr.get("draft")),
-                "merged": bool(pr.get("merged_at") or pr.get("merged")),
+                "merged": merged,
                 "html_url": pr.get("html_url") or "",
                 "head_branch": head_branch,
                 "base_branch": ((pr.get("base") or {}).get("ref") or ""),
@@ -159,14 +197,32 @@ def _handle_pull_request(payload: dict):
             },
         )
 
+        trigger_type = _github_pr_trigger(action, pr)
+        if trigger_type:
+            _dispatch_github_automation(
+                issue,
+                trigger_type,
+                delivery_id,
+                {
+                    "action": action,
+                    "pr_number": pr.get("number"),
+                    "merged": merged,
+                    "draft": bool(pr.get("draft")),
+                    "html_url": pr.get("html_url") or "",
+                    "head_branch": head_branch,
+                    "repository": f"{repository.owner}/{repository.name}",
+                    "event": "pull_request",
+                },
+            )
+
 
 @shared_task
 def process_github_webhook(event: str, delivery_id: str, payload: dict):
     if event == "create":
-        _handle_create(payload)
+        _handle_create(payload, delivery_id=delivery_id)
     elif event == "push":
         _handle_push(payload)
     elif event == "pull_request":
-        _handle_pull_request(payload)
+        _handle_pull_request(payload, delivery_id=delivery_id)
     # ping / other events acknowledged with no-op
     return {"event": event, "delivery_id": delivery_id}

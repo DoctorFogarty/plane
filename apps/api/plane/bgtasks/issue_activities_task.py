@@ -1755,6 +1755,24 @@ def issue_activity(
                 current_instance=current_instance,
             )
 
+        # Dispatch custom automations (skips when payload has automation=True)
+        if type in {
+            "issue.activity.created",
+            "issue.activity.updated",
+            "comment.activity.created",
+        }:
+            from plane.bgtasks.automation_task import dispatch_automations_from_activity
+
+            activity_ids = [str(activity.id) for activity in issue_activities_created if getattr(activity, "id", None)]
+            dispatch_automations_from_activity.delay(
+                activity_type=type,
+                requested_data=requested_data,
+                current_instance=current_instance,
+                issue_id=issue_id,
+                project_id=project_id,
+                activity_ids=activity_ids,
+            )
+
         return
     except Exception as e:
         log_exception(e)

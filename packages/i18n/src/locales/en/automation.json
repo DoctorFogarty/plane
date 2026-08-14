@@ -15,7 +15,20 @@
       "input_label": "What’s the trigger for this automation?",
       "input_placeholder": "Select an option",
       "section_plane_events": "Plane events",
+      "section_github_events": "GitHub events",
       "section_time_based": "Time based",
+      "options": {
+        "work_item.created": "Work item created",
+        "work_item.updated": "Work item updated",
+        "work_item.state_changed": "State changed",
+        "work_item.assignee_changed": "Assignee changed",
+        "work_item.comment_added": "Comment added",
+        "github.branch_created": "GitHub branch created",
+        "github.pr_opened": "GitHub pull request opened",
+        "github.pr_ready_for_review": "GitHub pull request ready for review",
+        "github.pr_merged": "GitHub pull request merged",
+        "github.pr_closed": "GitHub pull request closed"
+      },
       "fixed_schedule": "Fixed schedule",
       "schedule": {
         "frequency": "Frequency",

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from unittest.mock import patch
+
 import pytest
 
 from plane.bgtasks.github_webhook_task import (
@@ -83,15 +85,19 @@ class TestGithubWebhookHandlers:
     def test_create_branch_auto_links(self, github_dev_context):
         issue = github_dev_context["issue"]
         repo = github_dev_context["repo"]
-        _handle_create(
-            {
-                "ref_type": "branch",
-                "ref": "PROJ-12-add-feature",
-                "repository": {"id": 999001},
-            }
-        )
+        with patch("plane.bgtasks.automation_task.evaluate_automations.delay") as evaluate_delay:
+            _handle_create(
+                {
+                    "ref_type": "branch",
+                    "ref": "PROJ-12-add-feature",
+                    "repository": {"id": 999001},
+                },
+                delivery_id="d1",
+            )
         branch = IssueGithubBranch.objects.get(issue=issue, repository=repo)
         assert branch.name == "PROJ-12-add-feature"
+        assert evaluate_delay.called
+        assert evaluate_delay.call_args.kwargs["trigger_types"] == ["github.branch_created"]
 
     def test_push_updates_head_sha(self, github_dev_context):
         issue = github_dev_context["issue"]
@@ -122,39 +128,44 @@ class TestGithubWebhookHandlers:
             repository=repo,
             name="PROJ-12-add-feature",
         )
-        _handle_pull_request(
-            {
-                "action": "opened",
-                "pull_request": {
-                    "id": 1,
-                    "number": 42,
-                    "title": "Add feature",
-                    "state": "open",
-                    "draft": False,
-                    "merged": False,
-                    "html_url": "https://github.com/makeplane/plane/pull/42",
-                    "head": {"ref": "PROJ-12-add-feature"},
-                    "base": {"ref": "main"},
+        with patch("plane.bgtasks.automation_task.evaluate_automations.delay") as evaluate_delay:
+            _handle_pull_request(
+                {
+                    "action": "opened",
+                    "pull_request": {
+                        "id": 1,
+                        "number": 42,
+                        "title": "Add feature",
+                        "state": "open",
+                        "draft": False,
+                        "merged": False,
+                        "html_url": "https://github.com/makeplane/plane/pull/42",
+                        "head": {"ref": "PROJ-12-add-feature"},
+                        "base": {"ref": "main"},
+                    },
+                    "repository": {"id": 999001},
                 },
-                "repository": {"id": 999001},
-            }
-        )
+                delivery_id="d2",
+            )
         pr = IssueGithubPullRequest.objects.get(issue=issue, number=42)
         assert pr.title == "Add feature"
         assert pr.head_branch == "PROJ-12-add-feature"
+        assert evaluate_delay.called
+        assert evaluate_delay.call_args.kwargs["trigger_types"] == ["github.pr_opened"]
 
     def test_events_ignore_repository_after_sync_is_removed(self, github_dev_context):
         issue = github_dev_context["issue"]
         repo = github_dev_context["repo"]
         GithubRepositorySync.objects.filter(repository=repo).delete()
 
-        _handle_create(
-            {
-                "ref_type": "branch",
-                "ref": "PROJ-12-stale-repository",
-                "repository": {"id": 999001},
-            }
-        )
+        with patch("plane.bgtasks.automation_task.evaluate_automations.delay"):
+            _handle_create(
+                {
+                    "ref_type": "branch",
+                    "ref": "PROJ-12-stale-repository",
+                    "repository": {"id": 999001},
+                }
+            )
 
         assert not IssueGithubBranch.objects.filter(
             issue=issue,
