@@ -6,6 +6,7 @@ from django.urls import path
 
 from plane.app.views import (
     IssuePropertyOptionViewSet,
+    IssuePropertyValueBulkEndpoint,
     IssuePropertyValueEndpoint,
     IssuePropertyViewSet,
     IssueTypeEnableEndpoint,
@@ -54,6 +55,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/issue-types/<uuid:type_id>/properties/<uuid:property_id>/options/<uuid:pk>/",
         IssuePropertyOptionViewSet.as_view({"patch": "partial_update", "delete": "destroy"}),
         name="project-issue-type-property-option",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/property-values/",
+        IssuePropertyValueBulkEndpoint.as_view(),
+        name="project-issue-property-values-bulk",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/property-values/",

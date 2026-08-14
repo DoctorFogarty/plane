@@ -21,13 +21,12 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { handleIssueQueryParamsByLayout } from "@plane/utils";
+import { handleIssueQueryParamsByLayout, mergeDisplayProperties } from "@plane/utils";
 import type { IBaseIssueFilterStore } from "../helpers/issue-filter-helper.store";
 import { IssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
 // helpers
 // types
 import type { IIssueRootStore } from "../root.store";
-import { ProjectService } from "@/services/project";
 // constants
 // services
 
@@ -41,6 +40,8 @@ export interface IProjectIssuesFilter extends IBaseIssueFilterStore {
     subGroupId: string | undefined
   ) => Partial<Record<TIssueParams, string | boolean>>;
   getIssueFilters(projectId: string): IIssueFilters | undefined;
+  pruneCustomDisplayProperties: (projectId: string, allowedPropertyIds: Iterable<string>) => void;
+  hydrateFilters: (workspaceSlug: string, projectId: string) => void;
   // action
   fetchFilters: (workspaceSlug: string, projectId: string) => Promise<void>;
   updateFilterExpression: (
@@ -61,8 +62,6 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
   filters: { [projectId: string]: IIssueFilters } = {};
   // root store
   rootIssueStore: IIssueRootStore;
-  // services
-  projectService;
 
   constructor(_rootStore: IIssueRootStore) {
     super();
@@ -74,13 +73,13 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
       appliedFilters: computed,
       // actions
       fetchFilters: action,
+      hydrateFilters: action,
+      pruneCustomDisplayProperties: action,
       updateFilterExpression: action,
       updateFilters: action,
     });
     // root store
     this.rootIssueStore = _rootStore;
-    // services
-    this.projectService = new ProjectService();
   }
 
   get issueFilters() {
@@ -120,6 +119,19 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     return filteredRouteParams;
   }
 
+  pruneCustomDisplayProperties = (projectId: string, allowedPropertyIds: Iterable<string>) => {
+    const currentCustomProperties = this.filters[projectId]?.displayProperties?.custom_properties;
+    if (!currentCustomProperties) return;
+
+    const allowedPropertyIdSet = allowedPropertyIds instanceof Set ? allowedPropertyIds : new Set(allowedPropertyIds);
+    const nextCustomProperties = Object.fromEntries(
+      Object.entries(currentCustomProperties).filter(([propertyId]) => allowedPropertyIdSet.has(propertyId))
+    );
+    if (Object.keys(nextCustomProperties).length === Object.keys(currentCustomProperties).length) return;
+
+    set(this.filters, [projectId, "displayProperties", "custom_properties"], nextCustomProperties);
+  };
+
   getFilterParams = computedFn(
     (
       options: IssuePaginationOptions,
@@ -134,36 +146,34 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     }
   );
 
+  hydrateFilters = (workspaceSlug: string, projectId: string) => {
+    if (!isEmpty(this.filters[projectId])) return;
+    const cached = this.rootIssueStore.rootStore.memberRoot.project.getProjectUserProperties(projectId);
+    this.writeEntityFilters(
+      this.filters,
+      projectId,
+      workspaceSlug,
+      EIssuesStoreType.PROJECT,
+      this.rootIssueStore.currentUserId,
+      cached
+    );
+  };
+
   fetchFilters = async (workspaceSlug: string, projectId: string) => {
-    const _filters = await this.projectService.getProjectUserProperties(workspaceSlug, projectId);
+    this.hydrateFilters(workspaceSlug, projectId);
+    const _filters = await this.rootIssueStore.rootStore.memberRoot.project.fetchProjectUserProperties(
+      workspaceSlug,
+      projectId
+    );
 
-    const richFilters = _filters?.rich_filters;
-    const displayFilters = this.computedDisplayFilters(_filters?.display_filters);
-    const displayProperties = this.computedDisplayProperties(_filters?.display_properties);
-
-    // fetching the kanban toggle helpers in the local storage
-    const kanbanFilters = {
-      group_by: [],
-      sub_group_by: [],
-    };
-    const currentUserId = this.rootIssueStore.currentUserId;
-    if (currentUserId) {
-      const _kanbanFilters = this.handleIssuesLocalFilters.get(
-        EIssuesStoreType.PROJECT,
-        workspaceSlug,
-        projectId,
-        currentUserId
-      );
-      kanbanFilters.group_by = _kanbanFilters?.kanban_filters?.group_by || [];
-      kanbanFilters.sub_group_by = _kanbanFilters?.kanban_filters?.sub_group_by || [];
-    }
-
-    runInAction(() => {
-      set(this.filters, [projectId, "richFilters"], richFilters);
-      set(this.filters, [projectId, "displayFilters"], displayFilters);
-      set(this.filters, [projectId, "displayProperties"], displayProperties);
-      set(this.filters, [projectId, "kanbanFilters"], kanbanFilters);
-    });
+    this.writeEntityFilters(
+      this.filters,
+      projectId,
+      workspaceSlug,
+      EIssuesStoreType.PROJECT,
+      this.rootIssueStore.currentUserId,
+      _filters
+    );
   };
 
   /**
@@ -182,7 +192,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
       });
 
       this.rootIssueStore.projectIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
-      await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+      await this.rootIssueStore.rootStore.memberRoot.project.updateProjectUserProperties(workspaceSlug, projectId, {
         rich_filters: filters,
       });
     } catch (error) {
@@ -244,7 +254,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
             this.rootIssueStore.projectIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
           }
 
-          await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+          await this.rootIssueStore.rootStore.memberRoot.project.updateProjectUserProperties(workspaceSlug, projectId, {
             display_filters: _filters.displayFilters,
           });
 
@@ -252,19 +262,19 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
         }
         case EIssueFilterType.DISPLAY_PROPERTIES: {
           const updatedDisplayProperties = filters as IIssueDisplayProperties;
-          _filters.displayProperties = { ..._filters.displayProperties, ...updatedDisplayProperties };
+          _filters.displayProperties = mergeDisplayProperties(_filters.displayProperties, updatedDisplayProperties);
 
           runInAction(() => {
             Object.keys(updatedDisplayProperties).forEach((_key) => {
               set(
                 this.filters,
                 [projectId, "displayProperties", _key],
-                updatedDisplayProperties[_key as keyof IIssueDisplayProperties]
+                _filters.displayProperties[_key as keyof IIssueDisplayProperties]
               );
             });
           });
 
-          await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+          await this.rootIssueStore.rootStore.memberRoot.project.updateProjectUserProperties(workspaceSlug, projectId, {
             display_properties: _filters.displayProperties,
           });
           break;

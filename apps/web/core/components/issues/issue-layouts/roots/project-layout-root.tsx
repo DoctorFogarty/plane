@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { lazy, Suspense, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -15,15 +16,26 @@ import { Spinner } from "@plane/ui";
 import { ProjectLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/project-level";
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 // hooks
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
 // local imports
-import { IssuePeekOverview } from "../../peek-overview";
-import { CalendarLayout } from "../calendar/roots/project-root";
-import { BaseGanttRoot } from "../gantt";
-import { KanBanLayout } from "../kanban/roots/project-root";
-import { ListLayout } from "../list/roots/project-root";
-import { ProjectSpreadsheetLayout } from "../spreadsheet/roots/project-root";
+import { ActiveLoader } from "../issue-layout-HOC";
+
+const CalendarLayout = lazy(() =>
+  import("../calendar/roots/project-root").then((module) => ({ default: module.CalendarLayout }))
+);
+const BaseGanttRoot = lazy(() => import("../gantt").then((module) => ({ default: module.BaseGanttRoot })));
+const KanBanLayout = lazy(() =>
+  import("../kanban/roots/project-root").then((module) => ({ default: module.KanBanLayout }))
+);
+const ListLayout = lazy(() => import("../list/roots/project-root").then((module) => ({ default: module.ListLayout })));
+const ProjectSpreadsheetLayout = lazy(() =>
+  import("../spreadsheet/roots/project-root").then((module) => ({ default: module.ProjectSpreadsheetLayout }))
+);
+const IssuePeekOverview = lazy(() =>
+  import("../../peek-overview").then((module) => ({ default: module.IssuePeekOverview }))
+);
 
 function ProjectIssueLayout(props: { activeLayout: EIssueLayoutTypes | undefined }) {
   switch (props.activeLayout) {
@@ -49,9 +61,15 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
   // hooks
   const { issues, issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
+  const issueTypeStore = useIssueType();
+  if (workspaceSlug && projectId) {
+    issuesFilter?.hydrateFilters(workspaceSlug, projectId);
+  }
   // derived values
   const workItemFilters = projectId ? issuesFilter?.getIssueFilters(projectId) : undefined;
   const activeLayout = workItemFilters?.displayFilters?.layout;
+  const areProjectIssueTypesFetched = projectId ? !!issueTypeStore.fetchedMap[projectId] : false;
+  const projectTypeRevision = projectId ? (issueTypeStore.projectRevisionMap[projectId] ?? 0) : 0;
 
   useSWR(
     workspaceSlug && projectId ? `PROJECT_ISSUES_${workspaceSlug}_${projectId}` : null,
@@ -62,6 +80,12 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
     },
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
+
+  useEffect(() => {
+    if (!projectId || !areProjectIssueTypesFetched) return;
+    const allowedPropertyIds = issueTypeStore.getActiveProjectProperties(projectId).map((property) => property.id);
+    issuesFilter.pruneCustomDisplayProperties(projectId, allowedPropertyIds);
+  }, [projectId, issuesFilter, issueTypeStore, areProjectIssueTypesFetched, projectTypeRevision]);
 
   if (!workspaceSlug || !projectId || !workItemFilters) return <></>;
   return (
@@ -93,10 +117,14 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
                   <Spinner className="h-4 w-4" />
                 </div>
               )}
-              <ProjectIssueLayout activeLayout={activeLayout} />
+              <Suspense fallback={<ActiveLoader layout={activeLayout} />}>
+                <ProjectIssueLayout activeLayout={activeLayout} />
+              </Suspense>
             </div>
             {/* peek overview */}
-            <IssuePeekOverview />
+            <Suspense fallback={null}>
+              <IssuePeekOverview />
+            </Suspense>
           </div>
         )}
       </ProjectLevelWorkItemFiltersHOC>

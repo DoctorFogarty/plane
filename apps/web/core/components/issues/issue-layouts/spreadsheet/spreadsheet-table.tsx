@@ -3,12 +3,20 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable react/no-array-index-key */
 
 import type { MutableRefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { observer } from "mobx-react";
 // plane imports
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TIssue } from "@plane/types";
+import type {
+  IIssueDisplayFilterOptions,
+  IIssueDisplayProperties,
+  TIssue,
+  TIssueDisplayPropertyKey,
+  TSpreadsheetColumnKey,
+} from "@plane/types";
 // components
 import { SpreadsheetIssueRowLoader } from "@/components/ui/loader/layouts/spreadsheet-layout-loader";
 // hooks
@@ -21,6 +29,9 @@ import type { TRenderQuickActions } from "../list/list-view-types";
 import { getDisplayPropertiesCount } from "../utils";
 import { SpreadsheetIssueRow } from "./issue-row";
 import { SpreadsheetHeader } from "./spreadsheet-header";
+
+const SPREADSHEET_ROW_ESTIMATE_PX = 44;
+const SPREADSHEET_VIRTUALIZE_AFTER = 30;
 
 type Props = {
   displayProperties: IIssueDisplayProperties;
@@ -35,7 +46,7 @@ type Props = {
   containerRef: MutableRefObject<HTMLTableElement | null>;
   canLoadMoreIssues: boolean;
   loadMoreIssues: () => void;
-  spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
+  spreadsheetColumnsList: TSpreadsheetColumnKey[];
   selectionHelpers: TSelectionHelper;
   isEpic?: boolean;
 };
@@ -106,9 +117,45 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
 
   const handleKeyBoardNavigation = useTableKeyboardNavigation();
 
-  const ignoreFieldsForCounting: (keyof IIssueDisplayProperties)[] = ["key"];
+  const ignoreFieldsForCounting: TIssueDisplayPropertyKey[] = ["key"];
   if (!isEstimateEnabled) ignoreFieldsForCounting.push("estimate");
   const displayPropertiesCount = getDisplayPropertiesCount(displayProperties, ignoreFieldsForCounting);
+  const shouldVirtualize = issueIds.length > SPREADSHEET_VIRTUALIZE_AFTER;
+
+  const virtualizer = useVirtualizer({
+    count: issueIds.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => SPREADSHEET_ROW_ESTIMATE_PX,
+    overscan: 12,
+    enabled: shouldVirtualize,
+  });
+
+  const renderRow = (id: string, shouldRenderByDefault?: boolean) => (
+    <SpreadsheetIssueRow
+      key={id}
+      issueId={id}
+      displayProperties={displayProperties}
+      quickActions={quickActions}
+      canEditProperties={canEditProperties}
+      nestingLevel={0}
+      isEstimateEnabled={isEstimateEnabled}
+      updateIssue={updateIssue}
+      portalElement={portalElement}
+      containerRef={containerRef}
+      isScrolled={isScrolled}
+      spreadsheetColumnsList={spreadsheetColumnsList}
+      selectionHelpers={selectionHelpers}
+      shouldRenderByDefault={shouldRenderByDefault}
+      isEpic={isEpic}
+    />
+  );
+
+  const virtualItems = virtualizer.getVirtualItems();
+  const paddingTop = shouldVirtualize && virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom =
+    shouldVirtualize && virtualItems.length > 0
+      ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+      : 0;
 
   return (
     <table className="w-full overflow-y-auto bg-surface-1" onKeyDown={handleKeyBoardNavigation}>
@@ -122,26 +169,29 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
         selectionHelpers={selectionHelpers}
         isEpic={isEpic}
       />
-      <tbody>
-        {issueIds.map((id) => (
-          <SpreadsheetIssueRow
-            key={id}
-            issueId={id}
-            displayProperties={displayProperties}
-            quickActions={quickActions}
-            canEditProperties={canEditProperties}
-            nestingLevel={0}
-            isEstimateEnabled={isEstimateEnabled}
-            updateIssue={updateIssue}
-            portalElement={portalElement}
-            containerRef={containerRef}
-            isScrolled={isScrolled}
-            spreadsheetColumnsList={spreadsheetColumnsList}
-            selectionHelpers={selectionHelpers}
-            isEpic={isEpic}
-          />
-        ))}
-      </tbody>
+      {paddingTop > 0 && (
+        <tbody>
+          <tr>
+            <td colSpan={100} style={{ height: paddingTop, padding: 0, border: 0 }} />
+          </tr>
+        </tbody>
+      )}
+      {shouldVirtualize ? (
+        virtualItems.map((virtualRow) => (
+          <tbody key={issueIds[virtualRow.index]} data-index={virtualRow.index} ref={virtualizer.measureElement}>
+            {renderRow(issueIds[virtualRow.index], true)}
+          </tbody>
+        ))
+      ) : (
+        <tbody>{issueIds.map((id) => renderRow(id))}</tbody>
+      )}
+      {paddingBottom > 0 && (
+        <tbody>
+          <tr>
+            <td colSpan={100} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+          </tr>
+        </tbody>
+      )}
       {canLoadMoreIssues && (
         <tfoot ref={setIntersectionElement}>
           {Array.from({ length: 3 }).map((_, index) => (

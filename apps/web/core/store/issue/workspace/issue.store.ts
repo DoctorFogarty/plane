@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { action, makeObservable, runInAction } from "mobx";
+import { action, makeObservable } from "mobx";
 // base class
 import type {
   IssuePaginationOptions,
@@ -102,14 +102,14 @@ export class WorkspaceIssues extends BaseIssuesStore implements IWorkspaceIssues
     isExistingPaginationOptions: boolean = false
   ) => {
     try {
-      // set loader and clear store
-      runInAction(() => {
-        this.setLoader(loadType);
-      });
-      this.clear(!isExistingPaginationOptions);
-
       // get params from pagination options
       const params = this.issueFilterStore?.getFilterParams(options, viewId, undefined, undefined, undefined);
+      this.beginIssuesFetch(
+        `${workspaceSlug}:${viewId}:${JSON.stringify(params)}`,
+        loadType,
+        !isExistingPaginationOptions
+      );
+
       // call the fetch issues API with the params
       const response = await this.workspaceService.getViewIssues(workspaceSlug, params, {
         signal: this.controller.signal,

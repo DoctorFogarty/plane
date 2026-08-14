@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, react/no-array-index-key */
 
 import { useCallback, useState } from "react";
 import { observer } from "mobx-react";
@@ -40,9 +41,12 @@ export const CycleIssuesMobileHeader = observer(function CycleIssuesMobileHeader
   const { currentProjectDetails } = useProject();
   const { getCycleById } = useCycle();
   const {
-    issuesFilter: { issueFilters, updateFilters },
+    issuesFilter,
+    issuesFilter: { updateFilters },
   } = useIssues(EIssuesStoreType.CYCLE);
   // derived values
+  const cycleIdStr = cycleId?.toString();
+  const issueFilters = cycleIdStr ? issuesFilter.getIssueFilters(cycleIdStr) : undefined;
   const activeLayout = issueFilters?.displayFilters?.layout;
   const cycleDetails = cycleId ? getCycleById(cycleId.toString()) : undefined;
 
@@ -139,6 +143,7 @@ export const CycleIssuesMobileHeader = observer(function CycleIssuesMobileHeader
               handleDisplayFiltersUpdate={handleDisplayFilters}
               displayProperties={issueFilters?.displayProperties ?? {}}
               handleDisplayPropertiesUpdate={handleDisplayProperties}
+              projectId={projectId?.toString()}
               ignoreGroupedFilters={["cycle"]}
               cycleViewDisabled={!currentProjectDetails?.cycle_view}
               moduleViewDisabled={!currentProjectDetails?.module_view}

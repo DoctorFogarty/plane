@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable react/no-array-index-key */
 
 import { useEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
@@ -11,14 +12,7 @@ import { observer } from "mobx-react";
 // plane constants
 import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
 // types
-import type {
-  TGroupedIssues,
-  TIssue,
-  TIssueMap,
-  TPaginationData,
-  ICalendarWeek,
-  TSupportedFilterForUpdate,
-} from "@plane/types";
+import type { TGroupedIssues, TIssue, TPaginationData, ICalendarWeek, TSupportedFilterForUpdate } from "@plane/types";
 import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
 // ui
 import { Spinner } from "@plane/ui";
@@ -45,7 +39,6 @@ import { CalendarWeekHeader } from "./week-header";
 
 type Props = {
   issuesFilterStore: IProjectIssuesFilter | IModuleIssuesFilter | ICycleIssuesFilter | IProjectViewIssuesFilter;
-  issues: TIssueMap | undefined;
   groupedIssueIds: TGroupedIssues;
   layout: "month" | "week" | undefined;
   showWeekends: boolean;
@@ -75,7 +68,6 @@ type Props = {
 export const CalendarChart = observer(function CalendarChart(props: Props) {
   const {
     issuesFilterStore,
-    issues,
     groupedIssueIds,
     layout,
     showWeekends,
@@ -122,7 +114,7 @@ export const CalendarChart = observer(function CalendarChart(props: Props) {
         element,
       })
     );
-  }, [scrollableContainerRef?.current]);
+  }, []);
 
   if (!calendarPayload || !formattedDatePayload)
     return (
@@ -149,7 +141,7 @@ export const CalendarChart = observer(function CalendarChart(props: Props) {
             })}
             ref={scrollableContainerRef}
           >
-            <CalendarWeekHeader isLoading={!issues} showWeekends={showWeekends} />
+            <CalendarWeekHeader isLoading={false} showWeekends={showWeekends} />
             <div className="h-full w-full">
               {layout === "month" && (
                 <div className="grid h-full w-full grid-cols-1 divide-y-[0.5px] divide-subtle-1">
@@ -162,7 +154,6 @@ export const CalendarChart = observer(function CalendarChart(props: Props) {
                         issuesFilterStore={issuesFilterStore}
                         key={weekIndex}
                         week={week}
-                        issues={issues}
                         groupedIssueIds={groupedIssueIds}
                         loadMoreIssues={loadMoreIssues}
                         getPaginationData={getPaginationData}
@@ -186,7 +177,6 @@ export const CalendarChart = observer(function CalendarChart(props: Props) {
                   handleDragAndDrop={handleDragAndDrop}
                   issuesFilterStore={issuesFilterStore}
                   week={issueCalendarView.allDaysOfActiveWeek}
-                  issues={issues}
                   groupedIssueIds={groupedIssueIds}
                   loadMoreIssues={loadMoreIssues}
                   getPaginationData={getPaginationData}

@@ -74,6 +74,8 @@ class DraftIssue(WorkspaceBaseModel):
         null=True,
         blank=True,
     )
+    # Custom property values keyed by property id, applied when converting draft → issue
+    property_values = models.JSONField(default=dict, blank=True)
 
     class Meta:
         verbose_name = "DraftIssue"

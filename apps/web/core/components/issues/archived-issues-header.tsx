@@ -28,10 +28,12 @@ export const ArchivedIssuesHeader = observer(function ArchivedIssuesHeader() {
   // store hooks
   const { currentProjectDetails } = useProject();
   const {
-    issuesFilter: { issueFilters, updateFilters },
+    issuesFilter,
+    issuesFilter: { updateFilters },
   } = useIssues(EIssuesStoreType.ARCHIVED);
   // i18n
   const { t } = useTranslation();
+  const issueFilters = projectId ? issuesFilter.getIssueFilters(projectId) : undefined;
   // for archived issues list layout is the only option
   const activeLayout = "list";
 

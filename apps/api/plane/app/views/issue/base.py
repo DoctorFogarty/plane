@@ -3,7 +3,6 @@
 # See the LICENSE file for details.
 
 # Python imports
-import copy
 import json
 
 # Django imports
@@ -64,7 +63,7 @@ from plane.db.models import (
     ProjectMember,
     UserRecentVisit,
 )
-from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
+from plane.utils.filters import IssueComplexFilterBackend, IssueFilterSet
 from plane.utils.global_paginator import paginate
 from plane.utils.grouper import (
     issue_group_values,
@@ -72,7 +71,7 @@ from plane.utils.grouper import (
     issue_queryset_grouper,
 )
 from plane.utils.host import base_host
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.utils.order_queryset import order_issue_queryset
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
 from plane.utils.timezone_converter import user_timezone_converter
@@ -81,7 +80,7 @@ from .. import BaseAPIView, BaseViewSet
 
 
 class IssueListEndpoint(BaseAPIView):
-    filter_backends = (ComplexFilterBackend,)
+    filter_backends = (IssueComplexFilterBackend,)
     filterset_class = IssueFilterSet
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
@@ -101,7 +100,7 @@ class IssueListEndpoint(BaseAPIView):
 
         # Apply legacy filters
         filters = issue_filters(request.query_params, "GET")
-        issue_queryset = queryset.filter(**filters)
+        issue_queryset = apply_issue_filters(queryset, filters)
         issue_queryset = issue_queryset.filter(state__deleted_at__isnull=True)
 
         # Add select_related, prefetch_related if fields or expand is not None
@@ -211,7 +210,7 @@ class IssueViewSet(BaseViewSet):
     model = Issue
     webhook_event = "issue"
     search_fields = ["name"]
-    filter_backends = (ComplexFilterBackend,)
+    filter_backends = (IssueComplexFilterBackend,)
     filterset_class = IssueFilterSet
 
     def get_serializer_class(self):
@@ -282,10 +281,10 @@ class IssueViewSet(BaseViewSet):
         issue_queryset = self.filter_queryset(issue_queryset)
 
         # Apply legacy filters
-        issue_queryset = issue_queryset.filter(**filters, **extra_filters)
+        issue_queryset = apply_issue_filters(issue_queryset, filters, extra_filters)
 
         # Keeping a copy of the queryset before applying annotations
-        filtered_issue_queryset = copy.deepcopy(issue_queryset)
+        filtered_issue_queryset = issue_queryset.all()
 
         # Applying annotations to the issue queryset
         issue_queryset = self.apply_annotations(issue_queryset)
@@ -727,7 +726,6 @@ class IssueViewSet(BaseViewSet):
     @allow_permission([ROLE.ADMIN], creator=True, model=Issue)
     def destroy(self, request, slug, project_id, pk=None):
         issue = Issue.objects.get(workspace__slug=slug, project_id=project_id, pk=pk)
-
         issue.delete()
         # delete the issue from recent visits
         UserRecentVisit.objects.filter(
@@ -986,7 +984,7 @@ class IssuePaginatedViewSet(BaseViewSet):
 
 
 class IssueDetailEndpoint(BaseAPIView):
-    filter_backends = (ComplexFilterBackend,)
+    filter_backends = (IssueComplexFilterBackend,)
     filterset_class = IssueFilterSet
 
     def apply_annotations(self, issues):
@@ -1093,10 +1091,10 @@ class IssueDetailEndpoint(BaseAPIView):
         issue = self.filter_queryset(issue)
 
         # Apply legacy filters
-        issue = issue.filter(**filters)
+        issue = apply_issue_filters(issue, filters)
 
         # Total count queryset
-        total_issue_queryset = copy.deepcopy(issue)
+        total_issue_queryset = issue.all()
 
         # Applying annotations to the issue queryset
         issue = self.apply_annotations(issue)

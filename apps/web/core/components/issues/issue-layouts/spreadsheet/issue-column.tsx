@@ -7,29 +7,49 @@
 import { useRef } from "react";
 import { observer } from "mobx-react";
 // types
-import type { IIssueDisplayProperties, TIssue } from "@plane/types";
+import type { IIssueDisplayProperties, TIssue, TIssueDisplayPropertyKey, TSpreadsheetColumnKey } from "@plane/types";
+import { isCustomPropertyColumnKey, parseCustomPropertyColumnKey } from "@plane/utils";
 // components
-import { SPREADSHEET_COLUMNS } from "@/plane-web/components/issues/issue-layouts/utils";
 import { shouldRenderColumn } from "@/helpers/issue-filter.helper";
+import { SpreadsheetCustomPropertyColumn } from "@/plane-web/components/issues/issue-layouts/spreadsheet-custom-property-column";
+import { SPREADSHEET_COLUMNS } from "@/plane-web/components/issues/issue-layouts/utils";
 import { WithDisplayPropertiesHOC } from "../properties/with-display-properties-HOC";
 
 type Props = {
   displayProperties: IIssueDisplayProperties;
   issueDetail: TIssue;
   disableUserActions: boolean;
-  property: keyof IIssueDisplayProperties;
+  property: TSpreadsheetColumnKey;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
   isEstimateEnabled: boolean;
 };
 
 export const IssueColumn = observer(function IssueColumn(props: Props) {
   const { displayProperties, issueDetail, disableUserActions, property, updateIssue } = props;
-  // router
   const tableCellRef = useRef<HTMLTableCellElement | null>(null);
 
-  const shouldRenderProperty = shouldRenderColumn(property);
+  if (isCustomPropertyColumnKey(property)) {
+    const propertyId = parseCustomPropertyColumnKey(property);
+    if (!propertyId) return null;
+    return (
+      <td
+        tabIndex={0}
+        className="h-11 min-w-36 border-r-[1px] border-subtle text-13 after:absolute after:bottom-[-1px] after:w-full after:border after:border-subtle"
+        ref={tableCellRef}
+      >
+        <SpreadsheetCustomPropertyColumn
+          issue={issueDetail}
+          propertyId={propertyId}
+          disabled={disableUserActions}
+          onClose={() => tableCellRef?.current?.focus()}
+        />
+      </td>
+    );
+  }
 
-  const Column = SPREADSHEET_COLUMNS[property];
+  const systemProperty = property as TIssueDisplayPropertyKey;
+  const shouldRenderProperty = shouldRenderColumn(systemProperty);
+  const Column = SPREADSHEET_COLUMNS[systemProperty];
 
   if (!Column) return null;
 
@@ -40,7 +60,7 @@ export const IssueColumn = observer(function IssueColumn(props: Props) {
   return (
     <WithDisplayPropertiesHOC
       displayProperties={displayProperties}
-      displayPropertyKey={property}
+      displayPropertyKey={systemProperty}
       shouldRenderProperty={() => shouldRenderProperty}
     >
       <td

@@ -27,7 +27,7 @@ export type TWorkItemLevelModalsProps = {
 export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: TWorkItemLevelModalsProps) {
   const { workItemIdentifier } = props;
   // router
-  const { workspaceSlug, cycleId, moduleId } = useParams();
+  const { workspaceSlug, projectId: routerProjectId, cycleId, moduleId } = useParams();
   const router = useAppRouter();
   // store hooks
   const { data: currentUser } = useUser();
@@ -54,11 +54,11 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
   const { fetchSubIssues: fetchSubWorkItems } = useIssueDetail();
   const { fetchSubIssues: fetchEpicSubWorkItems } = useIssueDetail(EIssueServiceType.EPICS);
 
-  const handleDeleteIssue = async (workspaceSlug: string, projectId: string, issueId: string) => {
+  const handleDeleteIssue = async (slug: string, projectId: string, issueId: string) => {
     try {
       const isEpic = workItemDetails?.is_epic;
       const deleteAction = isEpic ? removeEpic : removeWorkItem;
-      const redirectPath = `/${workspaceSlug}/projects/${projectId}/${isEpic ? "epics" : "issues"}`;
+      const redirectPath = `/${slug}/projects/${projectId}/${isEpic ? "epics" : "issues"}`;
 
       await deleteAction(projectId, issueId);
       router.push(redirectPath);
@@ -74,10 +74,13 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
     await fetchAction(workspaceSlug?.toString(), newIssue.project_id, workItemDetails.id);
   };
 
-  const getCreateIssueModalData = () => {
-    if (cycleId) return { cycle_id: cycleId.toString() };
-    if (moduleId) return { module_ids: [moduleId.toString()] };
-    return undefined;
+  const getCreateIssueModalData = (): Partial<TIssue> | undefined => {
+    const projectId = routerProjectId?.toString();
+    const payload: Partial<TIssue> = {};
+    if (projectId) payload.project_id = projectId;
+    if (cycleId) payload.cycle_id = cycleId.toString();
+    if (moduleId) payload.module_ids = [moduleId.toString()];
+    return Object.keys(payload).length > 0 ? payload : undefined;
   };
 
   return (

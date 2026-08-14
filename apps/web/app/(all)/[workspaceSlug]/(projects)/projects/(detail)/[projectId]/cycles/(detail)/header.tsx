@@ -62,7 +62,8 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
   const { t } = useTranslation();
   // store hooks
   const {
-    issuesFilter: { issueFilters, updateFilters },
+    issuesFilter,
+    issuesFilter: { updateFilters },
     issues: { getGroupIssueCount },
   } = useIssues(EIssuesStoreType.CYCLE);
   const { currentProjectCycleIds, getCycleById } = useCycle();
@@ -71,11 +72,13 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
   const { isMobile } = usePlatformOS();
   const { allowPermissions } = useUserPermissions();
 
+  const cycleIdStr = cycleId?.toString();
+  const issueFilters = cycleIdStr ? issuesFilter.getIssueFilters(cycleIdStr) : undefined;
   const activeLayout = issueFilters?.displayFilters?.layout;
 
   const { setValue, storedValue } = useLocalStorage("cycle_sidebar_collapsed", false);
 
-  const isSidebarCollapsed = storedValue ? (storedValue === true ? true : false) : false;
+  const isSidebarCollapsed = storedValue === true;
   const toggleSidebar = () => {
     setValue(!isSidebarCollapsed);
   };
@@ -225,6 +228,7 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
                 handleDisplayFiltersUpdate={handleDisplayFilters}
                 displayProperties={issueFilters?.displayProperties ?? {}}
                 handleDisplayPropertiesUpdate={handleDisplayProperties}
+                projectId={projectId?.toString()}
                 ignoreGroupedFilters={["cycle"]}
                 cycleViewDisabled={!currentProjectDetails?.cycle_view}
                 moduleViewDisabled={!currentProjectDetails?.module_view}

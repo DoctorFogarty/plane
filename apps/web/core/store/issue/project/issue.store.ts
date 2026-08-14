@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unused-expressions */
 
-import { action, makeObservable, runInAction } from "mobx";
+import { action, makeObservable } from "mobx";
 // types
 import type {
   TIssue,
@@ -62,6 +63,7 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
 
   // filter store
   issueFilterStore: IProjectIssuesFilter;
+  private fetchPromises = new Map<string, Promise<TIssuesResponse>>();
 
   constructor(_rootStore: IIssueRootStore, issueFilterStore: IProjectIssuesFilter) {
     super(_rootStore, issueFilterStore);
@@ -104,28 +106,34 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
     options: IssuePaginationOptions,
     isExistingPaginationOptions: boolean = false
   ) => {
-    try {
-      // set loader and clear store
-      runInAction(() => {
-        this.setLoader(loadType);
-        this.clear(!isExistingPaginationOptions); // clear while fetching from server.
-      });
+    // Compute the request identity before clearing the store. Concurrent mounts
+    // with identical filters should share one request instead of aborting and
+    // restarting each other.
+    const params = this.issueFilterStore?.getFilterParams(options, projectId, undefined, undefined, undefined);
+    const requestKey = `${workspaceSlug}:${projectId}:${JSON.stringify(params)}`;
+    const inFlightRequest = this.fetchPromises.get(requestKey);
+    if (inFlightRequest) return inFlightRequest;
 
-      // get params from pagination options
-      const params = this.issueFilterStore?.getFilterParams(options, projectId, undefined, undefined, undefined);
-      // call the fetch issues API with the params
-      const response = await this.issueService.getIssues(workspaceSlug, projectId, params, {
-        signal: this.controller.signal,
-      });
+    const request = (async () => {
+      try {
+        this.beginIssuesFetch(requestKey, loadType, !isExistingPaginationOptions);
 
-      // after fetching issues, call the base method to process the response further
-      this.onfetchIssues(response, options, workspaceSlug, projectId, undefined, !isExistingPaginationOptions);
-      return response;
-    } catch (error) {
-      // set loader to undefined if errored out
-      this.setLoader(undefined);
-      throw error;
-    }
+        const response = await this.issueService.getIssues(workspaceSlug, projectId, params, {
+          signal: this.controller.signal,
+        });
+
+        this.onfetchIssues(response, options, workspaceSlug, projectId, undefined, !isExistingPaginationOptions, false);
+        return response;
+      } catch (error) {
+        this.setLoader(undefined);
+        throw error;
+      }
+    })().finally(() => {
+      this.fetchPromises.delete(requestKey);
+    });
+
+    this.fetchPromises.set(requestKey, request);
+    return request;
   };
 
   /**

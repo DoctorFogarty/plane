@@ -162,6 +162,7 @@ from .issue.type import (
     IssuePropertyViewSet,
     IssuePropertyOptionViewSet,
     IssuePropertyValueEndpoint,
+    IssuePropertyValueBulkEndpoint,
 )
 
 from .module.base import (

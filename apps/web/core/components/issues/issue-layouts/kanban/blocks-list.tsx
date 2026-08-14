@@ -7,7 +7,7 @@
 import type { MutableRefObject } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { TIssue, IIssueDisplayProperties, IIssueMap } from "@plane/types";
+import type { TIssue, IIssueDisplayProperties } from "@plane/types";
 // local imports
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { KanbanIssueBlock } from "./block";
@@ -15,7 +15,6 @@ import { KanbanIssueBlock } from "./block";
 interface IssueBlocksListProps {
   sub_group_id: string;
   groupId: string;
-  issuesMap: IIssueMap;
   issueIds: string[];
   displayProperties: IIssueDisplayProperties | undefined;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
@@ -31,7 +30,6 @@ export const KanbanIssueBlocksList = observer(function KanbanIssueBlocksList(pro
   const {
     sub_group_id,
     groupId,
-    issuesMap,
     issueIds,
     displayProperties,
     canDropOverIssue,
@@ -61,7 +59,6 @@ export const KanbanIssueBlocksList = observer(function KanbanIssueBlocksList(pro
                 groupId={groupId}
                 subGroupId={sub_group_id}
                 shouldRenderByDefault={index <= 10}
-                issuesMap={issuesMap}
                 displayProperties={displayProperties}
                 updateIssue={updateIssue}
                 quickActions={quickActions}

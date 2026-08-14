@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, react-hooks/exhaustive-deps, unicorn/consistent-function-scoping */
 
 import type { MutableRefObject } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -16,7 +17,7 @@ import { useOutsideClickDetector } from "@plane/hooks";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssue, IIssueDisplayProperties, IIssueMap } from "@plane/types";
+import type { TIssue, IIssueDisplayProperties } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // ui
 import { ControlLink, DropIndicator } from "@plane/ui";
@@ -27,6 +28,7 @@ import { HIGHLIGHT_CLASS, getIssueBlockId } from "@/components/issues/issue-layo
 // helpers
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssueById } from "@/hooks/store/use-issues";
 import { useKanbanView } from "@/hooks/store/use-kanban-view";
 import { useProject } from "@/hooks/store/use-project";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
@@ -43,7 +45,6 @@ interface IssueBlockProps {
   issueId: string;
   groupId: string;
   subGroupId: string;
-  issuesMap: IIssueMap;
   displayProperties: IIssueDisplayProperties | undefined;
   draggableId: string;
   canDropOverIssue: boolean;
@@ -158,7 +159,6 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
     issueId,
     groupId,
     subGroupId,
-    issuesMap,
     displayProperties,
     canDropOverIssue,
     canDragIssuesInCurrentGrouping,
@@ -183,7 +183,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
   // handlers
   const handleIssuePeekOverview = (issue: TIssue) => handleRedirection(workspaceSlug, issue, isMobile);
 
-  const issue = issuesMap[issueId];
+  const issue = useIssueById(issueId);
 
   const { setIsDragging: setIsKanbanDragging } = useKanbanView();
 
@@ -246,7 +246,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
         },
       })
     );
-  }, [cardRef?.current, issue?.id, isDragAllowed, canDropOverIssue, setIsCurrentBlockDragging, setIsDraggingOverBlock]);
+  }, [issue?.id, isDragAllowed, canDropOverIssue, setIsCurrentBlockDragging, setIsDraggingOverBlock]);
 
   if (!issue) return null;
 

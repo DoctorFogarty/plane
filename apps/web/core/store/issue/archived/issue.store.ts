@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unused-expressions */
 
 import { action, makeObservable, runInAction } from "mobx";
 // base class
@@ -99,14 +100,13 @@ export class ArchivedIssues extends BaseIssuesStore implements IArchivedIssues {
     isExistingPaginationOptions: boolean = false
   ) => {
     try {
-      // set loader and clear store
-      runInAction(() => {
-        this.setLoader(loadType);
-      });
-      this.clear(!isExistingPaginationOptions);
-
       // get params from pagination options
       const params = this.issueFilterStore?.getFilterParams(options, projectId, undefined, undefined, undefined);
+      this.beginIssuesFetch(
+        `${workspaceSlug}:${projectId}:archived:${JSON.stringify(params)}`,
+        loadType,
+        !isExistingPaginationOptions
+      );
       // call the fetch issues API with the params
       const response = await this.issueArchiveService.getArchivedIssues(workspaceSlug, projectId, params, {
         signal: this.controller.signal,

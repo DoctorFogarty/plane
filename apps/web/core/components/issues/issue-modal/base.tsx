@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow */
 
 import { useEffect, useRef, useState } from "react";
 import { isEqual, xor } from "lodash-es";
@@ -11,7 +12,7 @@ import { useParams } from "next/navigation";
 // Plane imports
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TBaseIssue, TIssue } from "@plane/types";
+import type { TBaseIssue, TIssue, TWorkspaceDraftIssue } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
@@ -75,7 +76,8 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   const { issues: projectIssues } = useIssues(EIssuesStoreType.PROJECT);
   const { issues: draftIssues } = useIssues(EIssuesStoreType.WORKSPACE_DRAFT);
   const { fetchIssue } = useIssueDetail();
-  const { allowedProjectIds, handleCreateUpdatePropertyValues, handleCreateSubWorkItem } = useIssueModal();
+  const { allowedProjectIds, handleCreateUpdatePropertyValues, handleCreateSubWorkItem, issuePropertyValues } =
+    useIssueModal();
   const { getProjectByIdentifier } = useProject();
   // current store details
   const { createIssue, updateIssue } = useIssuesActions(storeType);
@@ -108,21 +110,35 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
       return;
     }
 
-    // if data is present, set active project to the project of the
-    // issue. This has more priority than the project in the url.
-    if (data && data.project_id) {
+    // Edit existing work item: always prefer the issue's project.
+    if (data?.id && data.project_id) {
       setActiveProjectId(data.project_id);
       return;
     }
 
-    // if data is not present, set active project to the first project in the allowedProjectIds array
-    if (allowedProjectIds && allowedProjectIds.length > 0 && !activeProjectId)
-      setActiveProjectId(projectId?.toString() ?? allowedProjectIds?.[0]);
+    // Create mode: sync to the viewed/resolved project on every open / route change.
+    // Prefer explicit data.project_id, then router project — never stick to a previous
+    // activeProjectId or fall back to allowedProjectIds[0] while a project route exists.
+    const resolvedCreateProjectId =
+      data?.project_id ?? routerProjectId?.toString() ?? projectIdFromRouter ?? allowedProjectIds?.[0] ?? null;
+    if (resolvedCreateProjectId && resolvedCreateProjectId !== activeProjectId) {
+      setActiveProjectId(resolvedCreateProjectId);
+    }
 
     // clearing up the description state when we leave the component
     return () => setDescription(undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.project_id, data?.id, data?.sourceIssueId, projectId, isOpen, activeProjectId]);
+  }, [
+    data?.project_id,
+    data?.id,
+    data?.sourceIssueId,
+    projectId,
+    routerProjectId,
+    projectIdFromRouter,
+    isOpen,
+    activeProjectId,
+    allowedProjectIds,
+  ]);
 
   const addIssueToCycle = async (issue: TIssue, cycleId: string) => {
     if (!workspaceSlug || !issue.project_id) return;
@@ -165,9 +181,12 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
 
     try {
       let response: TIssue | undefined;
-      // if draft issue, use draft issue store to create issue
+      // if draft issue, use draft issue store to create issue (include custom property values as JSON)
       if (is_draft_issue) {
-        response = (await draftIssues.createIssue(workspaceSlug.toString(), payload)) as TIssue;
+        response = (await draftIssues.createIssue(workspaceSlug.toString(), {
+          ...payload,
+          property_values: issuePropertyValues,
+        } as Partial<TWorkspaceDraftIssue>)) as TIssue;
       }
       // if cycle id in payload does not match the cycleId in url
       // or if the moduleIds in Payload does not match the moduleId in url

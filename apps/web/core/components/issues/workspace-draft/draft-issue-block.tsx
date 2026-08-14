@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import React, { useRef, useState } from "react";
 import { omit } from "lodash-es";
@@ -115,7 +116,10 @@ export const DraftIssueBlock = observer(function DraftIssueBlock(props: Props) {
           setIssueToEdit(undefined);
           setMoveToIssue(false);
         }}
-        data={issueToEdit ?? duplicateIssuePayload}
+        data={{
+          ...(issueToEdit ?? duplicateIssuePayload),
+          is_draft: true,
+        }}
         onSubmit={async (data) => {
           if (issueToEdit) await updateIssue(workspaceSlug, issueId, data);
         }}
@@ -148,7 +152,9 @@ export const DraftIssueBlock = observer(function DraftIssueBlock(props: Props) {
                 <div className="flex-shrink-0">
                   {issue.project_id && (
                     <div className="flex items-center space-x-2">
-                      {issue?.type_id && <IssueTypeIdentifier issueTypeId={issue.type_id} />}
+                      {issue?.type_id && (
+                        <IssueTypeIdentifier projectId={issue.project_id} issueTypeId={issue.type_id} />
+                      )}
                       <IdentifierText
                         identifier={projectIdentifier}
                         enableClickToCopyIdentifier

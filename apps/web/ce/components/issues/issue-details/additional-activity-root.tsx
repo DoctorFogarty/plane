@@ -60,16 +60,10 @@ export const AdditionalActivityRoot = observer(function AdditionalActivityRoot(p
     );
   }
 
-  let property: TIssueProperty | undefined;
-  if (activity.new_identifier) {
-    for (const type of Object.values(issueTypeStore.typeMap)) {
-      const match = (type.properties || []).find((p) => p.id === activity.new_identifier);
-      if (match) {
-        property = match;
-        break;
-      }
-    }
-  }
+  const property: TIssueProperty | undefined = issueTypeStore.getProjectPropertyById(
+    activity.project,
+    activity.new_identifier
+  );
 
   const rawValue = activity.new_value;
   const displayValue =

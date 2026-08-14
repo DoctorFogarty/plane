@@ -37,12 +37,19 @@ export interface IssuesModalProps {
 
 export const CreateUpdateIssueModal = observer(function CreateUpdateIssueModal(props: IssuesModalProps) {
   // router params
-  const { cycleId, moduleId } = useParams();
-  // derived values
+  const { projectId: routerProjectId, cycleId, moduleId } = useParams();
+  // derived values — always preload the viewed project when opening create
   const dataForPreload = {
     ...props.data,
+    project_id: props.data?.project_id ?? routerProjectId?.toString() ?? undefined,
     cycle_id: props.data?.cycle_id ? props.data?.cycle_id : cycleId ? cycleId.toString() : null,
     module_ids: props.data?.module_ids ? props.data?.module_ids : moduleId ? [moduleId.toString()] : null,
+  };
+
+  // Pass resolved project into the base as well so activeProjectId syncs correctly
+  const dataWithProject = {
+    ...props.data,
+    project_id: props.data?.project_id ?? routerProjectId?.toString(),
   };
 
   if (!props.isOpen) return null;
@@ -52,7 +59,7 @@ export const CreateUpdateIssueModal = observer(function CreateUpdateIssueModal(p
       dataForPreload={dataForPreload}
       allowedProjectIds={props.allowedProjectIds}
     >
-      <CreateUpdateIssueModalBase {...props} />
+      <CreateUpdateIssueModalBase {...props} data={dataWithProject} />
     </IssueModalProvider>
   );
 });

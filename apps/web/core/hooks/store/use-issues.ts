@@ -5,8 +5,7 @@
  */
 
 import { useContext } from "react";
-import { merge } from "lodash-es";
-import type { TIssueMap } from "@plane/types";
+import type { TIssue } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { StoreContext } from "@/lib/store-context";
 // plane web types
@@ -24,62 +23,57 @@ import type { IProjectIssues, IProjectIssuesFilter } from "@/store/issue/project
 import type { IProjectViewIssues, IProjectViewIssuesFilter } from "@/store/issue/project-views";
 import type { IWorkspaceIssuesFilter } from "@/store/issue/workspace";
 import type { IWorkspaceDraftIssues, IWorkspaceDraftIssuesFilter } from "@/store/issue/workspace-draft";
-// constants
-
-type defaultIssueStore = {
-  issueMap: TIssueMap;
-};
 
 export type TStoreIssues = {
-  [EIssuesStoreType.GLOBAL]: defaultIssueStore & {
+  [EIssuesStoreType.GLOBAL]: {
     issues: IWorkspaceIssues;
     issuesFilter: IWorkspaceIssuesFilter;
   };
-  [EIssuesStoreType.WORKSPACE_DRAFT]: defaultIssueStore & {
+  [EIssuesStoreType.WORKSPACE_DRAFT]: {
     issues: IWorkspaceDraftIssues;
     issuesFilter: IWorkspaceDraftIssuesFilter;
   };
-  [EIssuesStoreType.PROFILE]: defaultIssueStore & {
+  [EIssuesStoreType.PROFILE]: {
     issues: IProfileIssues;
     issuesFilter: IProfileIssuesFilter;
   };
-  [EIssuesStoreType.TEAM]: defaultIssueStore & {
+  [EIssuesStoreType.TEAM]: {
     issues: ITeamIssues;
     issuesFilter: ITeamIssuesFilter;
   };
-  [EIssuesStoreType.PROJECT]: defaultIssueStore & {
+  [EIssuesStoreType.PROJECT]: {
     issues: IProjectIssues;
     issuesFilter: IProjectIssuesFilter;
   };
-  [EIssuesStoreType.CYCLE]: defaultIssueStore & {
+  [EIssuesStoreType.CYCLE]: {
     issues: ICycleIssues;
     issuesFilter: ICycleIssuesFilter;
   };
-  [EIssuesStoreType.MODULE]: defaultIssueStore & {
+  [EIssuesStoreType.MODULE]: {
     issues: IModuleIssues;
     issuesFilter: IModuleIssuesFilter;
   };
-  [EIssuesStoreType.TEAM_VIEW]: defaultIssueStore & {
+  [EIssuesStoreType.TEAM_VIEW]: {
     issues: ITeamViewIssues;
     issuesFilter: ITeamViewIssuesFilter;
   };
-  [EIssuesStoreType.PROJECT_VIEW]: defaultIssueStore & {
+  [EIssuesStoreType.PROJECT_VIEW]: {
     issues: IProjectViewIssues;
     issuesFilter: IProjectViewIssuesFilter;
   };
-  [EIssuesStoreType.ARCHIVED]: defaultIssueStore & {
+  [EIssuesStoreType.ARCHIVED]: {
     issues: IArchivedIssues;
     issuesFilter: IArchivedIssuesFilter;
   };
-  [EIssuesStoreType.DEFAULT]: defaultIssueStore & {
+  [EIssuesStoreType.DEFAULT]: {
     issues: IProjectIssues;
     issuesFilter: IProjectIssuesFilter;
   };
-  [EIssuesStoreType.EPIC]: defaultIssueStore & {
+  [EIssuesStoreType.EPIC]: {
     issues: IProjectEpics;
     issuesFilter: IProjectEpicsFilter;
   };
-  [EIssuesStoreType.TEAM_PROJECT_WORK_ITEMS]: defaultIssueStore & {
+  [EIssuesStoreType.TEAM_PROJECT_WORK_ITEMS]: {
     issues: ITeamProjectWorkItems;
     issuesFilter: ITeamProjectWorkItemsFilter;
   };
@@ -89,75 +83,82 @@ export const useIssues = <T extends EIssuesStoreType>(storeType?: T): TStoreIssu
   const context = useContext(StoreContext);
   if (context === undefined) throw new Error("useIssues must be used within StoreProvider");
 
-  const defaultStore: defaultIssueStore = {
-    issueMap: context.issue.issues.issuesMap,
-  };
-
   switch (storeType) {
     case EIssuesStoreType.GLOBAL:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.workspaceIssues,
         issuesFilter: context.issue.workspaceIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.WORKSPACE_DRAFT:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.workspaceDraftIssues,
         issuesFilter: context.issue.workspaceDraftIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.PROFILE:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.profileIssues,
         issuesFilter: context.issue.profileIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.TEAM:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.teamIssues,
         issuesFilter: context.issue.teamIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.PROJECT:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.projectIssues,
         issuesFilter: context.issue.projectIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.CYCLE:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.cycleIssues,
         issuesFilter: context.issue.cycleIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.MODULE:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.moduleIssues,
         issuesFilter: context.issue.moduleIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.TEAM_VIEW:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.teamViewIssues,
         issuesFilter: context.issue.teamViewIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.PROJECT_VIEW:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.projectViewIssues,
         issuesFilter: context.issue.projectViewIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.ARCHIVED:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.archivedIssues,
         issuesFilter: context.issue.archivedIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.EPIC:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.projectEpics,
         issuesFilter: context.issue.projectEpicsFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     case EIssuesStoreType.TEAM_PROJECT_WORK_ITEMS:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.teamProjectWorkItems,
         issuesFilter: context.issue.teamProjectWorkItemsFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
     default:
-      return merge(defaultStore, {
+      return {
         issues: context.issue.projectIssues,
         issuesFilter: context.issue.projectIssuesFilter,
-      }) as TStoreIssues[T];
+      } as TStoreIssues[T];
   }
+};
+
+/**
+ * Subscribe to a single work item. Prefer this in leaf observers instead of
+ * reading `issuesMap`, which notifies every board card on any issue change.
+ */
+export const useIssueById = (issueId: string | undefined | null): TIssue | undefined => {
+  const context = useContext(StoreContext);
+  if (context === undefined) throw new Error("useIssueById must be used within StoreProvider");
+  if (!issueId) return undefined;
+  return context.issue.issues.getIssueById(issueId);
 };

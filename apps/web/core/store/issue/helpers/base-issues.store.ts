@@ -6,7 +6,7 @@
  */
 
 import { isEqual, concat, get, indexOf, isEmpty, orderBy, pull, set, uniq, update, clone } from "lodash-es";
-import { action, computed, makeObservable, observable, runInAction } from "mobx";
+import { action, computed, makeObservable, observable, runInAction, toJS } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane constants
 import { ALL_ISSUES, ISSUE_PRIORITIES } from "@plane/constants";
@@ -46,6 +46,7 @@ import {
   getSortOrderToFilterEmptyValues,
   getSubGroupIssueKeyActions,
 } from "./base-issues-utils";
+import { filterHierarchyRootIssueIds, isHierarchyLayout } from "@/components/issues/issue-layouts/hierarchy.helpers";
 import type { IBaseIssueFilterStore } from "./issue-filter-helper.store";
 
 export type TIssueDisplayFilterOptions = Exclude<TIssueGroupByOptions, null> | "target_date";
@@ -62,6 +63,7 @@ export interface IBaseIssuesStore {
   groupedIssueIds: TGroupedIssues | TSubGroupedIssues | undefined; // object to store Issue Ids based on group or subgroup
   groupedIssueCount: TGroupedIssueCount; // map of groupId/subgroup and issue count of that particular group/subgroup
   issuePaginationData: TIssuePaginationData; // map of groupId/subgroup and pagination Data of that particular group/subgroup
+  listKey: string | undefined;
 
   //actions
   removeIssue: (workspaceSlug: string, projectId: string, issueId: string) => Promise<void>;
@@ -88,6 +90,7 @@ export interface IBaseIssuesStore {
   addCycleToIssue: (workspaceSlug: string, projectId: string, cycleId: string, issueId: string) => Promise<void>;
   removeCycleFromIssue: (workspaceSlug: string, projectId: string, issueId: string) => Promise<void>;
 
+  beginIssuesFetch: (listKey: string, loadType: TLoader, shouldClearPaginationOptions: boolean) => TLoader;
   addIssueToList: (issueId: string) => void;
   removeIssueFromList: (issueId: string) => void;
   addIssuesToModule: (
@@ -142,6 +145,15 @@ export const ISSUE_FILTER_DEFAULT_DATA: Record<TIssueDisplayFilterOptions, keyof
   team_project: "project_id",
 };
 
+const MAX_LIST_SNAPSHOTS = 8;
+
+type TIssueListSnapshot = {
+  groupedIssueIds: TIssues | undefined;
+  groupedIssueCount: TGroupedIssueCount;
+  issuePaginationData: TIssuePaginationData;
+  paginationOptions: IssuePaginationOptions | undefined;
+};
+
 // This constant maps the order by keys to the respective issue property that the key relies on
 const ISSUE_ORDERBY_KEY: Record<TIssueOrderByOptions, keyof TIssue> = {
   created_at: "created_at",
@@ -181,6 +193,9 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   issuePaginationData: TIssuePaginationData = {};
 
   groupedIssueCount: TGroupedIssueCount = {};
+  listKey: string | undefined = undefined;
+  private listSnapshots: Record<string, TIssueListSnapshot> = {};
+  private listSnapshotOrder: string[] = [];
   //
   paginationOptions: IssuePaginationOptions | undefined = undefined;
 
@@ -209,6 +224,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       groupedIssueIds: observable,
       issuePaginationData: observable,
       groupedIssueCount: observable,
+      listKey: observable.ref,
 
       paginationOptions: observable,
       // computed
@@ -225,6 +241,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
       onfetchIssues: action.bound,
       onfetchNexIssues: action.bound,
+      beginIssuesFetch: action.bound,
       clear: action.bound,
       setLoader: action.bound,
       addIssue: action.bound,
@@ -464,7 +481,8 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     workspaceSlug: string,
     projectId?: string,
     id?: string,
-    shouldClearPaginationOptions = true
+    shouldClearPaginationOptions = true,
+    shouldFetchParentStats = true
   ) {
     // Process the Issue Response to get the following data from it
     const { issueList, groupedIssues, groupedIssueCount } = this.processIssueResponse(issuesResponse);
@@ -479,13 +497,15 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       this.loader[getGroupKey()] = undefined;
     });
 
-    // fetch parent stats if required, to be handled in the Implemented class
-    this.fetchParentStats(workspaceSlug, projectId, id);
+    // Fetch parent stats if required, to be handled in the implemented class.
+    // Project routes already refresh project details in ProjectAuthWrapper.
+    if (shouldFetchParentStats) this.fetchParentStats(workspaceSlug, projectId, id);
 
     this.rootIssueStore.issueDetail.relation.extractRelationsFromIssues(issueList);
 
     // store Pagination options for next subsequent calls and data like next cursor etc
     this.storePreviousPaginationValues(issuesResponse, options);
+    if (this.listKey) this.saveListSnapshot(this.listKey);
   }
 
   /**
@@ -1148,6 +1168,62 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     if (shouldUpdateList) this.updateIssueList(issue, undefined, EIssueGroupedAction.ADD);
   }
 
+  private saveListSnapshot(listKey: string) {
+    this.listSnapshots[listKey] = {
+      groupedIssueIds: toJS(this.groupedIssueIds),
+      groupedIssueCount: toJS(this.groupedIssueCount),
+      issuePaginationData: toJS(this.issuePaginationData),
+      paginationOptions: this.paginationOptions ? { ...this.paginationOptions } : undefined,
+    };
+    this.listSnapshotOrder = [...this.listSnapshotOrder.filter((key) => key !== listKey), listKey];
+    while (this.listSnapshotOrder.length > MAX_LIST_SNAPSHOTS) {
+      const staleKey = this.listSnapshotOrder.shift();
+      if (staleKey) delete this.listSnapshots[staleKey];
+    }
+  }
+
+  private restoreListSnapshot(snapshot: TIssueListSnapshot) {
+    this.groupedIssueIds = snapshot.groupedIssueIds;
+    this.groupedIssueCount = snapshot.groupedIssueCount;
+    this.issuePaginationData = snapshot.issuePaginationData;
+    this.paginationOptions = snapshot.paginationOptions;
+  }
+
+  /**
+   * Restore a cached board when the list key matches, otherwise clear.
+   * Returns the loader to use so remounts with cached data skip the full-page skeleton.
+   */
+  beginIssuesFetch(listKey: string, loadType: TLoader, shouldClearPaginationOptions: boolean): TLoader {
+    const isSameList = this.listKey === listKey;
+    const hasCurrentData = this.groupedIssueIds !== undefined;
+
+    if (!isSameList) {
+      if (this.listKey && this.groupedIssueIds !== undefined) this.saveListSnapshot(this.listKey);
+      this.controller.abort();
+      this.controller = new AbortController();
+      const snapshot = this.listSnapshots[listKey];
+      this.listKey = listKey;
+      if (snapshot) {
+        this.restoreListSnapshot(snapshot);
+        const nextLoader = loadType === "init-loader" ? "mutation" : loadType;
+        this.setLoader(nextLoader);
+        return nextLoader;
+      }
+      this.clear(shouldClearPaginationOptions);
+      this.setLoader(loadType);
+      return loadType;
+    }
+
+    this.listKey = listKey;
+    if (hasCurrentData && loadType === "init-loader") {
+      this.setLoader("mutation");
+      return "mutation";
+    }
+    if (!hasCurrentData) this.clear(shouldClearPaginationOptions);
+    this.setLoader(loadType);
+    return loadType;
+  }
+
   /**
    * Method called to clear out the current store
    */
@@ -1205,19 +1281,17 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     const issueId = issue?.id ?? issueBeforeUpdate?.id;
     if (!issueId) return;
 
-    // Get display filters to check if 'Show sub Work items' is enabled - Donot add Work item to main list if disabled.
-    // Hierarchy layouts (list / spreadsheet / gantt) always nest children under parents — never add them as root rows.
+    // Hierarchy layouts nest children under parents when the parent is in the root list; otherwise promote them
+    // (e.g. filtering by type Task hides Epics so epic-children must appear as roots).
     const layout = this.issueFilterStore.issueFilters?.displayFilters?.layout;
-    const isHierarchyLayout = layout === "list" || layout === "spreadsheet" || layout === "gantt_chart";
-    const isShowWorkItemsEnabled =
-      !isHierarchyLayout && (this.issueFilterStore.issueFilters?.displayFilters?.sub_issue ?? false);
+    const hierarchyLayout = isHierarchyLayout(layout);
 
     // get issueUpdates from another method by passing down the three arguments
     // issueUpdates is nothing but an array of objects that contain the path of the issueId list that need updating and also the action that needs to be performed at the path
     let issueUpdates = this.getUpdateDetails(issue, issueBeforeUpdate, action);
 
     // Hierarchy layouts: when an issue gains a parent, remove it from root lists; when it loses a parent, add it back.
-    if (isHierarchyLayout && issue && issueBeforeUpdate && issue.parent_id !== issueBeforeUpdate.parent_id) {
+    if (hierarchyLayout && issue && issueBeforeUpdate && issue.parent_id !== issueBeforeUpdate.parent_id) {
       if (issue.parent_id && !issueBeforeUpdate.parent_id) {
         issueUpdates = [
           ...issueUpdates,
@@ -1234,8 +1308,20 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       for (const issueUpdate of issueUpdates) {
         //if update is add, add it at a particular path
         if (issueUpdate.action === EIssueGroupedAction.ADD) {
-          const isSubIssue = issue?.parent_id;
-          if (isSubIssue && !isShowWorkItemsEnabled) continue;
+          const excludeEpics = this.issueFilterStore.appliedFilters?.exclude_epics;
+          if (issue?.is_epic && layout === EIssueLayoutTypes.KANBAN && excludeEpics) {
+            continue;
+          }
+          if (issue?.parent_id) {
+            if (hierarchyLayout) {
+              // Nest under parent when parent is a visible root; else promote (parent filtered out).
+              if (this.isIssueIdInGroupedLists(issue.parent_id)) continue;
+            } else if (!(this.issueFilterStore.issueFilters?.displayFilters?.sub_issue ?? false)) {
+              // Flat + sub-issues off: match API — only epic children appear as cards.
+              const parentIssue = this.rootIssueStore.issues.getIssueById(issue.parent_id);
+              if (parentIssue && !parentIssue.is_epic) continue;
+            }
+          }
           // add issue Id at the path
           update(this, ["groupedIssueIds", ...issueUpdate.path], (issueIds: string[] = []) =>
             this.issuesSortWithOrderBy(uniq(concat(issueIds, issueId)), this.orderBy)
@@ -1287,12 +1373,19 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         groupedIssueCount: {},
       };
 
+    const hierarchyLayout = isHierarchyLayout(this.issueFilterStore.issueFilters?.displayFilters?.layout);
+
     //if is an array then it's an ungrouped response. return values with groupId as ALL_ISSUES
     if (Array.isArray(issueResult)) {
+      const issueIds = issueResult.map((issue) => issue.id);
+      const issuesById = Object.fromEntries(issueResult.map((issue) => [issue.id, issue]));
+      const parentIdsInResult = hierarchyLayout ? new Set([...this.getAllRootIssueIds(), ...issueIds]) : undefined;
       return {
         issueList: issueResult,
         groupedIssues: {
-          [ALL_ISSUES]: issueResult.map((issue) => issue.id),
+          [ALL_ISSUES]: hierarchyLayout
+            ? filterHierarchyRootIssueIds(issueIds, issuesById, parentIdsInResult)
+            : issueIds,
         },
         groupedIssueCount: {
           [ALL_ISSUES]: issueResponse.total_count,
@@ -1357,7 +1450,72 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       }
     }
 
+    if (hierarchyLayout && issueList.length > 0) {
+      // Include already-loaded root rows so paginated children demote under parents from prior pages.
+      const parentIdsInResult = new Set([...this.getAllRootIssueIds(), ...issueList.map((issue) => issue.id)]);
+      const issuesById: Record<string, Pick<TIssue, "id" | "parent_id">> = Object.fromEntries(
+        issueList.map((issue) => [issue.id, issue])
+      );
+      this.demoteHierarchyChildrenFromGroupedIssues(groupedIssues, issuesById, parentIdsInResult);
+    }
+
     return { issueList, groupedIssues, groupedIssueCount };
+  }
+
+  /**
+   * For hierarchy layouts, remove child IDs from root groups when their parent is in the fetched set.
+   */
+  demoteHierarchyChildrenFromGroupedIssues(
+    groupedIssues: TGroupedIssues | TSubGroupedIssues,
+    issuesById: Record<string, Pick<TIssue, "id" | "parent_id">>,
+    parentIdsInResult: ReadonlySet<string>
+  ) {
+    for (const groupId in groupedIssues) {
+      const groupValue = groupedIssues[groupId];
+      if (Array.isArray(groupValue)) {
+        set(groupedIssues, [groupId], filterHierarchyRootIssueIds(groupValue, issuesById, parentIdsInResult));
+        continue;
+      }
+      if (groupValue && typeof groupValue === "object") {
+        for (const subGroupId in groupValue) {
+          const subGroupValue = groupValue[subGroupId];
+          if (Array.isArray(subGroupValue)) {
+            set(
+              groupedIssues,
+              [groupId, subGroupId],
+              filterHierarchyRootIssueIds(subGroupValue, issuesById, parentIdsInResult)
+            );
+          }
+        }
+      }
+    }
+  }
+
+  /** All issue ids currently in root groupedIssueIds lists. */
+  getAllRootIssueIds(): string[] {
+    const grouped = this.groupedIssueIds;
+    if (!grouped) return [];
+
+    const ids: string[] = [];
+    for (const groupId in grouped) {
+      const groupValue = grouped[groupId];
+      if (Array.isArray(groupValue)) {
+        ids.push(...groupValue);
+        continue;
+      }
+      if (groupValue && typeof groupValue === "object") {
+        for (const subGroupId in groupValue) {
+          const subGroupValue = groupValue[subGroupId];
+          if (Array.isArray(subGroupValue)) ids.push(...subGroupValue);
+        }
+      }
+    }
+    return ids;
+  }
+
+  /** Whether an issue id currently appears in any root groupedIssueIds list. */
+  isIssueIdInGroupedLists(issueId: string): boolean {
+    return this.getAllRootIssueIds().includes(issueId);
   }
 
   /**

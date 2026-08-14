@@ -40,12 +40,12 @@ from plane.db.models import (
     IssueLabel,
     ModuleIssue,
 )
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.utils.order_queryset import VIEW_ORDER_BY_ALLOWLIST, order_issue_queryset, sanitize_order_by
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from .. import BaseViewSet
 from plane.db.models import UserFavorite
-from plane.utils.filters import ComplexFilterBackend
+from plane.utils.filters import IssueComplexFilterBackend
 from plane.utils.filters import IssueFilterSet
 
 
@@ -142,7 +142,7 @@ class WorkspaceViewViewSet(BaseViewSet):
 
 
 class WorkspaceViewIssuesViewSet(BaseViewSet):
-    filter_backends = (ComplexFilterBackend,)
+    filter_backends = (IssueComplexFilterBackend,)
     filterset_class = IssueFilterSet
 
     def _get_project_permission_filters(self):
@@ -230,7 +230,7 @@ class WorkspaceViewIssuesViewSet(BaseViewSet):
 
         # Apply legacy filters
         filters = issue_filters(request.query_params, "GET")
-        issue_queryset = issue_queryset.filter(**filters)
+        issue_queryset = apply_issue_filters(issue_queryset, filters)
 
         # Get common project permission filters
         permission_filters = self._get_project_permission_filters()

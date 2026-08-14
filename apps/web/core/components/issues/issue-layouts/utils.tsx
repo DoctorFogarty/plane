@@ -21,6 +21,7 @@ import type {
   IIssueDisplayProperties,
   IPragmaticDropPayload,
   TIssue,
+  TIssueDisplayPropertyKey,
   TIssueGroupByOptions,
   IIssueFilterOptions,
   IIssueFilters,
@@ -341,7 +342,7 @@ const getCreatedByColumns = (): IGroupByColumn[] | undefined => {
 
 export const getDisplayPropertiesCount = (
   displayProperties: IIssueDisplayProperties,
-  ignoreFields?: (keyof IIssueDisplayProperties)[]
+  ignoreFields?: TIssueDisplayPropertyKey[]
 ) => {
   const propertyKeys = Object.keys(displayProperties) as (keyof IIssueDisplayProperties)[];
   const ignoreFieldSet = ignoreFields ? new Set(ignoreFields) : null;
@@ -349,8 +350,14 @@ export const getDisplayPropertiesCount = (
   let count = 0;
 
   for (const propertyKey of propertyKeys) {
-    if (ignoreFieldSet?.has(propertyKey)) continue;
+    if (propertyKey === "custom_properties") continue;
+    if (ignoreFieldSet?.has(propertyKey as TIssueDisplayPropertyKey)) continue;
     if (displayProperties[propertyKey]) count++;
+  }
+
+  // Count enabled custom properties separately (nested map).
+  for (const enabled of Object.values(displayProperties.custom_properties ?? {})) {
+    if (enabled) count++;
   }
 
   return count;

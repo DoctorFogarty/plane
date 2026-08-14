@@ -40,6 +40,7 @@ export interface IFilterConfigManager<P extends TFilterProperty> {
   // helpers
   register: <C extends TFilterConfig<P>>(config: C) => void;
   registerAll: (configs: TFilterConfig<P>[]) => void;
+  replaceAll: (configs: TFilterConfig<P>[]) => void;
   updateConfigByProperty: (property: P, configUpdates: Partial<TFilterConfig<P>>) => void;
   setAreConfigsReady: (value: boolean) => void;
 }
@@ -94,6 +95,7 @@ export class FilterConfigManager<
       // helpers
       register: action,
       registerAll: action,
+      replaceAll: action,
       updateConfigByProperty: action,
       setAreConfigsReady: action,
     });
@@ -148,6 +150,23 @@ export class FilterConfigManager<
    * @param configs - The configs to register.
    */
   registerAll: IFilterConfigManager<P>["registerAll"] = action((configs) => {
+    configs.forEach((config) => this.register(config));
+  });
+
+  /**
+   * Replace registered configs with the provided set.
+   * Registers/updates the new configs and removes any previously registered
+   * configs whose property is no longer present (e.g. stale custom properties
+   * after switching projects or scoped project sets).
+   * @param configs - The configs that should remain registered.
+   */
+  replaceAll: IFilterConfigManager<P>["replaceAll"] = action((configs) => {
+    const nextIds = new Set(configs.map((config) => config.id));
+    for (const existingId of Array.from(this.filterConfigs.keys())) {
+      if (!nextIds.has(existingId)) {
+        this.filterConfigs.delete(existingId);
+      }
+    }
     configs.forEach((config) => this.register(config));
   });
 

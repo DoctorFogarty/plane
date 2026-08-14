@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable promise/always-return */
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
@@ -16,7 +17,7 @@ import type { TDeDupeIssue, TIssue } from "@plane/types";
 import { AlertModalCore } from "@plane/ui";
 // constants
 // hooks
-import { useIssues } from "@/hooks/store/use-issues";
+import { useIssueById } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 // plane-web
@@ -37,7 +38,7 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
   const [isDeleting, setIsDeleting] = useState(false);
   // store hooks
   const { workspaceSlug } = useParams();
-  const { issueMap } = useIssues();
+  const cachedIssue = useIssueById(dataId);
   const { getProjectById } = useProject();
   const { allowPermissions } = useUserPermissions();
   const { t } = useTranslation();
@@ -51,7 +52,8 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
   if (!dataId && !data) return null;
 
   // derived values
-  const issue = data ? data : issueMap[dataId!];
+  const issue = data ? data : cachedIssue;
+  if (!issue) return null;
   const projectDetails = getProjectById(issue?.project_id);
   const isIssueCreator = issue?.created_by === currentUser?.id;
 

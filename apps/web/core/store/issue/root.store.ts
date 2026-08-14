@@ -5,7 +5,7 @@
  */
 
 import { isEmpty } from "lodash-es";
-import { autorun, makeObservable, observable } from "mobx";
+import { autorun, computed, makeObservable, observable } from "mobx";
 // types
 import type { ICycle, IIssueLabel, IModule, IProject, IState, IUserLite, TIssueServiceType } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
@@ -121,14 +121,6 @@ export interface IIssueRootStore {
 
 export class IssueRootStore implements IIssueRootStore {
   currentUserId: string | undefined = undefined;
-  workspaceSlug: string | undefined = undefined;
-  teamspaceId: string | undefined = undefined;
-  projectId: string | undefined = undefined;
-  cycleId: string | undefined = undefined;
-  moduleId: string | undefined = undefined;
-  viewId: string | undefined = undefined;
-  globalViewId: string | undefined = undefined;
-  userId: string | undefined = undefined;
   stateMap: Record<string, IState> | undefined = undefined;
   stateDetails: IState[] | undefined = undefined;
   workspaceStateDetails: IState[] | undefined = undefined;
@@ -141,6 +133,32 @@ export class IssueRootStore implements IIssueRootStore {
 
   rootStore: RootStore;
   serviceType: TIssueServiceType;
+
+  /** Focus ids always mirror the router — never a lagged autorun copy. */
+  get workspaceSlug() {
+    return this.rootStore.router.workspaceSlug;
+  }
+  get teamspaceId() {
+    return this.rootStore.router.teamspaceId;
+  }
+  get projectId() {
+    return this.rootStore.router.projectId;
+  }
+  get cycleId() {
+    return this.rootStore.router.cycleId;
+  }
+  get moduleId() {
+    return this.rootStore.router.moduleId;
+  }
+  get viewId() {
+    return this.rootStore.router.viewId;
+  }
+  get globalViewId() {
+    return this.rootStore.router.globalViewId;
+  }
+  get userId() {
+    return this.rootStore.router.userId;
+  }
 
   issues: IIssueStore;
 
@@ -188,14 +206,14 @@ export class IssueRootStore implements IIssueRootStore {
 
   constructor(rootStore: RootStore, serviceType: TIssueServiceType = EIssueServiceType.ISSUES) {
     makeObservable(this, {
-      workspaceSlug: observable.ref,
-      teamspaceId: observable.ref,
-      projectId: observable.ref,
-      cycleId: observable.ref,
-      moduleId: observable.ref,
-      viewId: observable.ref,
-      userId: observable.ref,
-      globalViewId: observable.ref,
+      workspaceSlug: computed,
+      teamspaceId: computed,
+      projectId: computed,
+      cycleId: computed,
+      moduleId: computed,
+      viewId: computed,
+      userId: computed,
+      globalViewId: computed,
       stateMap: observable,
       stateDetails: observable,
       workspaceStateDetails: observable,
@@ -212,14 +230,6 @@ export class IssueRootStore implements IIssueRootStore {
 
     autorun(() => {
       if (rootStore?.user?.data?.id) this.currentUserId = rootStore?.user?.data?.id;
-      if (this.workspaceSlug !== rootStore.router.workspaceSlug) this.workspaceSlug = rootStore.router.workspaceSlug;
-      if (this.teamspaceId !== rootStore.router.teamspaceId) this.teamspaceId = rootStore.router.teamspaceId;
-      if (this.projectId !== rootStore.router.projectId) this.projectId = rootStore.router.projectId;
-      if (this.cycleId !== rootStore.router.cycleId) this.cycleId = rootStore.router.cycleId;
-      if (this.moduleId !== rootStore.router.moduleId) this.moduleId = rootStore.router.moduleId;
-      if (this.viewId !== rootStore.router.viewId) this.viewId = rootStore.router.viewId;
-      if (this.globalViewId !== rootStore.router.globalViewId) this.globalViewId = rootStore.router.globalViewId;
-      if (this.userId !== rootStore.router.userId) this.userId = rootStore.router.userId;
       if (!isEmpty(rootStore?.state?.stateMap)) this.stateMap = rootStore?.state?.stateMap;
       if (!isEmpty(rootStore?.state?.projectStates)) this.stateDetails = rootStore?.state?.projectStates;
       if (!isEmpty(rootStore?.state?.workspaceStates)) this.workspaceStateDetails = rootStore?.state?.workspaceStates;

@@ -29,6 +29,7 @@ type Props = {
   handleDisplayPropertiesUpdate: (updatedDisplayProperties: Partial<IIssueDisplayProperties>) => void;
   layoutDisplayFiltersOptions: ILayoutDisplayFiltersOptions | undefined;
   ignoreGroupedFilters?: Partial<TIssueGroupByOptions>[];
+  projectId?: string;
   cycleViewDisabled?: boolean;
   moduleViewDisabled?: boolean;
   isEpic?: boolean;
@@ -42,6 +43,7 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
     handleDisplayPropertiesUpdate,
     layoutDisplayFiltersOptions,
     ignoreGroupedFilters = [],
+    projectId,
     cycleViewDisabled = false,
     moduleViewDisabled = false,
     isEpic = false,
@@ -67,6 +69,7 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
             displayProperties={displayProperties}
             displayPropertiesToRender={layoutDisplayFiltersOptions.display_properties}
             handleUpdate={handleDisplayPropertiesUpdate}
+            projectId={projectId}
             cycleViewDisabled={cycleViewDisabled}
             moduleViewDisabled={moduleViewDisabled}
             isEpic={isEpic}

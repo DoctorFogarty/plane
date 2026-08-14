@@ -4,8 +4,11 @@
  * See the LICENSE file for details.
  */
 
+import type { TFilterValue } from "../expression";
+import type { TTextFilterFieldConfig } from "../field-types/extended";
+
 // ----------------------------- EXACT Operator -----------------------------
-export type TExtendedExactOperatorConfigs = never;
+export type TExtendedExactOperatorConfigs = TTextFilterFieldConfig<TFilterValue>;
 
 // ----------------------------- IN Operator -----------------------------
 export type TExtendedInOperatorConfigs = never;
@@ -14,4 +17,5 @@ export type TExtendedInOperatorConfigs = never;
 export type TExtendedRangeOperatorConfigs = never;
 
 // ----------------------------- Extended Operator Specific Configs -----------------------------
+// Keep as unknown so intersecting with core operator maps does not collapse values to never.
 export type TExtendedOperatorSpecificConfigs = unknown;

@@ -9,7 +9,7 @@ import { useParams } from "next/navigation";
 // constants
 import { SPREADSHEET_SELECT_GROUP } from "@plane/constants";
 // ui
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
+import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TSpreadsheetColumnKey } from "@plane/types";
 // components
 import { cn } from "@plane/utils";
 import { MultipleSelectGroupAction } from "@/components/core/multiple-select";
@@ -23,7 +23,7 @@ interface Props {
   handleDisplayFilterUpdate: (data: Partial<IIssueDisplayFilterOptions>) => void;
   canEditProperties: (projectId: string | undefined) => boolean;
   isEstimateEnabled: boolean;
-  spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
+  spreadsheetColumnsList: TSpreadsheetColumnKey[];
   selectionHelpers: TSelectionHelper;
   isEpic?: boolean;
 }

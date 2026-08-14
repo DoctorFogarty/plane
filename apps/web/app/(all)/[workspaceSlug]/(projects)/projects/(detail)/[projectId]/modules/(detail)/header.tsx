@@ -63,7 +63,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
   const { isMobile } = usePlatformOS();
   // store hooks
   const {
-    issuesFilter: { issueFilters },
+    issuesFilter,
     issues: { getGroupIssueCount },
   } = useIssues(EIssuesStoreType.MODULE);
   const { updateFilters } = useIssuesActions(EIssuesStoreType.MODULE);
@@ -74,7 +74,8 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
   // local storage
   const { setValue, storedValue } = useLocalStorage("module_sidebar_collapsed", "false");
   // derived values
-  const isSidebarCollapsed = storedValue ? (storedValue === "true" ? true : false) : false;
+  const isSidebarCollapsed = storedValue === "true";
+  const issueFilters = moduleId ? issuesFilter.getIssueFilters(moduleId) : undefined;
   const activeLayout = issueFilters?.displayFilters?.layout;
   const moduleDetails = moduleId ? getModuleById(moduleId) : undefined;
   const canUserCreateIssue = allowPermissions(
@@ -219,6 +220,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
                 handleDisplayFiltersUpdate={handleDisplayFilters}
                 displayProperties={issueFilters?.displayProperties ?? {}}
                 handleDisplayPropertiesUpdate={handleDisplayProperties}
+                projectId={projectId?.toString()}
                 ignoreGroupedFilters={["module"]}
                 cycleViewDisabled={!currentProjectDetails?.cycle_view}
                 moduleViewDisabled={!currentProjectDetails?.module_view}

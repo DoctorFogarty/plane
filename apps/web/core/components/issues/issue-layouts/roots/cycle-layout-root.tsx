@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
+import React, { lazy, Suspense, useState } from "react";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -22,12 +22,24 @@ import { useCycle } from "@/hooks/store/use-cycle";
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
 // local imports
-import { IssuePeekOverview } from "../../peek-overview";
-import { CycleCalendarLayout } from "../calendar/roots/cycle-root";
-import { BaseGanttRoot } from "../gantt";
-import { CycleKanBanLayout } from "../kanban/roots/cycle-root";
-import { CycleListLayout } from "../list/roots/cycle-root";
-import { CycleSpreadsheetLayout } from "../spreadsheet/roots/cycle-root";
+import { ActiveLoader } from "../issue-layout-HOC";
+
+const CycleCalendarLayout = lazy(() =>
+  import("../calendar/roots/cycle-root").then((module) => ({ default: module.CycleCalendarLayout }))
+);
+const BaseGanttRoot = lazy(() => import("../gantt").then((module) => ({ default: module.BaseGanttRoot })));
+const CycleKanBanLayout = lazy(() =>
+  import("../kanban/roots/cycle-root").then((module) => ({ default: module.CycleKanBanLayout }))
+);
+const CycleListLayout = lazy(() =>
+  import("../list/roots/cycle-root").then((module) => ({ default: module.CycleListLayout }))
+);
+const CycleSpreadsheetLayout = lazy(() =>
+  import("../spreadsheet/roots/cycle-root").then((module) => ({ default: module.CycleSpreadsheetLayout }))
+);
+const IssuePeekOverview = lazy(() =>
+  import("../../peek-overview").then((module) => ({ default: module.IssuePeekOverview }))
+);
 
 function CycleIssueLayout(props: {
   activeLayout: EIssueLayoutTypes | undefined;
@@ -58,6 +70,9 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
   // store hooks
   const { issuesFilter } = useIssues(EIssuesStoreType.CYCLE);
   const { getCycleById } = useCycle();
+  if (workspaceSlug && projectId && cycleId) {
+    issuesFilter?.hydrateFilters(workspaceSlug, projectId, cycleId);
+  }
   // state
   const [transferIssuesModal, setTransferIssuesModal] = useState(false);
   // derived values
@@ -120,10 +135,14 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
                 />
               )}
               <div className="h-full w-full overflow-auto">
-                <CycleIssueLayout activeLayout={activeLayout} cycleId={cycleId} isCompletedCycle={isCompletedCycle} />
+                <Suspense fallback={<ActiveLoader layout={activeLayout} />}>
+                  <CycleIssueLayout activeLayout={activeLayout} cycleId={cycleId} isCompletedCycle={isCompletedCycle} />
+                </Suspense>
               </div>
               {/* peek overview */}
-              <IssuePeekOverview />
+              <Suspense fallback={null}>
+                <IssuePeekOverview />
+              </Suspense>
             </div>
           </>
         )}

@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { isEmpty } from "lodash-es";
+import { isEmpty, set } from "lodash-es";
+import { runInAction } from "mobx";
 // plane constants
 import type { EIssueFilterType } from "@plane/constants";
 import {
@@ -28,6 +29,8 @@ import type {
 import { EIssueLayoutTypes } from "@plane/types";
 // helpers
 import { getComputedDisplayFilters, getComputedDisplayProperties } from "@plane/utils";
+// helpers
+import { shouldExcludeEpicsFromKanbanParams } from "@/helpers/kanban-epic-filter";
 // lib
 import { storage } from "@/lib/local-storage";
 import { getEnabledDisplayFilters } from "@/plane-web/store/issue/helpers/filter-utils";
@@ -67,7 +70,19 @@ export interface IIssueFilterHelperStore {
   computedDisplayProperties(filters: IIssueDisplayProperties): IIssueDisplayProperties;
 }
 
+type TFilterPropertySource =
+  | {
+      rich_filters?: TWorkItemFilterExpression;
+      display_filters?: IIssueDisplayFilterOptions;
+      display_properties?: IIssueDisplayProperties;
+    }
+  | null
+  | undefined;
+
 export class IssueFilterHelperStore implements IIssueFilterHelperStore {
+  // Work-item Kanban hides Epic-type cards by default. Epic boards override this.
+  excludeEpicTypesOnKanban = true;
+
   /**
    * @description This method is used to apply the display filters on the issues
    * @param {IIssueFilters} filters
@@ -122,6 +137,16 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
     // sub_issue toggle is not part of acceptableParamsByLayout (toggle is hidden there).
     if (isHierarchyLayout) {
       issueFiltersParams.sub_issue = false;
+    }
+
+    if (
+      shouldExcludeEpicsFromKanbanParams({
+        layout: displayFilters?.layout,
+        richFilters,
+        excludeEpicTypesOnKanban: this.excludeEpicTypesOnKanban,
+      })
+    ) {
+      issueFiltersParams.exclude_epics = true;
     }
 
     // work item filters
@@ -205,6 +230,53 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
    */
   computedDisplayProperties = (displayProperties: IIssueDisplayProperties): IIssueDisplayProperties =>
     getComputedDisplayProperties(displayProperties);
+
+  /**
+   * Write display/rich/kanban filters for an entity. Used to hydrate from cache or apply a network response.
+   */
+  protected writeEntityFilters(
+    filters: Record<string, IIssueFilters>,
+    entityId: string,
+    workspaceSlug: string,
+    storeType: EIssuesStoreType,
+    currentUserId: string | undefined,
+    properties: TFilterPropertySource,
+    displayFilterDefaults?: IIssueDisplayFilterOptions
+  ) {
+    const richFilters = properties?.rich_filters;
+    const displayFilters = this.computedDisplayFilters(
+      properties?.display_filters ?? ({} as IIssueDisplayFilterOptions),
+      displayFilterDefaults
+    );
+    const displayProperties = this.computedDisplayProperties(
+      properties?.display_properties ?? ({} as IIssueDisplayProperties)
+    );
+    const kanbanFilters: TIssueKanbanFilters = {
+      group_by: [],
+      sub_group_by: [],
+    };
+    if (currentUserId) {
+      const localFilters = this.handleIssuesLocalFilters.get(storeType, workspaceSlug, entityId, currentUserId);
+      kanbanFilters.group_by = localFilters?.kanban_filters?.group_by || [];
+      kanbanFilters.sub_group_by = localFilters?.kanban_filters?.sub_group_by || [];
+    }
+
+    runInAction(() => {
+      set(filters, [entityId, "richFilters"], richFilters);
+      set(filters, [entityId, "displayFilters"], displayFilters);
+      set(filters, [entityId, "displayProperties"], displayProperties);
+      set(filters, [entityId, "kanbanFilters"], kanbanFilters);
+    });
+  }
+
+  protected copyEntityFilters(filters: Record<string, IIssueFilters>, entityId: string, source: IIssueFilters) {
+    runInAction(() => {
+      set(filters, [entityId, "richFilters"], source.richFilters);
+      set(filters, [entityId, "displayFilters"], source.displayFilters);
+      set(filters, [entityId, "displayProperties"], source.displayProperties);
+      set(filters, [entityId, "kanbanFilters"], source.kanbanFilters);
+    });
+  }
 
   handleIssuesLocalFilters = {
     fetchFiltersFromStorage: () => {

@@ -10,19 +10,22 @@ import { AtSign, Briefcase } from "lucide-react";
 // plane imports
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import {
+  BooleanPropertyIcon,
   CalendarLayoutIcon,
   CycleGroupIcon,
   CycleIcon,
-  ModuleIcon,
-  StatePropertyIcon,
-  PriorityIcon,
-  StateGroupIcon,
-  MembersPropertyIcon,
-  LabelPropertyIcon,
-  StartDatePropertyIcon,
+  DropdownPropertyIcon,
   DueDatePropertyIcon,
-  UserCirclePropertyIcon,
+  HashPropertyIcon,
+  LabelPropertyIcon,
+  MembersPropertyIcon,
+  ModuleIcon,
+  PriorityIcon,
   PriorityPropertyIcon,
+  StartDatePropertyIcon,
+  StateGroupIcon,
+  StatePropertyIcon,
+  UserCirclePropertyIcon,
   WorkItemsIcon,
 } from "@plane/propel/icons";
 import type {
@@ -33,11 +36,13 @@ import type {
   IIssueLabel,
   IModule,
   IProject,
+  TIssueProperty,
   TLogoProps,
   TWorkItemFilterProperty,
 } from "@plane/types";
 import { Avatar } from "@plane/ui";
 import {
+  buildCustomPropertyFilterConfig,
   getAssigneeFilterConfig,
   getCreatedAtFilterConfig,
   getCreatedByFilterConfig,
@@ -86,9 +91,7 @@ export type TUseWorkItemFiltersConfigProps = {
 export type TWorkItemFiltersConfig = {
   areAllConfigsInitialized: boolean;
   configs: TFilterConfig<TWorkItemFilterProperty>[];
-  configMap: {
-    [key in TWorkItemFilterProperty]?: TFilterConfig<TWorkItemFilterProperty>;
-  };
+  configMap: Partial<Record<TWorkItemFilterProperty, TFilterConfig<TWorkItemFilterProperty>>>;
   isFilterEnabled: (key: TWorkItemFilterProperty) => boolean;
   members: IUserLite[];
 };
@@ -168,14 +171,39 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
         : [],
     [projectIds, getProjectById]
   );
-  const areIssueTypesFetched = projectId ? !!issueTypeStore.fetchedMap[projectId] : false;
-  const areIssueTypesEnabled = projectId ? issueTypeStore.isIssueTypeEnabled(projectId) : false;
+  const scopedProjectIds = useMemo(() => {
+    if (projectId) return [projectId];
+    return projectIds ?? [];
+  }, [projectId, projectIds]);
+
+  const areIssueTypesFetched =
+    scopedProjectIds.length > 0 && scopedProjectIds.every((id) => !!issueTypeStore.fetchedMap[id]);
+  const areIssueTypesEnabled = projectId
+    ? issueTypeStore.isIssueTypeEnabled(projectId)
+    : scopedProjectIds.some((id) => issueTypeStore.isIssueTypeEnabled(id));
+  const projectTypeRevisionKey = scopedProjectIds
+    .map((scopedProjectId) => `${scopedProjectId}:${issueTypeStore.projectRevisionMap[scopedProjectId] ?? 0}`)
+    .join("|");
   const issueTypes = useMemo(
     () => (projectId ? issueTypeStore.getActiveProjectIssueTypes(projectId) : []),
-    // MobX: re-read when typeMap / fetchedMap updates for this project
+    // projectTypeRevisionKey tracks atomic project-scoped type/property snapshot replacements.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectId, issueTypeStore, areIssueTypesFetched, issueTypeStore.typeMap]
+    [projectId, issueTypeStore, areIssueTypesFetched, projectTypeRevisionKey]
   );
+  const activeCustomProperties = useMemo(() => {
+    const propertyMap = new Map<string, TIssueProperty>();
+    for (const scopedProjectId of scopedProjectIds) {
+      if (!issueTypeStore.isIssueTypeEnabled(scopedProjectId)) continue;
+      for (const property of issueTypeStore.getActiveProjectProperties(scopedProjectId)) {
+        if (!propertyMap.has(property.id)) {
+          propertyMap.set(property.id, property);
+        }
+      }
+    }
+    return Array.from(propertyMap.values()).toSorted((a, b) => a.name.localeCompare(b.name));
+    // projectTypeRevisionKey tracks atomic project-scoped type/property snapshot replacements.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedProjectIds, issueTypeStore, areIssueTypesFetched, projectTypeRevisionKey]);
   const areAllConfigsInitialized = useMemo(() => isLoaderReady(projectLoader), [projectLoader]);
 
   /**
@@ -187,11 +215,15 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
   const isFilterEnabled = useCallback((key: TWorkItemFilterProperty) => filtersToShow.has(key), [filtersToShow]);
 
   useEffect(() => {
-    if (!workspaceSlug || !projectId) return;
-    if (!isFilterEnabled("type_id")) return;
-    if (issueTypeStore.fetchedMap[projectId]) return;
-    void issueTypeStore.fetchWorkItemTypesPropertiesAndOptions(workspaceSlug, projectId);
-  }, [workspaceSlug, projectId, isFilterEnabled, issueTypeStore]);
+    if (!workspaceSlug || scopedProjectIds.length === 0) return;
+    for (const scopedProjectId of scopedProjectIds) {
+      if (issueTypeStore.fetchedMap[scopedProjectId]) continue;
+      const projectDetails = getProjectById(scopedProjectId);
+      // Skip fetch when we already know issue types are disabled for the project
+      if (projectDetails?.is_issue_type_enabled === false) continue;
+      void issueTypeStore.fetchWorkItemTypesPropertiesAndOptions(workspaceSlug, scopedProjectId);
+    }
+  }, [workspaceSlug, scopedProjectIds, issueTypeStore, getProjectById]);
 
   // state group filter config
   const stateGroupFilterConfig = useMemo(
@@ -426,6 +458,67 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
     [isFilterEnabled, projects, operatorConfigs]
   );
 
+  const getCustomPropertyFilterIcon = useCallback((property: TIssueProperty) => {
+    switch (property.property_type) {
+      case "BOOLEAN":
+        return BooleanPropertyIcon;
+      case "DROPDOWN":
+        return DropdownPropertyIcon;
+      case "DATE":
+        return DueDatePropertyIcon;
+      case "MEMBER":
+        return MembersPropertyIcon;
+      case "NUMBER":
+        return HashPropertyIcon;
+      case "URL":
+      case "TEXT":
+      default:
+        return LabelPropertyIcon;
+    }
+  }, []);
+
+  // custom property filter configs (always enabled when properties exist)
+  const customPropertyFilterConfigs = useMemo((): TFilterConfig<TWorkItemFilterProperty>[] => {
+    if (!areIssueTypesEnabled || !areIssueTypesFetched) return [];
+    const configs: TFilterConfig<TWorkItemFilterProperty>[] = [];
+    for (const property of activeCustomProperties) {
+      const config = buildCustomPropertyFilterConfig({
+        property,
+        members: members ?? [],
+        filterIcon: getCustomPropertyFilterIcon(property),
+        getMemberOptionIcon: (memberDetails: IUserLite) => (
+          <Avatar
+            name={memberDetails.display_name}
+            src={getFileURL(memberDetails.avatar_url)}
+            showTooltip={false}
+            size="sm"
+          />
+        ),
+        isEnabled: true,
+        ...operatorConfigs,
+      });
+      if (config) {
+        configs.push(config as TFilterConfig<TWorkItemFilterProperty>);
+      }
+    }
+    return configs;
+  }, [
+    activeCustomProperties,
+    areIssueTypesEnabled,
+    areIssueTypesFetched,
+    getCustomPropertyFilterIcon,
+    members,
+    operatorConfigs,
+  ]);
+
+  const customPropertyConfigMap = useMemo(() => {
+    const map: Partial<Record<TWorkItemFilterProperty, TFilterConfig<TWorkItemFilterProperty>>> = {};
+    for (const config of customPropertyFilterConfigs) {
+      map[config.id] = config;
+    }
+    return map;
+  }, [customPropertyFilterConfigs]);
+
   return {
     areAllConfigsInitialized,
     configs: [
@@ -439,6 +532,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
       cycleFilterConfig,
       moduleFilterConfig,
       issueTypeFilterConfig,
+      ...customPropertyFilterConfigs,
       startDateFilterConfig,
       targetDateFilterConfig,
       createdAtFilterConfig,
@@ -463,6 +557,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
       target_date: targetDateFilterConfig,
       created_at: createdAtFilterConfig,
       updated_at: updatedAtFilterConfig,
+      ...customPropertyConfigMap,
     },
     isFilterEnabled,
     members: members ?? [],

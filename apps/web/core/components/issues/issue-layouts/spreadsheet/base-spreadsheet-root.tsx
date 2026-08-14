@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, react-hooks/exhaustive-deps */
 
 import type { FC } from "react";
 import { useCallback, useEffect } from "react";
@@ -15,6 +16,7 @@ import { EIssueLayoutTypes } from "@plane/types";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useUserPermissions } from "@/hooks/store/user";
+import { useDisplayCustomPropertyValues } from "@/hooks/use-display-custom-property-values";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
 // local imports
@@ -81,6 +83,7 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
   );
 
   const issueIds = issues.groupedIssueIds?.[ALL_ISSUES] ?? [];
+  useDisplayCustomPropertyValues(issuesFilter.issueFilters?.displayProperties, issueIds);
   const nextPageResults = issues.getPaginationData(ALL_ISSUES, undefined)?.nextPageResults;
 
   const handleDisplayFiltersUpdate = useCallback(

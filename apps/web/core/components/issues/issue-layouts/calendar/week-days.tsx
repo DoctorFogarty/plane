@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import type { TGroupedIssues, TIssue, TIssueMap, TPaginationData, ICalendarDate, ICalendarWeek } from "@plane/types";
+import type { TGroupedIssues, TIssue, TPaginationData, ICalendarDate, ICalendarWeek } from "@plane/types";
 import { cn, getOrderedDays, renderFormattedPayloadDate } from "@plane/utils";
 // hooks
 import { useUserProfile } from "@/hooks/store/user";
@@ -20,7 +20,6 @@ import { CalendarDayTile } from "./day-tile";
 
 type Props = {
   issuesFilterStore: IProjectIssuesFilter | IModuleIssuesFilter | ICycleIssuesFilter | IProjectViewIssuesFilter;
-  issues: TIssueMap | undefined;
   groupedIssueIds: TGroupedIssues;
   week: ICalendarWeek | undefined;
   quickActions: TRenderQuickActions;
@@ -47,7 +46,6 @@ type Props = {
 export const CalendarWeekDays = observer(function CalendarWeekDays(props: Props) {
   const {
     issuesFilterStore,
-    issues,
     groupedIssueIds,
     handleDragAndDrop,
     week,
@@ -100,7 +98,6 @@ export const CalendarWeekDays = observer(function CalendarWeekDays(props: Props)
             issuesFilterStore={issuesFilterStore}
             key={renderFormattedPayloadDate(date.date)}
             date={date}
-            issues={issues}
             groupedIssueIds={groupedIssueIds}
             loadMoreIssues={loadMoreIssues}
             getPaginationData={getPaginationData}

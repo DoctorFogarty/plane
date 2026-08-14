@@ -15,6 +15,12 @@ from rest_framework import filters
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from plane.utils.exception_logger import log_exception
+from plane.utils.filters.custom_property import (
+    build_custom_property_filter_q,
+    is_custom_property_filter_key,
+    preload_custom_properties,
+    transform_custom_property_field_for_validation,
+)
 
 
 class ComplexFilterBackend(filters.BaseFilterBackend):
@@ -457,3 +463,41 @@ class ComplexFilterBackend(filters.BaseFilterBackend):
 
     def _is_scalar(self, value):
         return value is None or isinstance(value, (str, int, float, bool))
+
+
+class IssueComplexFilterBackend(ComplexFilterBackend):
+    """Complex filter backend with custom work-item property filter support."""
+
+    def _apply_json_filter(self, queryset, filter_data, view):
+        if not filter_data:
+            return queryset
+
+        # Prefetch referenced custom properties once per request filter tree
+        view._custom_property_cache = preload_custom_properties(filter_data)
+        return super()._apply_json_filter(queryset, filter_data, view)
+
+    def _transform_field_name_for_validation(self, field_name):
+        return transform_custom_property_field_for_validation(field_name)
+
+    def _build_leaf_q(self, leaf_conditions, view, queryset):
+        if not leaf_conditions:
+            return Q()
+
+        custom_q = Q()
+        remaining = {}
+        property_cache = getattr(view, "_custom_property_cache", None)
+        if property_cache is None:
+            property_cache = {}
+            view._custom_property_cache = property_cache
+
+        for key, value in leaf_conditions.items():
+            if is_custom_property_filter_key(key):
+                custom_q &= build_custom_property_filter_q(key, value, property_cache)
+            else:
+                remaining[key] = value
+
+        if not remaining:
+            return custom_q
+
+        standard_q = super()._build_leaf_q(remaining, view, queryset)
+        return custom_q & standard_q

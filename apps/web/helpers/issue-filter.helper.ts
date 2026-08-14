@@ -5,13 +5,15 @@
  */
 
 // types
-import type { IIssueDisplayProperties } from "@plane/types";
+import type { TIssueDisplayPropertyKey, TSpreadsheetColumnKey } from "@plane/types";
+import { isCustomPropertyColumnKey } from "@plane/utils";
 // lib
 import { store } from "@/lib/store-context";
 
-export const shouldRenderColumn = (key: keyof IIssueDisplayProperties): boolean => {
+export const shouldRenderColumn = (key: TSpreadsheetColumnKey): boolean => {
+  if (isCustomPropertyColumnKey(key)) return true;
   const isEstimateEnabled: boolean = store.projectRoot.project.currentProjectDetails?.estimate !== null;
-  switch (key) {
+  switch (key as TIssueDisplayPropertyKey) {
     case "estimate":
       return isEstimateEnabled;
     default:

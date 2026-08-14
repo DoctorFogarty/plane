@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow */
 
 import { isEmpty, set } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
@@ -22,7 +23,7 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType, EIssueLayoutTypes, STATIC_VIEW_TYPES } from "@plane/types";
-import { handleIssueQueryParamsByLayout } from "@plane/utils";
+import { handleIssueQueryParamsByLayout, mergeDisplayProperties } from "@plane/utils";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
 // local imports
@@ -55,6 +56,7 @@ export interface IWorkspaceIssuesFilter extends TBaseFilterStore {
     groupId: string | undefined,
     subGroupId: string | undefined
   ) => Partial<Record<TIssueParams, string | boolean>>;
+  hydrateFilters: (workspaceSlug: string, viewId: string) => void;
 }
 
 export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWorkspaceIssuesFilter {
@@ -75,6 +77,7 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
       appliedFilters: computed,
       // fetch actions
       fetchFilters: action,
+      hydrateFilters: action,
       updateFilters: action,
     });
     // root store
@@ -149,7 +152,33 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
     }
   );
 
+  hydrateFilters = (workspaceSlug: string, viewId: string) => {
+    if (!isEmpty(this.filters[viewId])) return;
+    const localFilters = this.handleIssuesLocalFilters.get(EIssuesStoreType.GLOBAL, workspaceSlug, undefined, viewId);
+    const displayFilters = this.computedDisplayFilters(localFilters?.display_filters, {
+      layout: EIssueLayoutTypes.SPREADSHEET,
+      order_by: "-created_at",
+    });
+    if (displayFilters.order_by === "sort_order") {
+      displayFilters.order_by = "-created_at";
+    }
+    runInAction(() => {
+      set(this.filters, [viewId, "richFilters"], undefined);
+      set(this.filters, [viewId, "displayFilters"], displayFilters);
+      set(
+        this.filters,
+        [viewId, "displayProperties"],
+        this.computedDisplayProperties(localFilters?.display_properties)
+      );
+      set(this.filters, [viewId, "kanbanFilters"], {
+        group_by: localFilters?.kanban_filters?.group_by || [],
+        sub_group_by: localFilters?.kanban_filters?.sub_group_by || [],
+      });
+    });
+  };
+
   fetchFilters = async (workspaceSlug: string, viewId: TWorkspaceFilters) => {
+    this.hydrateFilters(workspaceSlug, viewId);
     let richFilters: TWorkItemFilterExpression;
     let displayFilters: IIssueDisplayFilterOptions;
     let displayProperties: IIssueDisplayProperties;
@@ -268,14 +297,14 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
         }
         case EIssueFilterType.DISPLAY_PROPERTIES: {
           const updatedDisplayProperties = filters as IIssueDisplayProperties;
-          _filters.displayProperties = { ..._filters.displayProperties, ...updatedDisplayProperties };
+          _filters.displayProperties = mergeDisplayProperties(_filters.displayProperties, updatedDisplayProperties);
 
           runInAction(() => {
             Object.keys(updatedDisplayProperties).forEach((_key) => {
               set(
                 this.filters,
                 [viewId, "displayProperties", _key],
-                updatedDisplayProperties[_key as keyof IIssueDisplayProperties]
+                _filters.displayProperties[_key as keyof IIssueDisplayProperties]
               );
             });
             if (["all-issues", "assigned", "created", "subscribed"].includes(viewId))

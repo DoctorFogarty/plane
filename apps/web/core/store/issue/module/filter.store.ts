@@ -21,7 +21,7 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { handleIssueQueryParamsByLayout } from "@plane/utils";
+import { handleIssueQueryParamsByLayout, mergeDisplayProperties } from "@plane/utils";
 import { IssueFiltersService } from "@/services/issue_filter.service";
 import type { IBaseIssueFilterStore } from "../helpers/issue-filter-helper.store";
 import { IssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
@@ -41,6 +41,7 @@ export interface IModuleIssuesFilter extends IBaseIssueFilterStore {
     subGroupId: string | undefined
   ) => Partial<Record<TIssueParams, string | boolean>>;
   getIssueFilters(moduleId: string): IIssueFilters | undefined;
+  hydrateFilters: (workspaceSlug: string, projectId: string, moduleId: string) => void;
   // action
   fetchFilters: (workspaceSlug: string, projectId: string, moduleId: string) => Promise<void>;
   updateFilterExpression: (
@@ -76,6 +77,7 @@ export class ModuleIssuesFilter extends IssueFilterHelperStore implements IModul
       appliedFilters: computed,
       // actions
       fetchFilters: action,
+      hydrateFilters: action,
       updateFilters: action,
     });
     // root store
@@ -145,36 +147,35 @@ export class ModuleIssuesFilter extends IssueFilterHelperStore implements IModul
     }
   );
 
+  hydrateFilters = (workspaceSlug: string, projectId: string, moduleId: string) => {
+    if (!isEmpty(this.filters[moduleId])) return;
+    const projectFilters = this.rootIssueStore.projectIssuesFilter.getIssueFilters(projectId);
+    if (projectFilters) {
+      this.copyEntityFilters(this.filters, moduleId, projectFilters);
+      return;
+    }
+    this.writeEntityFilters(
+      this.filters,
+      moduleId,
+      workspaceSlug,
+      EIssuesStoreType.MODULE,
+      this.rootIssueStore.currentUserId,
+      undefined
+    );
+  };
+
   fetchFilters = async (workspaceSlug: string, projectId: string, moduleId: string) => {
+    this.hydrateFilters(workspaceSlug, projectId, moduleId);
     const _filters = await this.issueFilterService.fetchModuleIssueFilters(workspaceSlug, projectId, moduleId);
 
-    const richFilters: TWorkItemFilterExpression = _filters?.rich_filters;
-    const displayFilters: IIssueDisplayFilterOptions = this.computedDisplayFilters(_filters?.display_filters);
-    const displayProperties: IIssueDisplayProperties = this.computedDisplayProperties(_filters?.display_properties);
-
-    // fetching the kanban toggle helpers in the local storage
-    const kanbanFilters = {
-      group_by: [],
-      sub_group_by: [],
-    };
-    const currentUserId = this.rootIssueStore.currentUserId;
-    if (currentUserId) {
-      const _kanbanFilters = this.handleIssuesLocalFilters.get(
-        EIssuesStoreType.MODULE,
-        workspaceSlug,
-        moduleId,
-        currentUserId
-      );
-      kanbanFilters.group_by = _kanbanFilters?.kanban_filters?.group_by || [];
-      kanbanFilters.sub_group_by = _kanbanFilters?.kanban_filters?.sub_group_by || [];
-    }
-
-    runInAction(() => {
-      set(this.filters, [moduleId, "richFilters"], richFilters);
-      set(this.filters, [moduleId, "displayFilters"], displayFilters);
-      set(this.filters, [moduleId, "displayProperties"], displayProperties);
-      set(this.filters, [moduleId, "kanbanFilters"], kanbanFilters);
-    });
+    this.writeEntityFilters(
+      this.filters,
+      moduleId,
+      workspaceSlug,
+      EIssuesStoreType.MODULE,
+      this.rootIssueStore.currentUserId,
+      _filters
+    );
   };
 
   /**
@@ -274,14 +275,14 @@ export class ModuleIssuesFilter extends IssueFilterHelperStore implements IModul
         }
         case EIssueFilterType.DISPLAY_PROPERTIES: {
           const updatedDisplayProperties = filters as IIssueDisplayProperties;
-          _filters.displayProperties = { ..._filters.displayProperties, ...updatedDisplayProperties };
+          _filters.displayProperties = mergeDisplayProperties(_filters.displayProperties, updatedDisplayProperties);
 
           runInAction(() => {
             Object.keys(updatedDisplayProperties).forEach((_key) => {
               set(
                 this.filters,
                 [moduleId, "displayProperties", _key],
-                updatedDisplayProperties[_key as keyof IIssueDisplayProperties]
+                _filters.displayProperties[_key as keyof IIssueDisplayProperties]
               );
             });
           });

@@ -15,7 +15,7 @@ import { ControlLink, CustomMenu } from "@plane/ui";
 // helpers
 import { generateWorkItemLink } from "@plane/utils";
 // hooks
-import { useIssues } from "@/hooks/store/use-issues";
+import { useIssueById } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
@@ -40,14 +40,13 @@ export const IssueParentDetail = observer(function IssueParentDetail(props: TIss
   const router = useRouter();
   const { t } = useTranslation();
   // hooks
-  const { issueMap } = useIssues();
+  const parentIssue = useIssueById(issue.parent_id);
   const { getProjectStates } = useProjectState();
   const { handleRedirection } = useIssuePeekOverviewRedirection();
   const { isMobile } = usePlatformOS();
   const { getProjectIdentifierById } = useProject();
 
   // derived values
-  const parentIssue = issueMap?.[issue.parent_id || ""] || undefined;
   const isParentEpic = parentIssue?.is_epic;
   const projectIdentifier = getProjectIdentifierById(parentIssue?.project_id);
 

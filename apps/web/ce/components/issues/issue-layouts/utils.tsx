@@ -23,8 +23,8 @@ import {
 } from "@plane/propel/icons";
 import type {
   IGroupByColumn,
-  IIssueDisplayProperties,
   TGetColumns,
+  TIssueDisplayPropertyKey,
   TIssueGroupByOptions,
   TSpreadsheetColumn,
 } from "@plane/types";
@@ -94,7 +94,7 @@ export const SpreadSheetPropertyIconMap: Record<string, FC<ISvgIcons>> = {
   LayersIcon: LayersIcon,
 };
 
-export const SPREADSHEET_COLUMNS: { [key in keyof IIssueDisplayProperties]: TSpreadsheetColumn } = {
+export const SPREADSHEET_COLUMNS: { [key in TIssueDisplayPropertyKey]?: TSpreadsheetColumn } = {
   assignee: SpreadsheetAssigneeColumn,
   created_on: SpreadsheetCreatedOnColumn,
   due_date: SpreadsheetDueDateColumn,

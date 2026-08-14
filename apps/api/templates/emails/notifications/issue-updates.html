@@ -180,7 +180,23 @@
                   {% endif %} 
                 </tr>
               </table>
-              {% endif %} 
+              {% endif %} {% for custom_property in update.custom_property_changes %} <!-- Custom property changed -->
+              <table role="presentation" style="max-width: 100%; padding-bottom: 15px" >
+                <tr style="overflow-wrap: break-word;">
+                  <td valign="top" style="white-space: nowrap; padding: 0px;"> <span style=" font-size: 0.8rem; font-weight: 500; color: #525252; padding-right: 5px; " > {{ custom_property.name }}: </span> </td>
+                  <td style="overflow-wrap: anywhere;word-break: break-all; padding: 0px;">
+                    {% if custom_property.new_value.0 %}
+                    <span style=" font-size: 0.8rem; color: #0d74ce; background-color: #e6f4fe; margin-right: 5px; padding-left: 4px; padding-right: 4px; padding-bottom: 2px; padding-top: 2px; font-weight: 500; border-radius: 2px; " > {{ custom_property.new_value|last }} </span>
+                    {% else %}
+                    <span style=" font-size: 0.8rem; font-weight: 500; color: #60646c; margin-right: 5px; " > cleared </span>
+                    {% endif %}
+                    {% if custom_property.old_value.0 %}
+                    <span style=" font-size: 0.8rem; padding-left: 4px; padding-right: 4px; padding-bottom: 2px; padding-top: 2px; font-weight: 500; text-decoration: line-through; color: #641723; background-color: #feebec; margin-right: 5px; border-radius: 2px; " > {{ custom_property.old_value.0 }} </span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+              {% endfor %}
             </div>
           </div>
           {% endif %} <!-- Outer update Box end --> {% endfor %} {% if comments.0 %} <!-- Comments outer update Box --> 

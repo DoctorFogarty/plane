@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import { useEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
@@ -10,12 +11,13 @@ import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element
 import { differenceInCalendarDays } from "date-fns/differenceInCalendarDays";
 import { observer } from "mobx-react";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TGroupedIssues, TIssue, TIssueMap, TPaginationData, ICalendarDate } from "@plane/types";
+import type { TGroupedIssues, TIssue, TPaginationData, ICalendarDate } from "@plane/types";
 // types
 // ui
 // components
 import { cn, renderFormattedPayloadDate } from "@plane/utils";
 import { highlightIssueOnDrop } from "@/components/issues/issue-layouts/utils";
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // helpers
 import { MONTHS_LIST } from "@plane/constants";
 // helpers
@@ -30,7 +32,6 @@ import { CalendarIssueBlocks } from "./issue-blocks";
 type Props = {
   issuesFilterStore: IProjectIssuesFilter | IModuleIssuesFilter | ICycleIssuesFilter | IProjectViewIssuesFilter;
   date: ICalendarDate;
-  issues: TIssueMap | undefined;
   groupedIssueIds: TGroupedIssues;
   loadMoreIssues: (dateString: string) => void;
   getPaginationData: (groupId: string | undefined) => TPaginationData | undefined;
@@ -57,7 +58,6 @@ export const CalendarDayTile = observer(function CalendarDayTile(props: Props) {
   const {
     issuesFilterStore,
     date,
-    issues,
     groupedIssueIds,
     loadMoreIssues,
     getPaginationData,
@@ -76,6 +76,9 @@ export const CalendarDayTile = observer(function CalendarDayTile(props: Props) {
   } = props;
 
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const {
+    issue: { getIssueById },
+  } = useIssueDetail();
 
   const calendarLayout = issuesFilterStore?.issueFilters?.displayFilters?.calendar?.layout ?? "month";
 
@@ -104,7 +107,7 @@ export const CalendarDayTile = observer(function CalendarDayTile(props: Props) {
           const destinationData = self?.data as { date: string } | undefined;
           if (!sourceData || !destinationData) return;
 
-          const issueDetails = issues?.[sourceData?.id];
+          const issueDetails = sourceData.id ? getIssueById(sourceData.id) : undefined;
           if (issueDetails?.start_date) {
             const issueStartDate = new Date(issueDetails.start_date);
             const targetDate = new Date(destinationData?.date);
@@ -129,7 +132,7 @@ export const CalendarDayTile = observer(function CalendarDayTile(props: Props) {
         },
       })
     );
-  }, [dayTileRef?.current, formattedDatePayload]);
+  }, [formattedDatePayload, getIssueById, handleDragAndDrop]);
 
   if (!formattedDatePayload) return null;
   const issueIds = groupedIssueIds?.[formattedDatePayload];

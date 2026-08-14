@@ -47,7 +47,8 @@ export const ProjectViewIssuesHeader = observer(function ProjectViewIssuesHeader
   const viewId = routerViewId ? routerViewId.toString() : undefined;
   // store hooks
   const {
-    issuesFilter: { issueFilters, updateFilters },
+    issuesFilter,
+    issuesFilter: { updateFilters },
   } = useIssues(EIssuesStoreType.PROJECT_VIEW);
   const { toggleCreateIssueModal } = useCommandPalette();
   const { allowPermissions } = useUserPermissions();
@@ -55,6 +56,7 @@ export const ProjectViewIssuesHeader = observer(function ProjectViewIssuesHeader
   const { currentProjectDetails, loader } = useProject();
   const { projectViewIds, getViewById } = useProjectView();
 
+  const issueFilters = viewId ? issuesFilter.getIssueFilters(viewId) : undefined;
   const activeLayout = issueFilters?.displayFilters?.layout;
 
   const handleLayoutChange = useCallback(
@@ -190,6 +192,7 @@ export const ProjectViewIssuesHeader = observer(function ProjectViewIssuesHeader
                 handleDisplayFiltersUpdate={handleDisplayFilters}
                 displayProperties={issueFilters?.displayProperties ?? {}}
                 handleDisplayPropertiesUpdate={handleDisplayProperties}
+                projectId={projectId?.toString()}
                 cycleViewDisabled={!currentProjectDetails?.cycle_view}
                 moduleViewDisabled={!currentProjectDetails?.module_view}
               />

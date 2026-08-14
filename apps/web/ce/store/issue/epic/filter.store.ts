@@ -13,6 +13,8 @@ export type IProjectEpicsFilter = IProjectIssuesFilter;
 
 // @ts-nocheck - This class will never be used, extending similar class to avoid type errors
 export class ProjectEpicsFilter extends ProjectIssuesFilter implements IProjectEpicsFilter {
+  excludeEpicTypesOnKanban = false;
+
   constructor(_rootStore: IIssueRootStore) {
     super(_rootStore);
 

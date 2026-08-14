@@ -80,6 +80,7 @@ export type TIssueParams =
   | "order_by"
   | "type"
   | "sub_issue"
+  | "exclude_epics"
   | "show_empty_groups"
   | "cursor"
   | "per_page"
@@ -111,7 +112,8 @@ export const WORK_ITEM_FILTER_PROPERTY_KEYS = [
   "created_at",
   "updated_at",
 ] as const;
-export type TWorkItemFilterProperty = (typeof WORK_ITEM_FILTER_PROPERTY_KEYS)[number];
+export type TCustomPropertyFilterProperty = `customproperty_${string}`;
+export type TWorkItemFilterProperty = (typeof WORK_ITEM_FILTER_PROPERTY_KEYS)[number] | TCustomPropertyFilterProperty;
 
 export type TWorkItemFilterConditionKey = `${TWorkItemFilterProperty}__${TSupportedOperators}`;
 
@@ -159,24 +161,37 @@ export interface IIssueDisplayFilterOptions {
   show_empty_groups?: boolean;
   sub_issue?: boolean;
 }
-export interface IIssueDisplayProperties {
-  assignee?: boolean;
-  start_date?: boolean;
-  due_date?: boolean;
-  labels?: boolean;
-  key?: boolean;
-  priority?: boolean;
-  state?: boolean;
-  sub_issue_count?: boolean;
-  link?: boolean;
-  attachment_count?: boolean;
-  estimate?: boolean;
-  created_on?: boolean;
-  updated_on?: boolean;
-  modules?: boolean;
-  cycle?: boolean;
-  issue_type?: boolean;
-}
+/** Built-in display property keys (excludes nested custom_properties map). */
+export type TIssueDisplayPropertyKey =
+  | "assignee"
+  | "start_date"
+  | "due_date"
+  | "labels"
+  | "key"
+  | "priority"
+  | "state"
+  | "sub_issue_count"
+  | "link"
+  | "attachment_count"
+  | "estimate"
+  | "created_on"
+  | "updated_on"
+  | "modules"
+  | "cycle"
+  | "issue_type";
+
+/** Spreadsheet column key for a custom property (`custom_property_<uuid>`). */
+export type TCustomPropertyDisplayKey = `custom_property_${string}`;
+
+/** Spreadsheet column identity: built-in property or custom property column. */
+export type TSpreadsheetColumnKey = TIssueDisplayPropertyKey | TCustomPropertyDisplayKey;
+
+export type IIssueDisplayProperties = {
+  [K in TIssueDisplayPropertyKey]?: boolean;
+} & {
+  /** propertyId -> visible. Missing/false = hidden (default). */
+  custom_properties?: Record<string, boolean>;
+};
 
 export type TIssueKanbanFilters = {
   group_by: string[];

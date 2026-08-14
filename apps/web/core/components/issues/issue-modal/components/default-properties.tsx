@@ -72,11 +72,11 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
   const { getProjectById } = useProject();
   const { isMobile } = usePlatformOS();
   const { allowPermissions } = useUserPermissions();
-  const { typeMap, isIssueTypeEnabled } = useIssueType();
+  const { getIssueTypeById, isIssueTypeEnabled } = useIssueType();
   const typeId = useWatch({ control, name: "type_id" });
   // derived values
   const projectDetails = getProjectById(projectId);
-  const selectedType = typeId ? typeMap[typeId] : undefined;
+  const selectedType = getIssueTypeById(projectId, typeId);
   const typesEnabled =
     (projectId ? isIssueTypeEnabled(projectId) : false) || Boolean(projectDetails?.is_issue_type_enabled);
   const searchEpicParents = typesEnabled && !selectedType?.is_epic;

@@ -11,7 +11,7 @@ import { useParams } from "next/navigation";
 // Plane imports
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue } from "@plane/types";
+import type { TIssue, TWorkspaceDraftIssue } from "@plane/types";
 import { isEmptyHtmlString } from "@plane/utils";
 // hooks
 import { useIssueModal } from "@/hooks/context/use-issue-modal";
@@ -33,7 +33,7 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
   // router params
   const { workspaceSlug } = useParams();
   // store hooks
-  const { handleCreateUpdatePropertyValues } = useIssueModal();
+  const { handleCreateUpdatePropertyValues, issuePropertyValues } = useIssueModal();
   const { createIssue } = useWorkspaceDraftIssues();
   const { t } = useTranslation();
 
@@ -82,7 +82,8 @@ export const DraftIssueLayout = observer(function DraftIssueLayout(props: DraftI
       ...changesMade,
       name: changesMade?.name && changesMade?.name?.trim() !== "" ? changesMade.name?.trim() : "Untitled",
       project_id: projectId,
-    };
+      property_values: issuePropertyValues,
+    } as Partial<TWorkspaceDraftIssue>;
 
     const response = await createIssue(workspaceSlug.toString(), payload)
       .then((res) => {

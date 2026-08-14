@@ -40,9 +40,12 @@ export const ModuleIssuesMobileHeader = observer(function ModuleIssuesMobileHead
   const { currentProjectDetails } = useProject();
   const { getModuleById } = useModule();
   const {
-    issuesFilter: { issueFilters, updateFilters },
+    issuesFilter,
+    issuesFilter: { updateFilters },
   } = useIssues(EIssuesStoreType.MODULE);
   // derived values
+  const moduleIdStr = moduleId?.toString();
+  const issueFilters = moduleIdStr ? issuesFilter.getIssueFilters(moduleIdStr) : undefined;
   const activeLayout = issueFilters?.displayFilters?.layout;
   const moduleDetails = moduleId ? getModuleById(moduleId.toString()) : undefined;
 
@@ -119,6 +122,7 @@ export const ModuleIssuesMobileHeader = observer(function ModuleIssuesMobileHead
               handleDisplayFiltersUpdate={handleDisplayFilters}
               displayProperties={issueFilters?.displayProperties ?? {}}
               handleDisplayPropertiesUpdate={handleDisplayProperties}
+              projectId={projectId?.toString()}
               ignoreGroupedFilters={["module"]}
               cycleViewDisabled={!currentProjectDetails?.cycle_view}
               moduleViewDisabled={!currentProjectDetails?.module_view}

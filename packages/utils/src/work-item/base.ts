@@ -310,7 +310,61 @@ export const getComputedDisplayProperties = (
   modules: displayProperties?.modules ?? true,
   cycle: displayProperties?.cycle ?? true,
   issue_type: displayProperties?.issue_type ?? true,
+  // Preserve nested custom property visibility (hidden by default when missing).
+  ...(displayProperties?.custom_properties ? { custom_properties: { ...displayProperties.custom_properties } } : {}),
 });
+
+/**
+ * Deep-merge display properties so nested `custom_properties` toggles do not wipe siblings.
+ */
+export const mergeDisplayProperties = (
+  current: IIssueDisplayProperties | undefined,
+  update: Partial<IIssueDisplayProperties>
+): IIssueDisplayProperties => {
+  const { custom_properties: updateCustomProperties, ...restUpdate } = update;
+  const merged: IIssueDisplayProperties = {
+    ...current,
+    ...restUpdate,
+  };
+  if (updateCustomProperties !== undefined) {
+    merged.custom_properties = {
+      ...current?.custom_properties,
+      ...updateCustomProperties,
+    };
+  }
+  return merged;
+};
+
+export const isCustomPropertyDisplayEnabled = (
+  displayProperties: IIssueDisplayProperties | undefined,
+  propertyId: string
+): boolean => displayProperties?.custom_properties?.[propertyId] === true;
+
+export const getEnabledCustomPropertyIds = (
+  displayProperties: IIssueDisplayProperties | undefined,
+  allowedPropertyIds?: Iterable<string>
+): string[] => {
+  const enabled = Object.entries(displayProperties?.custom_properties ?? {})
+    .filter(([, enabledFlag]) => enabledFlag)
+    .map(([id]) => id);
+  if (!allowedPropertyIds) return enabled;
+  const allowed = allowedPropertyIds instanceof Set ? allowedPropertyIds : new Set(allowedPropertyIds);
+  return enabled.filter((id) => allowed.has(id));
+};
+
+const CUSTOM_PROPERTY_COLUMN_PREFIX = "custom_property_";
+
+export const toCustomPropertyColumnKey = (propertyId: string): `custom_property_${string}` =>
+  `${CUSTOM_PROPERTY_COLUMN_PREFIX}${propertyId}`;
+
+export const parseCustomPropertyColumnKey = (key: string): string | null => {
+  if (!key.startsWith(CUSTOM_PROPERTY_COLUMN_PREFIX)) return null;
+  const propertyId = key.slice(CUSTOM_PROPERTY_COLUMN_PREFIX.length);
+  return propertyId || null;
+};
+
+export const isCustomPropertyColumnKey = (key: string): key is `custom_property_${string}` =>
+  key.startsWith(CUSTOM_PROPERTY_COLUMN_PREFIX) && key.length > CUSTOM_PROPERTY_COLUMN_PREFIX.length;
 
 export const generateWorkItemLink = ({
   workspaceSlug,

@@ -11,7 +11,7 @@ import type { IProjectLite } from "./project";
 import type { TStateGroups } from "./state";
 import type { IUserLite } from "./users";
 import type {
-  IIssueDisplayProperties,
+  TIssueDisplayPropertyKey,
   TIssueExtraOptions,
   TIssueGroupByOptions,
   TIssueGroupingFilters,
@@ -147,7 +147,7 @@ export interface IIssueMap {
 }
 
 export interface ILayoutDisplayFiltersOptions {
-  display_properties: (keyof IIssueDisplayProperties)[];
+  display_properties: TIssueDisplayPropertyKey[];
   display_filters: {
     group_by?: TIssueGroupByOptions[];
     sub_group_by?: TIssueGroupByOptions[];

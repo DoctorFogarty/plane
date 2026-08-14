@@ -67,13 +67,15 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
     () => (isTemporary ? `TEMP-${entityId ?? uuidv4()}` : entityId),
     [isTemporary, entityId]
   );
-  // memoize initial values to prevent re-computations when reference changes
-  const initialUserFilters = useMemo(() => initialWorkItemFilters.richFilters, [initialWorkItemFilters]);
+  const initialUserFilters = initialWorkItemFilters.richFilters;
+  // Stable key so computedIssueFilters object churn does not thrash instance sync
+  const initialUserFiltersKey = JSON.stringify(initialUserFilters ?? {});
   const workItemFiltersConfig = useWorkItemFiltersConfig({
     allowedFilters: filtersToShowByLayout ? filtersToShowByLayout : [],
     ...entityConfigProps,
   });
-  // get or create filter instance
+
+  // One instance per entity id; expression/callback sync happens in the effect below
   const workItemLayoutFilter = useMemo(
     () =>
       getOrCreateFilter({
@@ -87,9 +89,33 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
         },
         showOnMount,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entityType, workItemEntityID, saveViewOptions, updateViewOptions, updateFilters]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- create once per entity; effect re-syncs
+    [entityType, workItemEntityID, getOrCreateFilter]
   );
+
+  useEffect(() => {
+    getOrCreateFilter({
+      entityType,
+      entityId: workItemEntityID,
+      initialExpression: initialUserFilters,
+      onExpressionChange: updateFilters,
+      expressionOptions: {
+        saveViewOptions,
+        updateViewOptions,
+      },
+      showOnMount,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialUserFiltersKey captures rich filter content
+  }, [
+    entityType,
+    workItemEntityID,
+    initialUserFiltersKey,
+    updateFilters,
+    saveViewOptions,
+    updateViewOptions,
+    showOnMount,
+    getOrCreateFilter,
+  ]);
 
   // delete filter instance when component unmounts
   useEffect(
@@ -101,7 +127,7 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
 
   useEffect(() => {
     workItemLayoutFilter.configManager.setAreConfigsReady(workItemFiltersConfig.areAllConfigsInitialized);
-    workItemLayoutFilter.configManager.registerAll(workItemFiltersConfig.configs);
+    workItemLayoutFilter.configManager.replaceAll(workItemFiltersConfig.configs);
   }, [
     workItemFiltersConfig.areAllConfigsInitialized,
     workItemFiltersConfig.configs,

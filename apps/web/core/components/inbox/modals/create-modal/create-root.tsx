@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/prefer-tag-over-role, promise/always-return */
 
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,10 +14,11 @@ import type { EditorRefApi } from "@plane/editor";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TIssue } from "@plane/types";
+import type { TIssue, TIssuePropertyValueErrors, TIssuePropertyValues } from "@plane/types";
 import { ToggleSwitch } from "@plane/ui";
 import { renderFormattedPayloadDate, getTabIndex } from "@plane/utils";
 // hooks
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";
 import { useWorkspace } from "@/hooks/store/use-workspace";
@@ -24,8 +26,13 @@ import { useAppRouter } from "@/hooks/use-app-router";
 import useKeypress from "@/hooks/use-keypress";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web imports
+import { InboxCustomProperties } from "@/plane-web/components/inbox/modals/create-modal/custom-properties";
 import { DeDupeButtonRoot } from "@/plane-web/components/de-dupe/de-dupe-button";
 import { DuplicateModalRoot } from "@/plane-web/components/de-dupe/duplicate-modal";
+import {
+  buildDefaultPropertyValues,
+  validateRequiredPropertyValues,
+} from "@/plane-web/components/issues/issue-properties/property-values";
 import { useDebouncedDuplicateIssues } from "@/hooks/use-debounced-duplicate-issues";
 // services
 import { FileService } from "@/services/file.service";
@@ -73,11 +80,14 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
   const workspaceId = getWorkspaceBySlug(workspaceSlug)?.id;
   const { isMobile } = usePlatformOS();
   const { getProjectById } = useProject();
+  const issueTypeStore = useIssueType();
   const { t } = useTranslation();
   // states
   const [createMore, setCreateMore] = useState<boolean>(false);
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<TIssue>>(defaultIssueData);
+  const [issuePropertyValues, setIssuePropertyValues] = useState<TIssuePropertyValues>({});
+  const [issuePropertyValueErrors, setIssuePropertyValueErrors] = useState<TIssuePropertyValueErrors>({});
   const handleFormData = useCallback(
     <T extends keyof Partial<TIssue>>(issueKey: T, issueValue: Partial<TIssue>[T]) => {
       setFormData({
@@ -148,6 +158,16 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
       return;
     }
 
+    const typeId = formData.type_id || issueTypeStore.getDefaultIssueTypeId(projectId);
+    if (issueTypeStore.isIssueTypeEnabled(projectId) && typeId) {
+      const properties = issueTypeStore.getActivePropertiesForType(projectId, typeId);
+      const errors = validateRequiredPropertyValues(properties, issuePropertyValues);
+      setIssuePropertyValueErrors(errors);
+      if (Object.keys(errors).length > 0) {
+        return;
+      }
+    }
+
     const payload: Partial<TIssue> = {
       name: formData.name || "",
       description_html: formData.description_html || "<p></p>",
@@ -156,6 +176,7 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
       label_ids: formData.label_ids || [],
       assignee_ids: formData.assignee_ids || [],
       target_date: formData.target_date || null,
+      type_id: typeId || null,
     };
     setFormSubmitting(true);
 
@@ -167,12 +188,38 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
           });
           setUploadedAssetIds([]);
         }
+
+        const createdIssueId = res?.issue?.id;
+        if (
+          createdIssueId &&
+          typeId &&
+          issueTypeStore.isIssueTypeEnabled(projectId) &&
+          Object.keys(issuePropertyValues).length > 0
+        ) {
+          await issueTypeStore.upsertPropertyValues(
+            workspaceSlug,
+            projectId,
+            createdIssueId,
+            issuePropertyValues,
+            true
+          );
+        }
+
         if (!createMore) {
           router.push(`/${workspaceSlug}/projects/${projectId}/intake/?currentTab=open&inboxIssueId=${res?.issue?.id}`);
           handleModalClose();
         } else {
           descriptionEditorRef?.current?.clearEditor();
           setFormData(defaultIssueData);
+          const nextTypeId = issueTypeStore.getDefaultIssueTypeId(projectId);
+          if (nextTypeId) {
+            setIssuePropertyValues(
+              buildDefaultPropertyValues(issueTypeStore.getActivePropertiesForType(projectId, nextTypeId))
+            );
+          } else {
+            setIssuePropertyValues({});
+          }
+          setIssuePropertyValueErrors({});
         }
         setToast({
           type: TOAST_TYPE.SUCCESS,
@@ -230,6 +277,16 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
                 onAssetUpload={(assetId) => setUploadedAssetIds((prev) => [...prev, assetId])}
               />
               <InboxIssueProperties projectId={projectId} data={formData} handleData={handleFormData} />
+              <InboxCustomProperties
+                workspaceSlug={workspaceSlug}
+                projectId={projectId}
+                typeId={formData.type_id}
+                onTypeChange={(nextTypeId) => handleFormData("type_id", nextTypeId)}
+                values={issuePropertyValues}
+                errors={issuePropertyValueErrors}
+                onValuesChange={setIssuePropertyValues}
+                onErrorsChange={setIssuePropertyValueErrors}
+              />
             </div>
           </div>
           <div className="flex items-center justify-between gap-2 rounded-b-lg border-t-[0.5px] border-subtle bg-surface-1 px-5 py-4">

@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable typescript-eslint/no-duplicate-enum-values */
 
 import type {
   TIssueGroupByOptions,
   TIssueOrderByOptions,
-  IIssueDisplayProperties,
   IIssueFilterOptions,
   TIssue,
   EIssuesStoreType,
+  TIssueDisplayPropertyKey,
 } from "@plane/types";
 
 export const ALL_ISSUES = "All Issues";
@@ -35,7 +36,7 @@ export enum EIssueGroupByToServerOptions {
   "target_date" = "target_date",
   "project" = "project_id",
   "created_by" = "created_by",
-  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
+  // eslint-disable-next-line typescript-eslint/no-duplicate-enum-values, @typescript-eslint/no-duplicate-enum-values
   "team_project" = "project_id",
 }
 
@@ -139,7 +140,7 @@ export const ISSUE_ORDER_BY_OPTIONS: {
   { key: "-priority", titleTranslationKey: "common.priority" },
 ];
 
-export const ISSUE_DISPLAY_PROPERTIES_KEYS: (keyof IIssueDisplayProperties)[] = [
+export const ISSUE_DISPLAY_PROPERTIES_KEYS: TIssueDisplayPropertyKey[] = [
   "assignee",
   "start_date",
   "due_date",
@@ -158,7 +159,7 @@ export const ISSUE_DISPLAY_PROPERTIES_KEYS: (keyof IIssueDisplayProperties)[] = 
   "issue_type",
 ];
 
-export const SUB_ISSUES_DISPLAY_PROPERTIES_KEYS: (keyof IIssueDisplayProperties)[] = [
+export const SUB_ISSUES_DISPLAY_PROPERTIES_KEYS: TIssueDisplayPropertyKey[] = [
   "key",
   "assignee",
   "start_date",
@@ -168,7 +169,7 @@ export const SUB_ISSUES_DISPLAY_PROPERTIES_KEYS: (keyof IIssueDisplayProperties)
 ];
 
 export const ISSUE_DISPLAY_PROPERTIES: {
-  key: keyof IIssueDisplayProperties;
+  key: TIssueDisplayPropertyKey;
   titleTranslationKey: string;
 }[] = [
   {
@@ -210,7 +211,7 @@ export const ISSUE_DISPLAY_PROPERTIES: {
   { key: "cycle", titleTranslationKey: "common.cycle" },
 ];
 
-export const SPREADSHEET_PROPERTY_LIST: (keyof IIssueDisplayProperties)[] = [
+export const SPREADSHEET_PROPERTY_LIST: TIssueDisplayPropertyKey[] = [
   "state",
   "priority",
   "assignee",
@@ -228,7 +229,7 @@ export const SPREADSHEET_PROPERTY_LIST: (keyof IIssueDisplayProperties)[] = [
 ];
 
 export const SPREADSHEET_PROPERTY_DETAILS: {
-  [key in keyof IIssueDisplayProperties]: {
+  [key in TIssueDisplayPropertyKey]?: {
     i18n_title: string;
     ascendingOrderKey: TIssueOrderByOptions;
     ascendingOrderTitle: string;

@@ -56,8 +56,11 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
   const [analyticsModal, setAnalyticsModal] = useState(false);
   // store hooks
   const {
-    issuesFilter: { issueFilters, updateFilters },
+    issuesFilter,
+    issuesFilter: { updateFilters },
   } = useIssues(storeType);
+  // Always resolve filters for the focused project from props/URL — never router-lagged issueFilters
+  const issueFilters = issuesFilter.getIssueFilters(projectId);
   // derived values
   const activeLayout = issueFilters?.displayFilters?.layout;
   const layoutDisplayFiltersOptions = ISSUE_STORE_TO_FILTERS_MAP[storeType]?.layoutOptions[activeLayout];
@@ -120,6 +123,7 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
           handleDisplayFiltersUpdate={handleDisplayFilters}
           displayProperties={issueFilters?.displayProperties ?? {}}
           handleDisplayPropertiesUpdate={handleDisplayProperties}
+          projectId={projectId}
           cycleViewDisabled={!currentProjectDetails?.cycle_view}
           moduleViewDisabled={!currentProjectDetails?.module_view}
           isEpic={storeType === EIssuesStoreType.EPIC}

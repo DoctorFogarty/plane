@@ -74,6 +74,10 @@ export type TIssueModalContext = {
   handlePropertyValuesValidation: (props: TPropertyValuesValidationProps) => boolean;
   handleCreateUpdatePropertyValues: (props: TCreateUpdatePropertyValuesProps) => Promise<void>;
   handleProjectEntitiesFetch: (props: THandleProjectEntitiesFetchProps) => Promise<void>;
+  /** Replace property values with defaults for the given type (create / create-more / type switch). */
+  resetPropertyValuesToDefaults: (projectId: string | null | undefined, typeId: string | null | undefined) => void;
+  /** Called when the user changes work item type in the modal. */
+  handleIssueTypeChange: (projectId: string | null | undefined, typeId: string | null | undefined) => void;
   handleTemplateChange: (props: THandleTemplateChangeProps) => Promise<void>;
   handleConvert: (workspaceSlug: string, data: Partial<TIssue>) => Promise<void>;
   handleCreateSubWorkItem: (props: TCreateSubWorkItemProps) => Promise<void>;

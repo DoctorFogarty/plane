@@ -9,11 +9,13 @@ import { observer } from "mobx-react";
 // plane constants
 import { SPREADSHEET_SELECT_GROUP, SPREADSHEET_PROPERTY_LIST } from "@plane/constants";
 // types
-import type { TIssue, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
+import type { TIssue, IIssueDisplayFilterOptions, IIssueDisplayProperties, TSpreadsheetColumnKey } from "@plane/types";
 import { EIssueLayoutTypes } from "@plane/types";
+import { getEnabledCustomPropertyIds, toCustomPropertyColumnKey } from "@plane/utils";
 // components
 import { MultipleSelectGroup } from "@/components/core/multiple-select";
 // hooks
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProject } from "@/hooks/store/use-project";
 import { useBulkOperationStatus } from "@/hooks/use-bulk-operation-status";
 // plane web components
@@ -63,18 +65,35 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
   const portalRef = useRef<HTMLDivElement | null>(null);
   // store hooks
   const { currentProjectDetails } = useProject();
+  const issueTypeStore = useIssueType();
   // plane web hooks
   const isBulkOperationsEnabled = useBulkOperationStatus();
 
   const isEstimateEnabled: boolean = currentProjectDetails?.estimate !== null;
+  const projectId = currentProjectDetails?.id;
+  const areProjectIssueTypesFetched = projectId ? !!issueTypeStore.fetchedMap[projectId] : false;
 
-  const spreadsheetColumnsList = isWorkspaceLevel
+  // Workspace views intentionally aggregate projects. Project views fail closed
+  // until the focused project's definitions are available.
+  const focusedProjectCustomPropertyIds = isWorkspaceLevel
+    ? undefined
+    : !projectId || !areProjectIssueTypesFetched
+      ? new Set<string>()
+      : new Set(issueTypeStore.getActiveProjectProperties(projectId).map((property) => property.id));
+
+  const systemColumns = isWorkspaceLevel
     ? SPREADSHEET_PROPERTY_LIST
     : SPREADSHEET_PROPERTY_LIST.filter((property) => {
         if (property === "cycle" && !currentProjectDetails?.cycle_view) return false;
         if (property === "modules" && !currentProjectDetails?.module_view) return false;
         return true;
       });
+
+  const customColumns: TSpreadsheetColumnKey[] = getEnabledCustomPropertyIds(
+    displayProperties,
+    focusedProjectCustomPropertyIds
+  ).map(toCustomPropertyColumnKey);
+  const spreadsheetColumnsList: TSpreadsheetColumnKey[] = [...systemColumns, ...customColumns];
 
   if (!issueIds || issueIds.length === 0) return <></>;
   return (

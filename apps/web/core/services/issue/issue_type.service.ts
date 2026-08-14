@@ -126,6 +126,20 @@ export class IssueTypeService extends APIService {
       });
   }
 
+  async getPropertyValuesBulk(
+    workspaceSlug: string,
+    projectId: string,
+    issueIds: string[]
+  ): Promise<Record<string, TIssuePropertyValuesMap>> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/property-values/`, {
+      issue_ids: issueIds,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async upsertPropertyValues(
     workspaceSlug: string,
     projectId: string,

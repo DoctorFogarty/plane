@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import type { FC } from "react";
 import { useCallback, useEffect } from "react";
@@ -59,7 +60,7 @@ export const BaseCalendarRoot = observer(function BaseCalendarRoot(props: IBaseC
   const fallbackStoreType = useIssueStoreType() as CalendarStoreType;
   const storeType = isEpic ? EIssuesStoreType.EPIC : fallbackStoreType;
   const { allowPermissions } = useUserPermissions();
-  const { issues, issuesFilter, issueMap } = useIssues(storeType);
+  const { issues, issuesFilter } = useIssues(storeType);
   const {
     fetchIssues,
     fetchNextIssues,
@@ -160,7 +161,6 @@ export const BaseCalendarRoot = observer(function BaseCalendarRoot(props: IBaseC
       <div className="h-full w-full overflow-hidden bg-surface-1 pt-4">
         <CalendarChart
           issuesFilterStore={issuesFilter}
-          issues={issueMap}
           groupedIssueIds={groupedIssueIds}
           layout={displayFilters?.calendar?.layout}
           showWeekends={displayFilters?.calendar?.show_weekends ?? false}

@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable no-shadow */
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/rules-of-hooks -- storeType is fixed for a layout mount; switching project/cycle/view remounts the tree */
 import { useCallback, useMemo } from "react";
 // types
 import { useParams } from "next/navigation";
@@ -45,37 +47,27 @@ export interface IssueActions {
 }
 
 export const useIssuesActions = (storeType: EIssuesStoreType): IssueActions => {
-  const projectIssueActions = useProjectIssueActions();
-  const projectEpicsActions = useProjectEpicsActions();
-  const cycleIssueActions = useCycleIssueActions();
-  const moduleIssueActions = useModuleIssueActions();
-  const projectViewIssueActions = useProjectViewIssueActions();
-  const globalIssueActions = useGlobalIssueActions();
-  const profileIssueActions = useProfileIssueActions();
-  const archivedIssueActions = useArchivedIssueActions();
-  const workspaceDraftIssueActions = useWorkspaceDraftIssueActions();
-
   switch (storeType) {
     case EIssuesStoreType.PROJECT_VIEW:
-      return projectViewIssueActions;
+      return useProjectViewIssueActions();
     case EIssuesStoreType.PROFILE:
-      return profileIssueActions;
+      return useProfileIssueActions();
     case EIssuesStoreType.ARCHIVED:
-      return archivedIssueActions;
+      return useArchivedIssueActions();
     case EIssuesStoreType.CYCLE:
-      return cycleIssueActions;
+      return useCycleIssueActions();
     case EIssuesStoreType.MODULE:
-      return moduleIssueActions;
+      return useModuleIssueActions();
     case EIssuesStoreType.GLOBAL:
-      return globalIssueActions;
+      return useGlobalIssueActions();
     case EIssuesStoreType.WORKSPACE_DRAFT:
       //@ts-expect-error type mismatch
-      return workspaceDraftIssueActions;
+      return useWorkspaceDraftIssueActions();
     case EIssuesStoreType.EPIC:
-      return projectEpicsActions;
+      return useProjectEpicsActions();
     case EIssuesStoreType.PROJECT:
     default:
-      return projectIssueActions;
+      return useProjectIssueActions();
   }
 };
 

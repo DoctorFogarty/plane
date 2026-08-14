@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -18,12 +18,24 @@ import { useIssues } from "@/hooks/store/use-issues";
 import { useProjectView } from "@/hooks/store/use-project-view";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
 // local imports
-import { IssuePeekOverview } from "../../peek-overview";
-import { ProjectViewCalendarLayout } from "../calendar/roots/project-view-root";
-import { BaseGanttRoot } from "../gantt";
-import { ProjectViewKanBanLayout } from "../kanban/roots/project-view-root";
-import { ProjectViewListLayout } from "../list/roots/project-view-root";
-import { ProjectViewSpreadsheetLayout } from "../spreadsheet/roots/project-view-root";
+import { ActiveLoader } from "../issue-layout-HOC";
+
+const ProjectViewCalendarLayout = lazy(() =>
+  import("../calendar/roots/project-view-root").then((module) => ({ default: module.ProjectViewCalendarLayout }))
+);
+const BaseGanttRoot = lazy(() => import("../gantt").then((module) => ({ default: module.BaseGanttRoot })));
+const ProjectViewKanBanLayout = lazy(() =>
+  import("../kanban/roots/project-view-root").then((module) => ({ default: module.ProjectViewKanBanLayout }))
+);
+const ProjectViewListLayout = lazy(() =>
+  import("../list/roots/project-view-root").then((module) => ({ default: module.ProjectViewListLayout }))
+);
+const ProjectViewSpreadsheetLayout = lazy(() =>
+  import("../spreadsheet/roots/project-view-root").then((module) => ({ default: module.ProjectViewSpreadsheetLayout }))
+);
+const IssuePeekOverview = lazy(() =>
+  import("../../peek-overview").then((module) => ({ default: module.IssuePeekOverview }))
+);
 
 function ProjectViewIssueLayout(props: { activeLayout: EIssueLayoutTypes | undefined; viewId: string }) {
   switch (props.activeLayout) {
@@ -51,6 +63,9 @@ export const ProjectViewLayoutRoot = observer(function ProjectViewLayoutRoot() {
   // hooks
   const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT_VIEW);
   const { getViewById } = useProjectView();
+  if (workspaceSlug && viewId) {
+    issuesFilter?.hydrateFilters(workspaceSlug, viewId);
+  }
   // derived values
   const projectView = viewId ? getViewById(viewId) : undefined;
   const workItemFilters = viewId ? issuesFilter?.getIssueFilters(viewId) : undefined;
@@ -110,10 +125,14 @@ export const ProjectViewLayoutRoot = observer(function ProjectViewLayoutRoot() {
               />
             )}
             <div className="relative h-full w-full overflow-auto">
-              <ProjectViewIssueLayout activeLayout={activeLayout} viewId={viewId.toString()} />
+              <Suspense fallback={<ActiveLoader layout={activeLayout} />}>
+                <ProjectViewIssueLayout activeLayout={activeLayout} viewId={viewId.toString()} />
+              </Suspense>
             </div>
             {/* peek overview */}
-            <IssuePeekOverview />
+            <Suspense fallback={null}>
+              <IssuePeekOverview />
+            </Suspense>
           </div>
         )}
       </ProjectLevelWorkItemFiltersHOC>

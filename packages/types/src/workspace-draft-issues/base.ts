@@ -5,6 +5,7 @@
  */
 
 import type { TIssuePriorities } from "../issues";
+import type { TIssuePropertyValues } from "../issues/issue-property-values";
 
 export type TWorkspaceDraftIssue = {
   id: string;
@@ -34,6 +35,9 @@ export type TWorkspaceDraftIssue = {
   is_draft: boolean;
 
   type_id: string;
+
+  /** Custom property values stored as JSON on the draft until converted to an issue. */
+  property_values?: TIssuePropertyValues;
 };
 
 export type TWorkspaceDraftPaginationInfo<T> = {

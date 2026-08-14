@@ -5,15 +5,28 @@
  */
 
 import type { TFilterValue } from "../expression";
+import type { TBaseFilterFieldConfig } from "./shared";
 
 /**
  * Extended filter types
  */
-export const EXTENDED_FILTER_FIELD_TYPE = {} as const;
+export const EXTENDED_FILTER_FIELD_TYPE = {
+  TEXT: "text",
+} as const;
+
+/**
+ * Free-text filter configuration - for text / URL / number custom properties.
+ */
+export type TTextFilterFieldConfig<V extends TFilterValue> = TBaseFilterFieldConfig & {
+  type: typeof EXTENDED_FILTER_FIELD_TYPE.TEXT;
+  defaultValue?: V;
+  placeholder?: string;
+  inputType?: "text" | "number" | "url";
+};
 
 // -------- UNION TYPES --------
 
 /**
  * All extended filter configurations
  */
-export type TExtendedFilterFieldConfigs<_V extends TFilterValue = TFilterValue> = never;
+export type TExtendedFilterFieldConfigs<V extends TFilterValue = TFilterValue> = TTextFilterFieldConfig<V>;

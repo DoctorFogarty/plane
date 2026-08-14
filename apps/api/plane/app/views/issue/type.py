@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import json
+
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.utils import timezone
 
@@ -9,11 +12,13 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
+from plane.app.serializers import IssueActivitySerializer
 from plane.app.serializers.issue_type import (
     IssuePropertyOptionSerializer,
     IssuePropertySerializer,
     IssueTypeSerializer,
 )
+from plane.bgtasks.notification_task import notifications
 from plane.db.models import (
     Issue,
     IssueActivity,
@@ -23,9 +28,12 @@ from plane.db.models import (
     Project,
     ProjectIssueType,
 )
+from plane.settings.redis import redis_instance
+from plane.utils.host import base_host
 from plane.utils.issue_property import (
     format_property_value_for_display,
     get_issue_property_values_map,
+    get_issues_property_values_maps,
     upsert_property_values,
 )
 
@@ -584,6 +592,54 @@ class IssuePropertyValueEndpoint(BaseAPIView):
                 )
             )
         if activities:
-            IssueActivity.objects.bulk_create(activities, batch_size=20)
+            created = IssueActivity.objects.bulk_create(activities, batch_size=20)
+            origin = base_host(request=request, is_app=True)
+            if origin:
+                redis_instance().set(str(issue_id), origin, ex=600)
+            notifications.delay(
+                type="issue_property.activity.updated",
+                issue_id=issue_id,
+                actor_id=request.user.id,
+                project_id=project_id,
+                subscriber=True,
+                issue_activities_created=json.dumps(
+                    IssueActivitySerializer(created, many=True).data,
+                    cls=DjangoJSONEncoder,
+                ),
+                requested_data=None,
+                current_instance=None,
+            )
 
         return Response(result, status=status.HTTP_200_OK)
+
+
+class IssuePropertyValueBulkEndpoint(BaseAPIView):
+    """Bulk-fetch property values for many work items in a project."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def post(self, request, slug, project_id):
+        project = _get_project(slug, project_id)
+        if not project.is_issue_type_enabled:
+            return Response({}, status=status.HTTP_200_OK)
+
+        issue_ids = request.data.get("issue_ids") or []
+        if not isinstance(issue_ids, list):
+            return Response({"error": "issue_ids must be a list"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Cap batch size to avoid unbounded queries
+        issue_ids = [str(i) for i in issue_ids[:500]]
+        if not issue_ids:
+            return Response({}, status=status.HTTP_200_OK)
+
+        # Restrict to issues that belong to this project/workspace
+        valid_ids = list(
+            Issue.objects.filter(
+                pk__in=issue_ids,
+                project_id=project_id,
+                workspace__slug=slug,
+            ).values_list("id", flat=True)
+        )
+        return Response(
+            get_issues_property_values_maps(valid_ids, project_id),
+            status=status.HTTP_200_OK,
+        )

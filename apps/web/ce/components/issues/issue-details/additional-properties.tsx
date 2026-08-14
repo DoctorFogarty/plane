@@ -88,7 +88,7 @@ export const WorkItemAdditionalSidebarProperties = observer(function WorkItemAdd
 
   if (!issueTypeStore.isIssueTypeEnabled(projectId) || !effectiveTypeId) return null;
 
-  const properties = issueTypeStore.getActivePropertiesForType(effectiveTypeId);
+  const properties = issueTypeStore.getActivePropertiesForType(projectId, effectiveTypeId);
   if (!properties.length) return null;
 
   const handleChange = async (propertyId: string, value: unknown) => {

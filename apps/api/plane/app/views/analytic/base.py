@@ -30,7 +30,7 @@ from plane.db.models import (
 )
 
 from plane.utils.analytics_plot import build_graph_plot, VALID_ANALYTICS_FIELDS, VALID_YAXIS
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.app.permissions import allow_permission, ROLE
 
 
@@ -59,7 +59,7 @@ class AnalyticsEndpoint(BaseAPIView):
         filters = issue_filters(request.GET, "GET")
 
         # Get the issues for the workspace with the additional filters applied
-        queryset = Issue.issue_objects.filter(workspace__slug=slug, **filters)
+        queryset = apply_issue_filters(Issue.issue_objects.filter(workspace__slug=slug), filters)
 
         # Get the total issue count
         total_issues = queryset.count()
@@ -70,7 +70,7 @@ class AnalyticsEndpoint(BaseAPIView):
         state_details = {}
         if x_axis in ["state_id"] or segment in ["state_id"]:
             state_details = (
-                Issue.issue_objects.filter(workspace__slug=slug, **filters)
+                apply_issue_filters(Issue.issue_objects.filter(workspace__slug=slug), filters)
                 .distinct("state_id")
                 .order_by("state_id")
                 .values("state_id", "state__name", "state__color")
@@ -79,11 +79,13 @@ class AnalyticsEndpoint(BaseAPIView):
         label_details = {}
         if x_axis in ["labels__id"] or segment in ["labels__id"]:
             label_details = (
-                Issue.objects.filter(
-                    workspace__slug=slug,
-                    **filters,
-                    labels__id__isnull=False,
-                    label_issue__deleted_at__isnull=True,
+                apply_issue_filters(
+                    Issue.objects.filter(
+                        workspace__slug=slug,
+                        labels__id__isnull=False,
+                        label_issue__deleted_at__isnull=True,
+                    ),
+                    filters,
                 )
                 .distinct("labels__id")
                 .order_by("labels__id")
@@ -93,10 +95,12 @@ class AnalyticsEndpoint(BaseAPIView):
         assignee_details = {}
         if x_axis in ["assignees__id"] or segment in ["assignees__id"]:
             assignee_details = (
-                Issue.issue_objects.filter(
-                    Q(Q(assignees__avatar__isnull=False) | Q(assignees__avatar_asset__isnull=False)),
-                    workspace__slug=slug,
-                    **filters,
+                apply_issue_filters(
+                    Issue.issue_objects.filter(
+                        Q(Q(assignees__avatar__isnull=False) | Q(assignees__avatar_asset__isnull=False)),
+                        workspace__slug=slug,
+                    ),
+                    filters,
                 )
                 .annotate(
                     assignees__avatar_url=Case(
@@ -132,11 +136,13 @@ class AnalyticsEndpoint(BaseAPIView):
         cycle_details = {}
         if x_axis in ["issue_cycle__cycle_id"] or segment in ["issue_cycle__cycle_id"]:
             cycle_details = (
-                Issue.issue_objects.filter(
-                    workspace__slug=slug,
-                    **filters,
-                    issue_cycle__cycle_id__isnull=False,
-                    issue_cycle__deleted_at__isnull=True,
+                apply_issue_filters(
+                    Issue.issue_objects.filter(
+                        workspace__slug=slug,
+                        issue_cycle__cycle_id__isnull=False,
+                        issue_cycle__deleted_at__isnull=True,
+                    ),
+                    filters,
                 )
                 .distinct("issue_cycle__cycle_id")
                 .order_by("issue_cycle__cycle_id")
@@ -146,11 +152,13 @@ class AnalyticsEndpoint(BaseAPIView):
         module_details = {}
         if x_axis in ["issue_module__module_id"] or segment in ["issue_module__module_id"]:
             module_details = (
-                Issue.issue_objects.filter(
-                    workspace__slug=slug,
-                    **filters,
-                    issue_module__module_id__isnull=False,
-                    issue_module__deleted_at__isnull=True,
+                apply_issue_filters(
+                    Issue.issue_objects.filter(
+                        workspace__slug=slug,
+                        issue_module__module_id__isnull=False,
+                        issue_module__deleted_at__isnull=True,
+                    ),
+                    filters,
                 )
                 .distinct("issue_module__module_id")
                 .order_by("issue_module__module_id")
@@ -192,7 +200,7 @@ class SavedAnalyticEndpoint(BaseAPIView):
         analytic_view = AnalyticView.objects.get(pk=analytic_id, workspace__slug=slug)
 
         filter = analytic_view.query
-        queryset = Issue.issue_objects.filter(**filter)
+        queryset = apply_issue_filters(Issue.issue_objects.all(), filter)
 
         x_axis = analytic_view.query_dict.get("x_axis", False)
         y_axis = analytic_view.query_dict.get("y_axis", False)
@@ -252,7 +260,7 @@ class DefaultAnalyticsEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
         filters = issue_filters(request.GET, "GET")
-        base_issues = Issue.issue_objects.filter(workspace__slug=slug, **filters)
+        base_issues = apply_issue_filters(Issue.issue_objects.filter(workspace__slug=slug), filters)
 
         total_issues = base_issues.count()
 

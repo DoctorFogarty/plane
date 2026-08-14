@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unused-expressions, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, react/no-array-index-key, react-hooks/exhaustive-deps */
 
 import type { MutableRefObject } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -15,11 +16,10 @@ import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type {
   IGroupByColumn,
-  TIssueMap,
-  TIssueGroupByOptions,
-  TIssueOrderByOptions,
   TIssue,
   IIssueDisplayProperties,
+  TIssueGroupByOptions,
+  TIssueOrderByOptions,
   TIssueKanbanFilters,
 } from "@plane/types";
 import { EIssueLayoutTypes } from "@plane/types";
@@ -51,7 +51,6 @@ import type { TRenderQuickActions } from "./list-view-types";
 interface Props {
   groupIssueIds: string[] | undefined;
   group: IGroupByColumn;
-  issuesMap: TIssueMap;
   group_by: TIssueGroupByOptions | null;
   orderBy: TIssueOrderByOptions | undefined;
   getGroupIndex: (groupId: string | undefined) => number;
@@ -78,7 +77,6 @@ export const ListGroup = observer(function ListGroup(props: Props) {
   const {
     groupIssueIds = [],
     group,
-    issuesMap,
     group_by,
     orderBy,
     getGroupIndex,
@@ -236,15 +234,7 @@ export const ListGroup = observer(function ListGroup(props: Props) {
         },
       })
     );
-  }, [
-    groupRef?.current,
-    group,
-    orderBy,
-    getGroupIndex,
-    setDragColumnOrientation,
-    setIsDraggingOverColumn,
-    isWorkflowDropDisabled,
-  ]);
+  }, [group, orderBy, getGroupIndex, setDragColumnOrientation, setIsDraggingOverColumn, isWorkflowDropDisabled]);
 
   const isDragAllowed = group_by ? DRAG_ALLOWED_GROUPS.includes(group_by) : true;
   const canOverlayBeVisible = isWorkflowDropDisabled || orderBy !== "sort_order" || !!group.isDropDisabled;
@@ -299,7 +289,6 @@ export const ListGroup = observer(function ListGroup(props: Props) {
             <IssueBlocksList
               issueIds={groupIssueIds}
               groupId={group.id}
-              issuesMap={issuesMap}
               updateIssue={updateIssue}
               quickActions={quickActions}
               displayProperties={displayProperties}

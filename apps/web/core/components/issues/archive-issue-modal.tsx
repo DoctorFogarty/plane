@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/tabindex-no-positive */
 
 import { useState } from "react";
+import { observer } from "mobx-react";
 // i18n
 import { useTranslation } from "@plane/i18n";
 // types
@@ -13,7 +15,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TDeDupeIssue, TIssue } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
-import { useIssues } from "@/hooks/store/use-issues";
+import { useIssueById } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 
 type Props = {
@@ -24,18 +26,19 @@ type Props = {
   onSubmit?: () => Promise<void>;
 };
 
-export function ArchiveIssueModal(props: Props) {
+export const ArchiveIssueModal = observer(function ArchiveIssueModal(props: Props) {
   const { dataId, data, isOpen, handleClose, onSubmit } = props;
   const { t } = useTranslation();
   // states
   const [isArchiving, setIsArchiving] = useState(false);
   // store hooks
   const { getProjectById } = useProject();
-  const { issueMap } = useIssues();
+  const cachedIssue = useIssueById(dataId);
 
   if (!dataId && !data) return null;
 
-  const issue = data ? data : issueMap[dataId!];
+  const issue = data ? data : cachedIssue;
+  if (!issue) return null;
   const projectDetails = getProjectById(issue.project_id);
 
   const onClose = () => {
@@ -85,4 +88,4 @@ export function ArchiveIssueModal(props: Props) {
       </div>
     </ModalCore>
   );
-}
+});

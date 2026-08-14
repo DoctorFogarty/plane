@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable promise/always-return */
 
 import { uniq, unset, set, update, sortBy } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
@@ -34,6 +35,10 @@ export interface IProjectMemberDetails extends Omit<TProjectMembership, "member"
   member: IUserLite;
 }
 
+type TProjectUserPropertiesFetchOptions = {
+  force?: boolean;
+};
+
 export interface IBaseProjectMemberStore {
   // observables
   projectMemberFetchStatusMap: {
@@ -55,13 +60,18 @@ export interface IBaseProjectMemberStore {
   getProjectMemberIds: (projectId: string, includeGuestUsers: boolean) => string[] | null;
   getFilteredProjectMemberDetails: (userId: string, projectId: string) => IProjectMemberDetails | null;
   getProjectUserProperties: (projectId: string) => IProjectUserPropertiesResponse | null;
+  setProjectUserProperties: (projectId: string, data: Partial<IProjectUserPropertiesResponse>) => void;
   // fetch actions
   fetchProjectMembers: (
     workspaceSlug: string,
     projectId: string,
     clearExistingMembers?: boolean
   ) => Promise<TProjectMembership[]>;
-  fetchProjectUserProperties: (workspaceSlug: string, projectId: string) => Promise<IProjectUserPropertiesResponse>;
+  fetchProjectUserProperties: (
+    workspaceSlug: string,
+    projectId: string,
+    options?: TProjectUserPropertiesFetchOptions
+  ) => Promise<IProjectUserPropertiesResponse>;
   // update actions
   updateProjectUserProperties: (
     workspaceSlug: string,
@@ -106,6 +116,7 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
   // services
   projectMemberService;
   projectService;
+  private projectUserPropertiesFetchPromises = new Map<string, Promise<IProjectUserPropertiesResponse>>();
 
   constructor(_memberRoot: IMemberRootStore, _rootStore: RootStore) {
     makeObservable(this, {
@@ -117,6 +128,7 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
       // actions
       fetchProjectMembers: action,
       fetchProjectUserProperties: action,
+      setProjectUserProperties: action,
       updateProjectUserProperties: action,
       bulkAddMembersToProject: action,
       updateMemberRole: action,
@@ -447,6 +459,56 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
     (projectId: string): IProjectUserPropertiesResponse | null => this.projectUserPropertiesMap[projectId] || null
   );
 
+  setProjectUserProperties = (projectId: string, data: Partial<IProjectUserPropertiesResponse>) => {
+    const current = this.projectUserPropertiesMap[projectId];
+    const next: IProjectUserPropertiesResponse = {
+      ...current,
+      ...data,
+      ...(data.display_filters ? { display_filters: { ...current?.display_filters, ...data.display_filters } } : {}),
+      ...(data.display_properties
+        ? {
+            display_properties: {
+              ...current?.display_properties,
+              ...data.display_properties,
+              ...(data.display_properties.custom_properties
+                ? {
+                    custom_properties: {
+                      ...current?.display_properties?.custom_properties,
+                      ...data.display_properties.custom_properties,
+                    },
+                  }
+                : {}),
+            },
+          }
+        : {}),
+      ...(data.preferences
+        ? {
+            preferences: {
+              ...current?.preferences,
+              ...data.preferences,
+              ...(data.preferences.navigation
+                ? {
+                    navigation: {
+                      ...current?.preferences?.navigation,
+                      ...data.preferences.navigation,
+                    },
+                  }
+                : {}),
+              ...(data.preferences.pages
+                ? {
+                    pages: {
+                      ...current?.preferences?.pages,
+                      ...data.preferences.pages,
+                    },
+                  }
+                : {}),
+            },
+          }
+        : {}),
+    } as IProjectUserPropertiesResponse;
+    set(this.projectUserPropertiesMap, [projectId], next);
+  };
+
   /**
    * @description fetch project member preferences
    * @param workspaceSlug
@@ -455,13 +517,30 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
    */
   fetchProjectUserProperties = async (
     workspaceSlug: string,
-    projectId: string
+    projectId: string,
+    options: TProjectUserPropertiesFetchOptions = {}
   ): Promise<IProjectUserPropertiesResponse> => {
-    const response = await this.projectService.getProjectUserProperties(workspaceSlug, projectId);
-    runInAction(() => {
-      set(this.projectUserPropertiesMap, [projectId], response);
-    });
-    return response;
+    const cached = this.projectUserPropertiesMap[projectId];
+    if (!options.force && cached) return cached;
+
+    const requestKey = `${workspaceSlug}:${projectId}`;
+    const inFlightRequest = this.projectUserPropertiesFetchPromises.get(requestKey);
+    if (inFlightRequest) return inFlightRequest;
+
+    const request = this.projectService
+      .getProjectUserProperties(workspaceSlug, projectId)
+      .then((response) => {
+        runInAction(() => {
+          set(this.projectUserPropertiesMap, [projectId], response);
+        });
+        return response;
+      })
+      .finally(() => {
+        this.projectUserPropertiesFetchPromises.delete(requestKey);
+      });
+
+    this.projectUserPropertiesFetchPromises.set(requestKey, request);
+    return request;
   };
 
   /**
@@ -479,9 +558,12 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
     try {
       // Optimistically update the store
       runInAction(() => {
-        set(this.projectUserPropertiesMap, [projectId], data);
+        this.setProjectUserProperties(projectId, data);
       });
       const response = await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, data);
+      runInAction(() => {
+        set(this.projectUserPropertiesMap, [projectId], response);
+      });
       return response;
     } catch (error) {
       // Revert on error

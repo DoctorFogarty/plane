@@ -67,7 +67,7 @@ from plane.db.models import (
     CycleIssue,
 )
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 
 
 class ProjectIssuesPublicEndpoint(BaseAPIView):
@@ -123,7 +123,7 @@ class ProjectIssuesPublicEndpoint(BaseAPIView):
             )
         ).distinct()
 
-        issue_queryset = issue_queryset.filter(**filters)
+        issue_queryset = apply_issue_filters(issue_queryset, filters)
 
         # Issue queryset
         issue_queryset, order_by_param = order_issue_queryset(

@@ -43,7 +43,7 @@ from plane.app.serializers import (
     IntakeIssueDetailSerializer,
     IssueDescriptionVersionDetailSerializer,
 )
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.utils.order_queryset import INTAKE_ISSUE_ORDER_BY_ALLOWLIST, sanitize_order_by
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.bgtasks.issue_description_version_task import issue_description_version_task
@@ -183,7 +183,10 @@ class IntakeIssueViewSet(BaseViewSet):
         project = Project.objects.get(pk=project_id)
         filters = issue_filters(request.GET, "GET", "issue__")
         intake_issue = (
-            IntakeIssue.objects.filter(intake_id=intake.id, project_id=project_id, **filters)
+            apply_issue_filters(
+                IntakeIssue.objects.filter(intake_id=intake.id, project_id=project_id),
+                filters,
+            )
             .select_related("issue")
             .prefetch_related("issue__labels")
             .annotate(

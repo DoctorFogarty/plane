@@ -16,6 +16,7 @@ import { SpreadsheetLayoutLoader } from "@/components/ui/loader/layouts/spreadsh
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useUserPermissions } from "@/hooks/store/user";
+import { useDisplayCustomPropertyValues } from "@/hooks/use-display-custom-property-values";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
 import { useWorkspaceIssueProperties } from "@/hooks/use-workspace-issue-properties";
 // store
@@ -102,13 +103,15 @@ export const WorkspaceSpreadsheetRoot = observer(function WorkspaceSpreadsheetRo
     [canEditProperties, removeIssue, updateIssue, archiveIssue]
   );
 
+  const issueIds = groupedIssueIds?.[ALL_ISSUES];
+  useDisplayCustomPropertyValues(issueFilters?.displayProperties, Array.isArray(issueIds) ? issueIds : []);
+
   // Loading state
   if ((isLoading && issuesLoading && getIssueLoader() === "init-loader") || !globalViewId || !groupedIssueIds) {
     return <SpreadsheetLayoutLoader />;
   }
 
   // Computed values
-  const issueIds = groupedIssueIds[ALL_ISSUES];
   const nextPageResults = getPaginationData(ALL_ISSUES, undefined)?.nextPageResults;
 
   // Render spreadsheet

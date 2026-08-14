@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -18,12 +18,24 @@ import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
 // local imports
-import { IssuePeekOverview } from "../../peek-overview";
-import { ModuleCalendarLayout } from "../calendar/roots/module-root";
-import { BaseGanttRoot } from "../gantt";
-import { ModuleKanBanLayout } from "../kanban/roots/module-root";
-import { ModuleListLayout } from "../list/roots/module-root";
-import { ModuleSpreadsheetLayout } from "../spreadsheet/roots/module-root";
+import { ActiveLoader } from "../issue-layout-HOC";
+
+const ModuleCalendarLayout = lazy(() =>
+  import("../calendar/roots/module-root").then((module) => ({ default: module.ModuleCalendarLayout }))
+);
+const BaseGanttRoot = lazy(() => import("../gantt").then((module) => ({ default: module.BaseGanttRoot })));
+const ModuleKanBanLayout = lazy(() =>
+  import("../kanban/roots/module-root").then((module) => ({ default: module.ModuleKanBanLayout }))
+);
+const ModuleListLayout = lazy(() =>
+  import("../list/roots/module-root").then((module) => ({ default: module.ModuleListLayout }))
+);
+const ModuleSpreadsheetLayout = lazy(() =>
+  import("../spreadsheet/roots/module-root").then((module) => ({ default: module.ModuleSpreadsheetLayout }))
+);
+const IssuePeekOverview = lazy(() =>
+  import("../../peek-overview").then((module) => ({ default: module.IssuePeekOverview }))
+);
 
 function ModuleIssueLayout(props: { activeLayout: EIssueLayoutTypes | undefined; moduleId: string }) {
   switch (props.activeLayout) {
@@ -50,6 +62,9 @@ export const ModuleLayoutRoot = observer(function ModuleLayoutRoot() {
   const moduleId = routerModuleId ? routerModuleId.toString() : undefined;
   // hooks
   const { issuesFilter } = useIssues(EIssuesStoreType.MODULE);
+  if (workspaceSlug && projectId && moduleId) {
+    issuesFilter?.hydrateFilters(workspaceSlug, projectId, moduleId);
+  }
   // derived values
   const workItemFilters = moduleId ? issuesFilter?.getIssueFilters(moduleId) : undefined;
   const activeLayout = workItemFilters?.displayFilters?.layout || undefined;
@@ -90,10 +105,14 @@ export const ModuleLayoutRoot = observer(function ModuleLayoutRoot() {
               />
             )}
             <Row variant={ERowVariant.HUGGING} className="h-full w-full overflow-auto">
-              <ModuleIssueLayout activeLayout={activeLayout} moduleId={moduleId} />
+              <Suspense fallback={<ActiveLoader layout={activeLayout} />}>
+                <ModuleIssueLayout activeLayout={activeLayout} moduleId={moduleId} />
+              </Suspense>
             </Row>
             {/* peek overview */}
-            <IssuePeekOverview />
+            <Suspense fallback={null}>
+              <IssuePeekOverview />
+            </Suspense>
           </div>
         )}
       </ProjectLevelWorkItemFiltersHOC>

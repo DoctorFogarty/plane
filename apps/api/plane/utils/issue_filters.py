@@ -6,10 +6,19 @@ import re
 import uuid
 from datetime import timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 
 # The date from pattern
 pattern = re.compile(r"\d+_(weeks|months)$")
+
+# Marker set by filter_sub_issue_toggle — must be applied via apply_issue_filters
+# (OR cannot be expressed as plain kwargs for queryset.filter(**filters)).
+SUB_ISSUE_ROOT_OR_EPIC_CHILD = "_sub_issue_root_or_epic_child"
+
+# Marker set by filter_exclude_epics — hide Epic-type rows while keeping untyped
+# and non-epic work items (including children of Epics).
+EXCLUDE_EPIC_TYPES = "_exclude_epic_types"
 
 
 # check the valid uuids
@@ -378,15 +387,62 @@ def filter_inbox_status(params, issue_filter, method, prefix=""):
 
 
 def filter_sub_issue_toggle(params, issue_filter, method, prefix=""):
-    if method == "GET":
-        sub_issue = params.get("sub_issue", "false")
-        if sub_issue == "false":
-            issue_filter[f"{prefix}parent__isnull"] = True
-    else:
-        sub_issue = params.get("sub_issue", "false")
-        if sub_issue == "false":
-            issue_filter[f"{prefix}parent__isnull"] = True
+    """When sub_issue is false, keep root issues and children of Epics (WEB-4069)."""
+    sub_issue = params.get("sub_issue", "false")
+    if sub_issue == "false":
+        issue_filter[SUB_ISSUE_ROOT_OR_EPIC_CHILD] = prefix
     return issue_filter
+
+
+def filter_exclude_epics(params, issue_filter, method, prefix=""):
+    """When exclude_epics is true, drop Epic-type rows (Kanban work-item boards)."""
+    exclude_epics = params.get("exclude_epics", "false")
+    if exclude_epics is True or exclude_epics == "true":
+        issue_filter[EXCLUDE_EPIC_TYPES] = prefix
+    return issue_filter
+
+
+def legacy_filter_kwargs(filters):
+    """Return kwargs safe for queryset.filter(**kwargs), stripping sub_issue markers."""
+    filters = dict(filters or {})
+    filters.pop(SUB_ISSUE_ROOT_OR_EPIC_CHILD, None)
+    filters.pop(EXCLUDE_EPIC_TYPES, None)
+    return filters
+
+
+def apply_issue_filters(queryset, filters, extra_filters=None):
+    """
+    Apply legacy issue_filters() output to a queryset.
+
+    Handles the sub_issue marker as:
+    Q(parent__isnull=True) | Q(parent__type__is_epic=True)
+    and the exclude_epics marker as:
+    Q(type__isnull=True) | Q(type__is_epic=False)
+    (with optional field prefix, e.g. issue__).
+    """
+    filters = dict(filters or {})
+    prefix = None
+    if SUB_ISSUE_ROOT_OR_EPIC_CHILD in filters:
+        prefix = filters.pop(SUB_ISSUE_ROOT_OR_EPIC_CHILD)
+
+    if prefix is not None:
+        queryset = queryset.filter(
+            Q(**{f"{prefix}parent__isnull": True}) | Q(**{f"{prefix}parent__type__is_epic": True})
+        )
+
+    exclude_prefix = None
+    if EXCLUDE_EPIC_TYPES in filters:
+        exclude_prefix = filters.pop(EXCLUDE_EPIC_TYPES)
+
+    if exclude_prefix is not None:
+        queryset = queryset.filter(
+            Q(**{f"{exclude_prefix}type__isnull": True}) | Q(**{f"{exclude_prefix}type__is_epic": False})
+        )
+
+    combined = {**filters, **(extra_filters or {})}
+    if combined:
+        queryset = queryset.filter(**combined)
+    return queryset
 
 
 def filter_subscribed_issues(params, issue_filter, method, prefix=""):
@@ -452,6 +508,7 @@ def issue_filters(query_params, method, prefix=""):
         "intake_status": filter_intake_status,
         "inbox_status": filter_inbox_status,
         "sub_issue": filter_sub_issue_toggle,
+        "exclude_epics": filter_exclude_epics,
         "subscriber": filter_subscribed_issues,
         "start_target_date": filter_start_target_date_issues,
     }

@@ -28,19 +28,19 @@ from plane.utils.grouper import (
     issue_on_results,
     issue_queryset_grouper,
 )
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.utils.order_queryset import order_issue_queryset
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
 from plane.app.permissions import allow_permission, ROLE
 from plane.utils.host import base_host
-from plane.utils.filters import ComplexFilterBackend
+from plane.utils.filters import IssueComplexFilterBackend
 from plane.utils.filters import IssueFilterSet
 
 
 class CycleIssueViewSet(BaseViewSet):
     serializer_class = CycleIssueSerializer
     model = CycleIssue
-    filter_backends = (ComplexFilterBackend,)
+    filter_backends = (IssueComplexFilterBackend,)
     filterset_class = IssueFilterSet
 
     webhook_event = "cycle_issue"
@@ -119,7 +119,7 @@ class CycleIssueViewSet(BaseViewSet):
         issue_queryset = self.filter_queryset(issue_queryset)
 
         # Apply legacy filters
-        issue_queryset = issue_queryset.filter(**filters)
+        issue_queryset = apply_issue_filters(issue_queryset, filters)
 
         # Total count queryset
         total_issue_queryset = copy.deepcopy(issue_queryset)

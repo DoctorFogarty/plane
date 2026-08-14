@@ -6,12 +6,12 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import type { IIssueDisplayProperties } from "@plane/types";
+import type { IIssueDisplayProperties, TIssueDisplayPropertyKey } from "@plane/types";
 
 interface IWithDisplayPropertiesHOC {
   displayProperties: IIssueDisplayProperties;
   shouldRenderProperty?: (displayProperties: IIssueDisplayProperties) => boolean;
-  displayPropertyKey: keyof IIssueDisplayProperties | (keyof IIssueDisplayProperties)[];
+  displayPropertyKey: TIssueDisplayPropertyKey | TIssueDisplayPropertyKey[];
   children: React.ReactNode;
 }
 

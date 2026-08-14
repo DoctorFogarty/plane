@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow */
 
 import type { FC } from "react";
 import { useCallback, useEffect } from "react";
@@ -18,6 +19,7 @@ import { EIssueLayoutTypes } from "@plane/types";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useUserPermissions } from "@/hooks/store/user";
 // hooks
+import { useDisplayCustomPropertyValues } from "@/hooks/use-display-custom-property-values";
 import { useGroupIssuesDragNDrop } from "@/hooks/use-group-dragndrop";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
@@ -72,7 +74,6 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   } = useIssuesActions(storeType);
   // mobx store
   const { allowPermissions } = useUserPermissions();
-  const { issueMap } = useIssues();
 
   const displayFilters = issuesFilter?.issueFilters?.displayFilters;
   const displayProperties = issuesFilter?.issueFilters?.displayProperties;
@@ -91,6 +92,7 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   }, [fetchIssues, storeType, group_by, viewId]);
 
   const groupedIssueIds = issues?.groupedIssueIds as TGroupedIssues | undefined;
+  useDisplayCustomPropertyValues(displayProperties, groupedIssueIds);
   // auth
   const isEditingAllowed = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
@@ -156,7 +158,6 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
     <IssueLayoutHOC layout={EIssueLayoutTypes.LIST}>
       <div className={`relative size-full bg-surface-2`}>
         <List
-          issuesMap={issueMap}
           displayProperties={displayProperties}
           group_by={group_by}
           orderBy={orderBy}

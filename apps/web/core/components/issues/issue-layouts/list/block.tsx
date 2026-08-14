@@ -15,7 +15,7 @@ import { ChevronRightIcon, PlusIcon } from "@plane/propel/icons";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
-import type { TIssue, IIssueDisplayProperties, TIssueMap } from "@plane/types";
+import type { TIssue, IIssueDisplayProperties } from "@plane/types";
 import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
 // ui
 import { Spinner, ControlLink, Row } from "@plane/ui";
@@ -28,6 +28,7 @@ import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssueById } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -41,7 +42,6 @@ import type { TRenderQuickActions } from "./list-view-types";
 
 interface IssueBlockProps {
   issueId: string;
-  issuesMap: TIssueMap;
   groupId: string;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
   quickActions: TRenderQuickActions;
@@ -60,7 +60,6 @@ interface IssueBlockProps {
 
 export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
   const {
-    issuesMap,
     issueId,
     groupId,
     updateIssue,
@@ -110,7 +109,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
     });
 
   // derived values
-  const issue = issuesMap[issueId];
+  const issue = useIssueById(issueId);
   const subIssuesCount = issue?.sub_issues_count ?? 0;
   const canEditIssueProperties = canEditProperties(issue?.project_id ?? undefined);
   const isDraggingAllowed = canDrag && canEditIssueProperties;

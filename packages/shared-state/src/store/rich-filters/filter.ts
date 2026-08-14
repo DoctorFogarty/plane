@@ -95,6 +95,8 @@ export interface IFilterInstance<P extends TFilterProperty, E extends TExternalF
   toggleVisibility: (isVisible?: boolean) => void;
   // filter expression actions
   resetExpression: (externalExpression: E, shouldResetInitialExpression?: boolean) => void;
+  /** Sync expression from store without notifying (avoids re-persisting filters). */
+  syncExpressionFromExternal: (externalExpression: E) => void;
   // filter condition
   findConditionsByPropertyAndOperator: (
     property: P,
@@ -191,6 +193,7 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
       canUpdateView: computed,
       // actions
       resetExpression: action,
+      syncExpressionFromExternal: action,
       findConditionsByPropertyAndOperator: action,
       findFirstConditionByPropertyAndOperator: action,
       addCondition: action,
@@ -334,6 +337,15 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
       this._notifyExpressionChange();
     }
   );
+
+  /**
+   * Aligns the live expression with an external store value without notifying
+   * onExpressionChange. Used when rehydrating UI from focused-entity filters.
+   */
+  syncExpressionFromExternal: IFilterInstance<P, E>["syncExpressionFromExternal"] = action((externalExpression) => {
+    this.expression = this.helper.initializeExpression(externalExpression);
+    this._resetInitialFilterExpression();
+  });
 
   /**
    * Finds all conditions by property and operator.

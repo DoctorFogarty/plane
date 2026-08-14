@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow */
 
 import { isNil } from "lodash-es";
 // types
@@ -188,15 +189,24 @@ const getCreatedByColumns = (member: IIssueMemberStore) => {
 
 export const getDisplayPropertiesCount = (
   displayProperties: IIssueDisplayProperties,
-  ignoreFields?: (keyof IIssueDisplayProperties)[]
+  ignoreFields?: Exclude<keyof IIssueDisplayProperties, "custom_properties">[]
 ) => {
   const propertyKeys = Object.keys(displayProperties) as (keyof IIssueDisplayProperties)[];
 
   let count = 0;
 
   for (const propertyKey of propertyKeys) {
-    if (ignoreFields && ignoreFields.includes(propertyKey)) continue;
+    if (propertyKey === "custom_properties") continue;
+    if (
+      ignoreFields &&
+      ignoreFields.includes(propertyKey as Exclude<keyof IIssueDisplayProperties, "custom_properties">)
+    )
+      continue;
     if (displayProperties[propertyKey]) count++;
+  }
+
+  for (const enabled of Object.values(displayProperties.custom_properties ?? {})) {
+    if (enabled) count++;
   }
 
   return count;

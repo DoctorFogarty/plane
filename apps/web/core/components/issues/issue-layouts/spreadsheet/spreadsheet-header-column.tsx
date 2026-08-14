@@ -7,15 +7,22 @@
 import { useRef } from "react";
 //types
 import { observer } from "mobx-react";
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
+import type {
+  IIssueDisplayFilterOptions,
+  IIssueDisplayProperties,
+  TIssueDisplayPropertyKey,
+  TSpreadsheetColumnKey,
+} from "@plane/types";
+import { isCustomPropertyColumnKey, parseCustomPropertyColumnKey } from "@plane/utils";
 //components
 import { shouldRenderColumn } from "@/helpers/issue-filter.helper";
+import { SpreadsheetCustomPropertyHeader } from "@/plane-web/components/issues/issue-layouts/spreadsheet-custom-property-header";
 import { WithDisplayPropertiesHOC } from "../properties/with-display-properties-HOC";
 import { HeaderColumn } from "./columns/header-column";
 
 interface Props {
   displayProperties: IIssueDisplayProperties;
-  property: keyof IIssueDisplayProperties;
+  property: TSpreadsheetColumnKey;
   isEstimateEnabled: boolean;
   displayFilters: IIssueDisplayFilterOptions;
   handleDisplayFilterUpdate: (data: Partial<IIssueDisplayFilterOptions>) => void;
@@ -27,12 +34,27 @@ export const SpreadsheetHeaderColumn = observer(function SpreadsheetHeaderColumn
   //hooks
   const tableHeaderCellRef = useRef<HTMLTableCellElement | null>(null);
 
-  const shouldRenderProperty = shouldRenderColumn(property);
+  if (isCustomPropertyColumnKey(property)) {
+    const propertyId = parseCustomPropertyColumnKey(property);
+    if (!propertyId) return null;
+    return (
+      <th
+        className="h-11 min-w-36 items-center border border-t-0 border-b-0 border-subtle bg-layer-1 py-1 text-13 font-medium"
+        ref={tableHeaderCellRef}
+        tabIndex={0}
+      >
+        <SpreadsheetCustomPropertyHeader propertyId={propertyId} />
+      </th>
+    );
+  }
+
+  const systemProperty = property as TIssueDisplayPropertyKey;
+  const shouldRenderProperty = shouldRenderColumn(systemProperty);
 
   return (
     <WithDisplayPropertiesHOC
       displayProperties={displayProperties}
-      displayPropertyKey={property}
+      displayPropertyKey={systemProperty}
       shouldRenderProperty={() => shouldRenderProperty}
     >
       <th
@@ -43,7 +65,7 @@ export const SpreadsheetHeaderColumn = observer(function SpreadsheetHeaderColumn
         <HeaderColumn
           displayFilters={displayFilters}
           handleDisplayFilterUpdate={handleDisplayFilterUpdate}
-          property={property}
+          property={systemProperty}
           onClose={() => {
             tableHeaderCellRef?.current?.focus();
           }}

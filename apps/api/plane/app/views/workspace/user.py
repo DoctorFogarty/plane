@@ -58,10 +58,10 @@ from plane.utils.grouper import (
     issue_on_results,
     issue_queryset_grouper,
 )
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters, legacy_filter_kwargs
 from plane.utils.order_queryset import ACTIVITY_ORDER_BY_ALLOWLIST, order_issue_queryset, sanitize_order_by
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
-from plane.utils.filters import ComplexFilterBackend
+from plane.utils.filters import IssueComplexFilterBackend
 from plane.utils.filters import IssueFilterSet
 
 
@@ -98,7 +98,7 @@ class UserLastProjectWithWorkspaceEndpoint(BaseAPIView):
 class WorkspaceUserProfileIssuesEndpoint(BaseAPIView):
     permission_classes = [WorkspaceViewerPermission]
 
-    filter_backends = (ComplexFilterBackend,)
+    filter_backends = (IssueComplexFilterBackend,)
     filterset_class = IssueFilterSet
 
     def apply_annotations(self, issues):
@@ -150,7 +150,7 @@ class WorkspaceUserProfileIssuesEndpoint(BaseAPIView):
         issue_queryset = self.filter_queryset(issue_queryset)
 
         # Apply legacy filters
-        issue_queryset = issue_queryset.filter(**filters)
+        issue_queryset = apply_issue_filters(issue_queryset, filters)
 
         # Total count queryset
         total_issue_queryset = copy.deepcopy(issue_queryset)
@@ -405,15 +405,18 @@ class WorkspaceUserActivityEndpoint(BaseAPIView):
 class WorkspaceUserProfileStatsEndpoint(BaseAPIView):
     def get(self, request, slug, user_id):
         filters = issue_filters(request.query_params, "GET")
+        subscriber_filters = legacy_filter_kwargs(filters)
 
         state_distribution = (
-            Issue.issue_objects.filter(
-                (Q(assignees__in=[user_id]) & Q(issue_assignee__deleted_at__isnull=True)),
-                workspace__slug=slug,
-                project__project_projectmember__member=request.user,
-                project__project_projectmember__is_active=True,
+            apply_issue_filters(
+                Issue.issue_objects.filter(
+                    (Q(assignees__in=[user_id]) & Q(issue_assignee__deleted_at__isnull=True)),
+                    workspace__slug=slug,
+                    project__project_projectmember__member=request.user,
+                    project__project_projectmember__is_active=True,
+                ),
+                filters,
             )
-            .filter(**filters)
             .annotate(state_group=F("state__group"))
             .values("state_group")
             .annotate(state_count=Count("state_group"))
@@ -423,13 +426,15 @@ class WorkspaceUserProfileStatsEndpoint(BaseAPIView):
         priority_order = ["urgent", "high", "medium", "low", "none"]
 
         priority_distribution = (
-            Issue.issue_objects.filter(
-                (Q(assignees__in=[user_id]) & Q(issue_assignee__deleted_at__isnull=True)),
-                workspace__slug=slug,
-                project__project_projectmember__member=request.user,
-                project__project_projectmember__is_active=True,
+            apply_issue_filters(
+                Issue.issue_objects.filter(
+                    (Q(assignees__in=[user_id]) & Q(issue_assignee__deleted_at__isnull=True)),
+                    workspace__slug=slug,
+                    project__project_projectmember__member=request.user,
+                    project__project_projectmember__is_active=True,
+                ),
+                filters,
             )
-            .filter(**filters)
             .values("priority")
             .annotate(priority_count=Count("priority"))
             .filter(priority_count__gte=1)
@@ -443,51 +448,47 @@ class WorkspaceUserProfileStatsEndpoint(BaseAPIView):
             .order_by("priority_order")
         )
 
-        created_issues = (
+        created_issues = apply_issue_filters(
             Issue.issue_objects.filter(
                 workspace__slug=slug,
                 project__project_projectmember__member=request.user,
                 project__project_projectmember__is_active=True,
                 created_by_id=user_id,
-            )
-            .filter(**filters)
-            .count()
-        )
+            ),
+            filters,
+        ).count()
 
-        assigned_issues_count = (
+        assigned_issues_count = apply_issue_filters(
             Issue.issue_objects.filter(
                 (Q(assignees__in=[user_id]) & Q(issue_assignee__deleted_at__isnull=True)),
                 workspace__slug=slug,
                 project__project_projectmember__member=request.user,
                 project__project_projectmember__is_active=True,
-            )
-            .filter(**filters)
-            .count()
-        )
+            ),
+            filters,
+        ).count()
 
-        pending_issues_count = (
+        pending_issues_count = apply_issue_filters(
             Issue.issue_objects.filter(
                 ~Q(state__group__in=["completed", "cancelled"]),
                 (Q(assignees__in=[user_id]) & Q(issue_assignee__deleted_at__isnull=True)),
                 workspace__slug=slug,
                 project__project_projectmember__member=request.user,
                 project__project_projectmember__is_active=True,
-            )
-            .filter(**filters)
-            .count()
-        )
+            ),
+            filters,
+        ).count()
 
-        completed_issues_count = (
+        completed_issues_count = apply_issue_filters(
             Issue.issue_objects.filter(
                 (Q(assignees__in=[user_id]) & Q(issue_assignee__deleted_at__isnull=True)),
                 workspace__slug=slug,
                 state__group="completed",
                 project__project_projectmember__member=request.user,
                 project__project_projectmember__is_active=True,
-            )
-            .filter(**filters)
-            .count()
-        )
+            ),
+            filters,
+        ).count()
 
         subscribed_issues_count = (
             IssueSubscriber.objects.filter(
@@ -497,7 +498,7 @@ class WorkspaceUserProfileStatsEndpoint(BaseAPIView):
                 project__project_projectmember__is_active=True,
                 project__archived_at__isnull=True,
             )
-            .filter(**filters)
+            .filter(**subscriber_filters)
             .count()
         )
 

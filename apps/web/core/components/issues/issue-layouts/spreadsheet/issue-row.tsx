@@ -19,7 +19,7 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { ChevronRightIcon, PlusIcon } from "@plane/propel/icons";
 // types
 import { Tooltip } from "@plane/propel/tooltip";
-import type { IIssueDisplayProperties, TIssue } from "@plane/types";
+import type { IIssueDisplayProperties, TIssue, TSpreadsheetColumnKey } from "@plane/types";
 import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
 // ui
 import { ControlLink, Row } from "@plane/ui";
@@ -33,7 +33,7 @@ import { canNestUnder } from "@/components/issues/issue-layouts/hierarchy.helper
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssueType } from "@/hooks/store/use-issue-type";
-import { useIssues } from "@/hooks/store/use-issues";
+import { useIssueById } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
@@ -57,7 +57,7 @@ interface Props {
   issueId: string;
   isScrolled: MutableRefObject<boolean>;
   containerRef: MutableRefObject<HTMLTableElement | null>;
-  spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
+  spreadsheetColumnsList: TSpreadsheetColumnKey[];
   spacingLeft?: number;
   selectionHelpers: TSelectionHelper;
   shouldRenderByDefault?: boolean;
@@ -86,10 +86,7 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
   const [isExpanded, setExpanded] = useState<boolean>(false);
   // store hooks
   const { subIssues: subIssuesStore } = useIssueDetail(EIssueServiceType.ISSUES);
-  const { issueMap } = useIssues();
-
-  // derived values
-  const issue = issueMap[issueId];
+  const issue = useIssueById(issueId);
   const subIssues = subIssuesStore.subIssuesByIssueId(issueId);
   const isIssueSelected = selectionHelpers.getIsEntitySelected(issueId);
   const isIssueActive = selectionHelpers.getIsEntityActive(issueId);
@@ -173,7 +170,7 @@ interface IssueRowDetailsProps {
   isScrolled: MutableRefObject<boolean>;
   isExpanded: boolean;
   setExpanded: Dispatch<SetStateAction<boolean>>;
-  spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
+  spreadsheetColumnsList: TSpreadsheetColumnKey[];
   spacingLeft?: number;
   selectionHelpers: TSelectionHelper;
   isEpic?: boolean;

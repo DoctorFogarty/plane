@@ -52,7 +52,7 @@ export const IssueTypeSwitcher = observer(function IssueTypeSwitcher(props: TIss
 
   const types = issueTypeStore.getActiveProjectIssueTypes(issue.project_id);
   const effectiveTypeId = issue.type_id || defaultTypeId;
-  const currentType = issueTypeStore.getIssueTypeById(effectiveTypeId);
+  const currentType = issueTypeStore.getIssueTypeById(issue.project_id, effectiveTypeId);
 
   return (
     <div className="flex items-center gap-2">

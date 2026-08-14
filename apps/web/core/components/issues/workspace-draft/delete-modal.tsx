@@ -3,16 +3,18 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable promise/always-return */
 
 import { useEffect, useState } from "react";
+import { observer } from "mobx-react";
 // types
 import { PROJECT_ERROR_MESSAGES, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { EIssuesStoreType } from "@plane/types";
 import type { TWorkspaceDraftIssue } from "@plane/types";
 // ui
 import { AlertModalCore } from "@plane/ui";
-// constants
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
@@ -25,12 +27,12 @@ type Props = {
   onSubmit?: () => Promise<void>;
 };
 
-export function WorkspaceDraftIssueDeleteIssueModal(props: Props) {
+export const WorkspaceDraftIssueDeleteIssueModal = observer(function WorkspaceDraftIssueDeleteIssueModal(props: Props) {
   const { dataId, data, isOpen, handleClose, onSubmit } = props;
   // states
   const [isDeleting, setIsDeleting] = useState(false);
   // store hooks
-  const { issueMap } = useIssues();
+  const { issues } = useIssues(EIssuesStoreType.WORKSPACE_DRAFT);
   const { allowPermissions } = useUserPermissions();
   const { t } = useTranslation();
   const { data: currentUser } = useUser();
@@ -45,7 +47,8 @@ export function WorkspaceDraftIssueDeleteIssueModal(props: Props) {
   if (!dataId && !data) return null;
 
   // derived values
-  const issue = data ? data : issueMap[dataId!];
+  const issue = data ? data : dataId ? issues.getIssueById(dataId) : undefined;
+  if (!issue) return null;
   const isIssueCreator = issue?.created_by === currentUser?.id;
   const authorized = isIssueCreator || canPerformProjectAdminActions;
 
@@ -106,4 +109,4 @@ export function WorkspaceDraftIssueDeleteIssueModal(props: Props) {
       secondaryButtonText={t("cancel")}
     />
   );
-}
+});

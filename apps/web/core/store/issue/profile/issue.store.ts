@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { action, observable, makeObservable, computed, runInAction } from "mobx";
+import { action, observable, makeObservable, computed } from "mobx";
 // base class
 import type {
   TIssue,
@@ -128,12 +128,6 @@ export class ProfileIssues extends BaseIssuesStore implements IProfileIssues {
     isExistingPaginationOptions: boolean = false
   ) => {
     try {
-      // set loader and clear store
-      runInAction(() => {
-        this.setLoader(loadType);
-      });
-      this.clear(!isExistingPaginationOptions);
-
       // set ViewId
       this.setViewId(view);
 
@@ -149,6 +143,12 @@ export class ProfileIssues extends BaseIssuesStore implements IProfileIssues {
       if (this.currentView === "assigned") params = { ...params, assignees: userId };
       else if (this.currentView === "created") params = { ...params, created_by: userId };
       else if (this.currentView === "subscribed") params = { ...params, subscriber: userId };
+
+      this.beginIssuesFetch(
+        `${workspaceSlug}:${userId}:${view}:${JSON.stringify(params)}`,
+        loadType,
+        !isExistingPaginationOptions
+      );
 
       // call the fetch issues API with the params
       const response = await this.userService.getUserProfileIssues(workspaceSlug, userId, params, {

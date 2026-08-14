@@ -39,8 +39,9 @@ from plane.db.models import (
 )
 from .. import BaseViewSet
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.utils.host import base_host
+from plane.utils.issue_property import upsert_property_values
 
 
 class WorkspaceDraftIssueViewSet(BaseViewSet):
@@ -100,7 +101,7 @@ class WorkspaceDraftIssueViewSet(BaseViewSet):
         filters = issue_filters(request.query_params, "GET")
         issues = self.get_queryset().filter(created_by=request.user).order_by("-created_at")
 
-        issues = issues.filter(**filters)
+        issues = apply_issue_filters(issues, filters)
         # List Paginate
         return self.paginate(
             request=request,
@@ -302,6 +303,22 @@ class WorkspaceDraftIssueViewSet(BaseViewSet):
                 entity_type=FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
                 draft_issue_id=None,
             )
+
+            # Transfer custom property values from draft JSON onto the new issue.
+            # Required validation is enforced on the client before convert; do not
+            # fail the convert after the issue row already exists.
+            draft_property_values = draft_issue.property_values or request.data.get("property_values") or {}
+            if draft_property_values:
+                created_issue = Issue.objects.filter(pk=serializer.data.get("id")).first()
+                if created_issue:
+                    upsert_property_values(
+                        issue=created_issue,
+                        project_id=draft_issue.project_id,
+                        workspace_id=draft_issue.workspace_id,
+                        property_values=draft_property_values,
+                        actor_id=request.user.id,
+                        validate_required=False,
+                    )
 
             # delete the draft issue
             draft_issue.delete()

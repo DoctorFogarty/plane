@@ -23,7 +23,7 @@ from plane.license.utils.instance_value import get_email_configuration
 from plane.utils.analytics_plot import build_graph_plot
 from plane.utils.email import generate_plain_text_from_html
 from plane.utils.exception_logger import log_exception
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.utils.csv_utils import sanitize_csv_row
 
 row_mapping = {
@@ -91,10 +91,12 @@ def send_export_email(email, slug, csv_buffer, rows):
 def get_assignee_details(slug, filters):
     """Fetch assignee details if required."""
     return (
-        Issue.issue_objects.filter(
-            Q(Q(assignees__avatar__isnull=False) | Q(assignees__avatar_asset__isnull=False)),
-            workspace__slug=slug,
-            **filters,
+        apply_issue_filters(
+            Issue.issue_objects.filter(
+                Q(Q(assignees__avatar__isnull=False) | Q(assignees__avatar_asset__isnull=False)),
+                workspace__slug=slug,
+            ),
+            filters,
         )
         .annotate(
             assignees__avatar_url=Case(
@@ -128,11 +130,13 @@ def get_assignee_details(slug, filters):
 def get_label_details(slug, filters):
     """Fetch label details if required"""
     return (
-        Issue.objects.filter(
-            workspace__slug=slug,
-            **filters,
-            labels__id__isnull=False,
-            label_issue__deleted_at__isnull=True,
+        apply_issue_filters(
+            Issue.objects.filter(
+                workspace__slug=slug,
+                labels__id__isnull=False,
+                label_issue__deleted_at__isnull=True,
+            ),
+            filters,
         )
         .distinct("labels__id")
         .order_by("labels__id")
@@ -142,7 +146,7 @@ def get_label_details(slug, filters):
 
 def get_state_details(slug, filters):
     return (
-        Issue.issue_objects.filter(workspace__slug=slug, **filters)
+        apply_issue_filters(Issue.issue_objects.filter(workspace__slug=slug), filters)
         .distinct("state_id")
         .order_by("state_id")
         .values("state_id", "state__name", "state__color")
@@ -151,11 +155,13 @@ def get_state_details(slug, filters):
 
 def get_module_details(slug, filters):
     return (
-        Issue.issue_objects.filter(
-            workspace__slug=slug,
-            **filters,
-            issue_module__module_id__isnull=False,
-            issue_module__deleted_at__isnull=True,
+        apply_issue_filters(
+            Issue.issue_objects.filter(
+                workspace__slug=slug,
+                issue_module__module_id__isnull=False,
+                issue_module__deleted_at__isnull=True,
+            ),
+            filters,
         )
         .distinct("issue_module__module_id")
         .order_by("issue_module__module_id")
@@ -165,11 +171,13 @@ def get_module_details(slug, filters):
 
 def get_cycle_details(slug, filters):
     return (
-        Issue.issue_objects.filter(
-            workspace__slug=slug,
-            **filters,
-            issue_cycle__cycle_id__isnull=False,
-            issue_cycle__deleted_at__isnull=True,
+        apply_issue_filters(
+            Issue.issue_objects.filter(
+                workspace__slug=slug,
+                issue_cycle__cycle_id__isnull=False,
+                issue_cycle__deleted_at__isnull=True,
+            ),
+            filters,
         )
         .distinct("issue_cycle__cycle_id")
         .order_by("issue_cycle__cycle_id")
@@ -350,7 +358,7 @@ def generate_non_segmented_rows(
 def analytic_export_task(email, data, slug):
     try:
         filters = issue_filters(data, "POST")
-        queryset = Issue.issue_objects.filter(**filters, workspace__slug=slug)
+        queryset = apply_issue_filters(Issue.issue_objects.filter(workspace__slug=slug), filters)
 
         x_axis = data.get("x_axis", False)
         y_axis = data.get("y_axis", False)

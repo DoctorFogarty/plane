@@ -13,6 +13,7 @@ from plane.utils.issue_property import (
     apply_value_to_model,
     clear_value_fields,
     format_property_value_for_display,
+    get_issues_property_values_maps,
     serialize_property_value,
     validate_property_value,
 )
@@ -110,3 +111,48 @@ class TestIssuePropertyUtils:
         assert (
             format_property_value_for_display(_FakeProperty(IssuePropertyType.TEXT), ["a", "b"]) == "a, b"
         )
+
+    def test_get_issues_property_values_maps_empty_input(self):
+        assert get_issues_property_values_maps([]) == {}
+
+    def test_get_issues_property_values_maps_groups_by_issue(self, monkeypatch):
+        issue_a = uuid4()
+        issue_b = uuid4()
+        property_a = _FakeProperty(IssuePropertyType.TEXT)
+        property_b = _FakeProperty(IssuePropertyType.NUMBER)
+
+        value_a = _FakeValue()
+        value_a.value_text = "alpha"
+        value_a.issue_id = issue_a
+        value_a.property_id = property_a.id
+        value_a.property = property_a
+
+        value_b = _FakeValue()
+        value_b.value_number = 7
+        value_b.issue_id = issue_b
+        value_b.property_id = property_b.id
+        value_b.property = property_b
+
+        class _FakeQS(list):
+            def select_related(self, *_args, **_kwargs):
+                return self
+
+            def filter(self, *_args, **_kwargs):
+                return self
+
+        class _FakeManager:
+            def filter(self, **kwargs):
+                assert "issue_id__in" in kwargs
+                return _FakeQS([value_a, value_b])
+
+        monkeypatch.setattr(
+            "plane.utils.issue_property.IssuePropertyValue.objects",
+            _FakeManager(),
+        )
+
+        result = get_issues_property_values_maps([issue_a, issue_b, uuid4()])
+        assert result[str(issue_a)][str(property_a.id)] == "alpha"
+        assert result[str(issue_b)][str(property_b.id)] == 7
+        # Requested issues with no values still appear as empty maps
+        empty_ids = [k for k, v in result.items() if v == {}]
+        assert len(empty_ids) == 1

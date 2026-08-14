@@ -6,6 +6,7 @@
 
 import { observer } from "mobx-react";
 import type { IIssueDisplayProperties, TIssue } from "@plane/types";
+import { isCustomPropertyDisplayEnabled } from "@plane/utils";
 import { Tooltip } from "@plane/propel/tooltip";
 import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useMember } from "@/hooks/store/use-member";
@@ -19,7 +20,7 @@ export type TWorkItemLayoutAdditionalProperties = {
 export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayoutAdditionalProperties(
   props: TWorkItemLayoutAdditionalProperties
 ) {
-  const { issue } = props;
+  const { displayProperties, issue } = props;
   const issueTypeStore = useIssueType();
   const { getUserDetails } = useMember();
 
@@ -28,7 +29,9 @@ export const WorkItemLayoutAdditionalProperties = observer(function WorkItemLayo
   const typeId = issue.type_id || issueTypeStore.getDefaultIssueTypeId(issue.project_id);
   if (!typeId) return null;
 
-  const properties = issueTypeStore.getActivePropertiesForType(typeId).slice(0, 3);
+  const properties = issueTypeStore
+    .getActivePropertiesForType(issue.project_id, typeId)
+    .filter((property) => isCustomPropertyDisplayEnabled(displayProperties, property.id));
   if (!properties.length) return null;
 
   const values = issueTypeStore.getPropertyValues(issue.id);

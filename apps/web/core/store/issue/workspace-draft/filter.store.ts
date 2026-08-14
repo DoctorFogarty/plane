@@ -21,7 +21,7 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { handleIssueQueryParamsByLayout } from "@plane/utils";
+import { handleIssueQueryParamsByLayout, mergeDisplayProperties } from "@plane/utils";
 // services
 import { IssueFiltersService } from "@/services/issue_filter.service";
 // helpers
@@ -245,14 +245,14 @@ export class WorkspaceDraftIssuesFilter extends IssueFilterHelperStore implement
         }
         case EIssueFilterType.DISPLAY_PROPERTIES: {
           const updatedDisplayProperties = filters as IIssueDisplayProperties;
-          _filters.displayProperties = { ..._filters.displayProperties, ...updatedDisplayProperties };
+          _filters.displayProperties = mergeDisplayProperties(_filters.displayProperties, updatedDisplayProperties);
 
           runInAction(() => {
             Object.keys(updatedDisplayProperties).forEach((_key) => {
               set(
                 this.filters,
                 [workspaceSlug, "displayProperties", _key],
-                updatedDisplayProperties[_key as keyof IIssueDisplayProperties]
+                _filters.displayProperties[_key as keyof IIssueDisplayProperties]
               );
             });
           });

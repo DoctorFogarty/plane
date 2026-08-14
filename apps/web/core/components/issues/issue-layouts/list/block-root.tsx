@@ -13,7 +13,7 @@ import { observer } from "mobx-react";
 // plane helpers
 import { useOutsideClickDetector } from "@plane/hooks";
 // types
-import type { IIssueDisplayProperties, TIssue, TIssueMap } from "@plane/types";
+import type { IIssueDisplayProperties, TIssue } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // components
 import { DropIndicator } from "@plane/ui";
@@ -22,6 +22,7 @@ import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 import { ListLoaderItemRow } from "@/components/ui/loader/layouts/list-layout-loader";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssueById } from "@/hooks/store/use-issues";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // types
@@ -31,7 +32,6 @@ import type { TRenderQuickActions } from "./list-view-types";
 
 type Props = {
   issueId: string;
-  issuesMap: TIssueMap;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
   quickActions: TRenderQuickActions;
   canEditProperties: (projectId: string | undefined) => boolean;
@@ -54,7 +54,6 @@ type TDropInstruction = "DRAG_OVER" | "DRAG_BELOW" | "MAKE_CHILD" | undefined;
 export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
   const {
     issueId,
-    issuesMap,
     groupId,
     updateIssue,
     quickActions,
@@ -81,6 +80,7 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
   const { isMobile } = usePlatformOS();
   // Always use ISSUES for sub-issue hierarchy (epics are Issue rows; CE has no /epics/ hierarchy routes)
   const { subIssues: subIssuesStore } = useIssueDetail(EIssueServiceType.ISSUES);
+  const issue = useIssueById(issueId);
 
   const isSubIssue = nestingLevel !== 0;
   // Allow drop for nesting even when reorder is disabled (e.g. order_by !== sort_order)
@@ -138,7 +138,7 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
     issueBlockRef?.current?.classList?.remove(HIGHLIGHT_CLASS);
   });
 
-  if (!issueId || !issuesMap[issueId]?.created_at) return null;
+  if (!issueId || !issue?.created_at) return null;
 
   const subIssues = subIssuesStore.subIssuesByIssueId(issueId);
   return (
@@ -155,13 +155,12 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
         root={containerRef}
         classNames={`relative ${isLastChild && !isExpanded ? "" : "border-b border-b-subtle"}`}
         verticalOffset={100}
-        defaultValue={shouldRenderByDefault || (issuesMap[issueId] ? isIssueNew(issuesMap[issueId]) : false)}
+        defaultValue={shouldRenderByDefault || (issue ? isIssueNew(issue) : false)}
         placeholderChildren={<ListLoaderItemRow shouldAnimate={false} renderForPlaceHolder defaultPropertyCount={4} />}
         shouldRecordHeights={isMobile}
       >
         <IssueBlock
           issueId={issueId}
-          issuesMap={issuesMap}
           groupId={groupId}
           updateIssue={updateIssue}
           quickActions={quickActions}
@@ -184,7 +183,6 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
           <IssueBlockRoot
             key={`${subIssueId}`}
             issueId={subIssueId}
-            issuesMap={issuesMap}
             updateIssue={updateIssue}
             quickActions={quickActions}
             canEditProperties={canEditProperties}

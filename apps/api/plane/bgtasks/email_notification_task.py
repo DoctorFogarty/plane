@@ -84,6 +84,40 @@ def stack_email_notification():
     EmailNotificationLog.objects.filter(pk__in=processed_notifications).update(processed_at=timezone.now())
 
 
+# Fields rendered with dedicated blocks in issue-updates.html
+BUILTIN_EMAIL_CHANGE_FIELDS = frozenset(
+    {
+        "name",
+        "target_date",
+        "duplicate",
+        "assignees",
+        "labels",
+        "state",
+        "link",
+        "priority",
+        "blocking",
+    }
+)
+
+
+def partition_email_changes(changes):
+    """Split stacked activity changes into built-in template fields vs custom properties."""
+    builtin_changes = {}
+    custom_property_changes = []
+    for field, value in changes.items():
+        if field in BUILTIN_EMAIL_CHANGE_FIELDS:
+            builtin_changes[field] = value
+        else:
+            custom_property_changes.append(
+                {
+                    "name": field,
+                    "old_value": value.get("old_value") if isinstance(value, dict) else None,
+                    "new_value": value.get("new_value") if isinstance(value, dict) else None,
+                }
+            )
+    return builtin_changes, custom_property_changes
+
+
 def create_payload(notification_data):
     # return format {"actor_id":  { "key": { "old_value": [], "new_value": [] } }}
     data = {}
@@ -220,7 +254,9 @@ def send_email_notification(issue_id, notification_data, receiver_id, email_noti
                 # Parse the input string into a datetime object
                 formatted_time = datetime.strptime(activity_time, "%Y-%m-%d %H:%M:%S").strftime("%H:%M %p")
 
-                if changes:
+                builtin_changes, custom_property_changes = partition_email_changes(changes)
+
+                if builtin_changes or custom_property_changes:
                     template_data.append(
                         {
                             "actor_detail": {
@@ -228,7 +264,8 @@ def send_email_notification(issue_id, notification_data, receiver_id, email_noti
                                 "first_name": actor.first_name,
                                 "last_name": actor.last_name,
                             },
-                            "changes": changes,
+                            "changes": builtin_changes,
+                            "custom_property_changes": custom_property_changes,
                             "issue_details": {
                                 "name": issue.name,
                                 "identifier": f"{issue.project.identifier}-{issue.sequence_id}",

@@ -7,7 +7,9 @@
 import type { TIssue } from "@plane/types";
 
 /**
- * Layouts that render parent→child trees and must never show children as root rows.
+ * Layouts that render parent→child trees. Children whose parent is also in the
+ * current result set nest under that parent; orphaned children (parent filtered out)
+ * remain as root rows so they stay filterable/searchable.
  */
 export const HIERARCHY_LAYOUTS = ["list", "spreadsheet", "gantt_chart"] as const;
 
@@ -15,6 +17,33 @@ export type THierarchyLayout = (typeof HIERARCHY_LAYOUTS)[number];
 
 export const isHierarchyLayout = (layout: string | undefined | null): layout is THierarchyLayout =>
   !!layout && (HIERARCHY_LAYOUTS as readonly string[]).includes(layout);
+
+/**
+ * Keep an issue as a root row when it has no parent, or its parent is not in `parentIdsInResult`.
+ */
+export const shouldAppearAsHierarchyRoot = (
+  issue: Pick<TIssue, "parent_id"> | undefined,
+  parentIdsInResult: ReadonlySet<string>
+): boolean => {
+  if (!issue?.parent_id) return true;
+  return !parentIdsInResult.has(issue.parent_id);
+};
+
+/**
+ * Filter root issue IDs for hierarchy layouts: drop children whose parent is also in the result set.
+ */
+type TIssueParentLookup = Record<string, Pick<TIssue, "id" | "parent_id"> | undefined>;
+
+export const filterHierarchyRootIssueIds = (
+  issueIds: string[],
+  issuesById: TIssueParentLookup | ReadonlyMap<string, Pick<TIssue, "id" | "parent_id"> | undefined>,
+  parentIdsInResult?: ReadonlySet<string>
+): string[] => {
+  const idSet = parentIdsInResult ?? new Set(issueIds);
+  const lookup: TIssueParentLookup = issuesById instanceof Map ? Object.fromEntries(issuesById.entries()) : issuesById;
+
+  return issueIds.filter((id) => shouldAppearAsHierarchyRoot(lookup[id], idSet));
+};
 
 /**
  * Whether `child` may be nested under `parent`.

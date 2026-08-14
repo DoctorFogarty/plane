@@ -24,7 +24,7 @@ from plane.app.serializers import (
     IssueStateIntakeSerializer,
 )
 from plane.utils.content_validator import validate_html_content
-from plane.utils.issue_filters import issue_filters
+from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models.intake import SourceType
 
@@ -64,12 +64,14 @@ class IntakeIssuePublicViewSet(BaseViewSet):
 
         filters = issue_filters(request.query_params, "GET")
         issues = (
-            Issue.objects.filter(
-                issue_intake__intake_id=intake_id,
-                workspace_id=project_deploy_board.workspace_id,
-                project_id=project_deploy_board.project_id,
+            apply_issue_filters(
+                Issue.objects.filter(
+                    issue_intake__intake_id=intake_id,
+                    workspace_id=project_deploy_board.workspace_id,
+                    project_id=project_deploy_board.project_id,
+                ),
+                filters,
             )
-            .filter(**filters)
             .annotate(bridge_id=F("issue_intake__id"))
             .select_related("workspace", "project", "state", "parent")
             .prefetch_related("assignees", "labels")

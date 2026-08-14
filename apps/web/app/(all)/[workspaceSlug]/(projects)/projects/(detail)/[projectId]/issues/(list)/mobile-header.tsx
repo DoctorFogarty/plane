@@ -33,8 +33,11 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
 
   // store hooks
   const {
-    issuesFilter: { issueFilters, updateFilters },
+    issuesFilter,
+    issuesFilter: { updateFilters },
   } = useIssues(EIssuesStoreType.PROJECT);
+  const projectIdStr = projectId?.toString();
+  const issueFilters = projectIdStr ? issuesFilter.getIssueFilters(projectIdStr) : undefined;
   const activeLayout = issueFilters?.displayFilters?.layout;
 
   const handleLayoutChange = useCallback(
@@ -92,6 +95,7 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
               handleDisplayFiltersUpdate={handleDisplayFilters}
               displayProperties={issueFilters?.displayProperties ?? {}}
               handleDisplayPropertiesUpdate={handleDisplayProperties}
+              projectId={projectIdStr}
               cycleViewDisabled={!currentProjectDetails?.cycle_view}
               moduleViewDisabled={!currentProjectDetails?.module_view}
             />

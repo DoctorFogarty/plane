@@ -149,9 +149,9 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
               <IssuePeekOverviewError removeRoutePeekId={removeRoutePeekId} />
             </div>
           ) : (
-            isLoading && <IssuePeekOverviewLoader removeRoutePeekId={removeRoutePeekId} />
+            isLoading && !issue && <IssuePeekOverviewLoader removeRoutePeekId={removeRoutePeekId} />
           )}
-          {!isLoading && !isError && issue && (
+          {!isError && issue && (
             <>
               {/* header */}
               <IssuePeekOverviewHeader

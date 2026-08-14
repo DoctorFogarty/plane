@@ -13,6 +13,7 @@ import type { Control } from "react-hook-form";
 import type { EditorRefApi } from "@plane/editor";
 import type { TBulkIssueProperties, TIssue } from "@plane/types";
 import { CustomSelect } from "@plane/ui";
+import { useIssueModal } from "@/hooks/context/use-issue-modal";
 import { useIssueType } from "@/hooks/store/use-issue-type";
 
 export type TIssueFields = TIssue & TBulkIssueProperties;
@@ -37,6 +38,7 @@ function IssueTypeSelectComponent<T extends Partial<TIssueFields>>(props: TIssue
   const { control, projectId, disabled, placeholder = "Type", handleFormChange } = props;
   const { workspaceSlug } = useParams();
   const issueTypeStore = useIssueType();
+  const { handleIssueTypeChange } = useIssueModal();
 
   useEffect(() => {
     if (!workspaceSlug || !projectId) return;
@@ -62,6 +64,7 @@ function IssueTypeSelectComponent<T extends Partial<TIssueFields>>(props: TIssue
             label={selected?.name || placeholder}
             onChange={(val: string) => {
               onChange(val);
+              handleIssueTypeChange(projectId, val);
               handleFormChange?.();
             }}
             disabled={disabled}

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import React from "react";
 import { observer } from "mobx-react";
@@ -18,7 +19,7 @@ import { cn, generateWorkItemLink } from "@plane/utils";
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { useIssues } from "@/hooks/store/use-issues";
+import { useIssueById } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // Plane web imports
@@ -38,7 +39,6 @@ type TIssueRelationSelect = {
 export const IssueRelationSelect = observer(function IssueRelationSelect(props: TIssueRelationSelect) {
   const { className = "", workspaceSlug, projectId, issueId, relationKey, disabled = false } = props;
   // hooks
-  const { getProjectById } = useProject();
   const {
     createRelation,
     removeRelation,
@@ -46,7 +46,6 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
     isRelationModalOpen,
     toggleRelationModal,
   } = useIssueDetail();
-  const { issueMap } = useIssues();
   const { isMobile } = usePlatformOS();
   const relationIssueIds = getRelationByIssueIdRelationType(issueId, relationKey);
   const ISSUE_RELATION_OPTIONS = useTimeLineRelationOptions();
@@ -108,50 +107,20 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
         <div className="flex w-full items-start justify-between">
           {relationIssueIds.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2 py-0.5">
-              {relationIssueIds.map((relationIssueId) => {
-                const currentIssue = issueMap[relationIssueId];
-                if (!currentIssue) return;
-
-                const projectDetails = getProjectById(currentIssue.project_id);
-
-                return (
-                  <div
-                    key={relationIssueId}
-                    className={`group flex items-center gap-1 rounded-sm px-1.5 pt-1 pb-1 leading-3 hover:bg-surface-2 ${currRelationOption?.className}`}
-                  >
-                    <Tooltip tooltipHeading="Title" tooltipContent={currentIssue.name} isMobile={isMobile}>
-                      <Link
-                        href={generateWorkItemLink({
-                          workspaceSlug,
-                          projectId: projectDetails?.id,
-                          issueId: currentIssue.id,
-                          projectIdentifier: projectDetails?.identifier,
-                          sequenceId: currentIssue?.sequence_id,
-                        })}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-caption-sm-medium"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {`${projectDetails?.identifier}-${currentIssue?.sequence_id}`}
-                      </Link>
-                    </Tooltip>
-                    {!disabled && (
-                      <Tooltip tooltipContent="Remove" position="bottom" isMobile={isMobile}>
-                        <span
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            removeRelation(workspaceSlug, projectId, issueId, relationKey, relationIssueId);
-                          }}
-                        >
-                          <CloseIcon className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
-                        </span>
-                      </Tooltip>
-                    )}
-                  </div>
-                );
-              })}
+              {relationIssueIds.map((relationIssueId) => (
+                <IssueRelationItem
+                  key={relationIssueId}
+                  relationIssueId={relationIssueId}
+                  workspaceSlug={workspaceSlug}
+                  projectId={projectId}
+                  issueId={issueId}
+                  relationKey={relationKey}
+                  disabled={disabled}
+                  className={currRelationOption?.className}
+                  isMobile={isMobile}
+                  removeRelation={removeRelation}
+                />
+              ))}
             </div>
           ) : (
             <span className="text-body-xs-regular text-placeholder">{currRelationOption?.placeholder}</span>
@@ -168,5 +137,77 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
         </div>
       </button>
     </>
+  );
+});
+
+const IssueRelationItem = observer(function IssueRelationItem(props: {
+  relationIssueId: string;
+  workspaceSlug: string;
+  projectId: string;
+  issueId: string;
+  relationKey: TIssueRelationTypes;
+  disabled: boolean;
+  className?: string;
+  isMobile: boolean;
+  removeRelation: (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    relationKey: TIssueRelationTypes,
+    relationIssueId: string
+  ) => void;
+}) {
+  const {
+    relationIssueId,
+    workspaceSlug,
+    projectId,
+    issueId,
+    relationKey,
+    disabled,
+    className,
+    isMobile,
+    removeRelation,
+  } = props;
+  const { getProjectById } = useProject();
+  const currentIssue = useIssueById(relationIssueId);
+  if (!currentIssue) return null;
+
+  const projectDetails = getProjectById(currentIssue.project_id);
+
+  return (
+    <div
+      className={`group flex items-center gap-1 rounded-sm px-1.5 pt-1 pb-1 leading-3 hover:bg-surface-2 ${className}`}
+    >
+      <Tooltip tooltipHeading="Title" tooltipContent={currentIssue.name} isMobile={isMobile}>
+        <Link
+          href={generateWorkItemLink({
+            workspaceSlug,
+            projectId: projectDetails?.id,
+            issueId: currentIssue.id,
+            projectIdentifier: projectDetails?.identifier,
+            sequenceId: currentIssue?.sequence_id,
+          })}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-caption-sm-medium"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {`${projectDetails?.identifier}-${currentIssue?.sequence_id}`}
+        </Link>
+      </Tooltip>
+      {!disabled && (
+        <Tooltip tooltipContent="Remove" position="bottom" isMobile={isMobile}>
+          <span
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              removeRelation(workspaceSlug, projectId, issueId, relationKey, relationIssueId);
+            }}
+          >
+            <CloseIcon className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
+          </span>
+        </Tooltip>
+      )}
+    </div>
   );
 });

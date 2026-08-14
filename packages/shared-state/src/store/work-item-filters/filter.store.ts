@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { action, makeObservable, observable } from "mobx";
+import { isEqual } from "lodash-es";
+import { action, makeObservable, observable, toJS } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane imports
 import type { TExpressionOptions } from "@plane/constants";
@@ -93,6 +94,15 @@ export class WorkItemFilterStore implements IWorkItemFilterStore {
       // Update visibility if provided
       if (params.showOnMount !== undefined) {
         existingFilter.toggleVisibility(params.showOnMount);
+      }
+      // Keep expression aligned with the focused entity's store filters on reuse.
+      // Use silent sync — resetExpression notifies and can persist the wrong project's filters.
+      if (params.initialExpression !== undefined) {
+        const currentExternal = existingFilter.adapter.toExternal(toJS(existingFilter.expression));
+        const nextExternal = params.initialExpression ?? {};
+        if (!isEqual(currentExternal, nextExternal)) {
+          existingFilter.syncExpressionFromExternal(params.initialExpression);
+        }
       }
       return existingFilter;
     }

@@ -160,6 +160,12 @@ class IssueFilterSet(BaseFilterSet):
     subscriber_id = filters.UUIDFilter(method="filter_subscriber_id")
     subscriber_id__in = UUIDInFilter(method="filter_subscriber_id_in", lookup_expr="in")
 
+    # Allowlist stubs for custom property filters. Real Q-building happens in
+    # IssueComplexFilterBackend; these exist so validation accepts the mapped keys.
+    customproperty_value = filters.CharFilter(method="filter_customproperty_value_noop")
+    customproperty_value__in = CharInFilter(method="filter_customproperty_value_noop", lookup_expr="in")
+    customproperty_value__range = CharInFilter(method="filter_customproperty_value_noop", lookup_expr="in")
+
     class Meta:
         model = Issue
         fields = {
@@ -170,6 +176,10 @@ class IssueFilterSet(BaseFilterSet):
             "is_draft": ["exact"],
             "priority": ["exact", "in"],
         }
+
+    def filter_customproperty_value_noop(self, queryset, name, value):
+        """No-op stub — custom property filtering is handled by IssueComplexFilterBackend."""
+        return Q()
 
     def filter_is_archived(self, queryset, name, value):
         """

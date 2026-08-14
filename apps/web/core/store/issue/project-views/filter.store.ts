@@ -22,7 +22,7 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { handleIssueQueryParamsByLayout } from "@plane/utils";
+import { handleIssueQueryParamsByLayout, mergeDisplayProperties } from "@plane/utils";
 // services
 import { ViewService } from "@/services/view.service";
 import type { IBaseIssueFilterStore } from "../helpers/issue-filter-helper.store";
@@ -44,6 +44,7 @@ export interface IProjectViewIssuesFilter extends IBaseIssueFilterStore {
   getIssueFilters(viewId: string): IIssueFilters | undefined;
   // helper actions
   mutateFilters: (workspaceSlug: string, viewId: string, viewDetails: IProjectView) => void;
+  hydrateFilters: (workspaceSlug: string, viewId: string) => void;
   // action
   fetchFilters: (workspaceSlug: string, projectId: string, viewId: string) => Promise<void>;
   updateFilterExpression: (
@@ -80,6 +81,7 @@ export class ProjectViewIssuesFilter extends IssueFilterHelperStore implements I
       appliedFilters: computed,
       // actions
       fetchFilters: action,
+      hydrateFilters: action,
       updateFilters: action,
       resetFilters: action,
     });
@@ -172,6 +174,23 @@ export class ProjectViewIssuesFilter extends IssueFilterHelperStore implements I
       set(this.filters, [viewId, "kanbanFilters"], kanbanFilters);
     });
   });
+
+  hydrateFilters = (workspaceSlug: string, viewId: string) => {
+    if (!isEmpty(this.filters[viewId])) return;
+    const viewDetails = this.rootIssueStore.rootStore.projectView.getViewById(viewId);
+    if (viewDetails) {
+      this.mutateFilters(workspaceSlug, viewId, viewDetails);
+      return;
+    }
+    this.writeEntityFilters(
+      this.filters,
+      viewId,
+      workspaceSlug,
+      EIssuesStoreType.PROJECT_VIEW,
+      this.rootIssueStore.currentUserId,
+      undefined
+    );
+  };
 
   fetchFilters = async (workspaceSlug: string, projectId: string, viewId: string) => {
     try {
@@ -279,14 +298,14 @@ export class ProjectViewIssuesFilter extends IssueFilterHelperStore implements I
         }
         case EIssueFilterType.DISPLAY_PROPERTIES: {
           const updatedDisplayProperties = filters as IIssueDisplayProperties;
-          _filters.displayProperties = { ..._filters.displayProperties, ...updatedDisplayProperties };
+          _filters.displayProperties = mergeDisplayProperties(_filters.displayProperties, updatedDisplayProperties);
 
           runInAction(() => {
             Object.keys(updatedDisplayProperties).forEach((_key) => {
               set(
                 this.filters,
                 [viewId, "displayProperties", _key],
-                updatedDisplayProperties[_key as keyof IIssueDisplayProperties]
+                _filters.displayProperties[_key as keyof IIssueDisplayProperties]
               );
             });
           });

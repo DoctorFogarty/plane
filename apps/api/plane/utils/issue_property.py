@@ -261,6 +261,29 @@ def get_issue_property_values_map(issue_id, project_id=None):
     return {str(v.property_id): serialize_property_value(v.property, v) for v in qs}
 
 
+def get_issues_property_values_maps(issue_ids, project_id=None):
+    """
+    Bulk-load property values for many issues.
+    Returns { issue_id: { property_id: value } }. Issues with no values get {}.
+    """
+    result = {str(issue_id): {} for issue_id in issue_ids}
+    if not issue_ids:
+        return result
+
+    qs = IssuePropertyValue.objects.filter(issue_id__in=issue_ids).select_related("property")
+    if project_id:
+        qs = qs.filter(project_id=project_id)
+
+    for value_obj in qs:
+        issue_key = str(value_obj.issue_id)
+        if issue_key not in result:
+            result[issue_key] = {}
+        result[issue_key][str(value_obj.property_id)] = serialize_property_value(
+            value_obj.property, value_obj
+        )
+    return result
+
+
 def format_property_value_for_display(property_obj, value):
     """
     Resolve stored property values (option/member UUIDs) to human-readable labels

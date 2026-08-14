@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, jsx-a11y/prefer-tag-over-role, promise/always-return, react-hooks/exhaustive-deps */
 
 import React, { useState, useRef, useEffect } from "react";
 import { observer } from "mobx-react";
@@ -38,6 +39,7 @@ import {
 // hooks
 import { useIssueModal } from "@/hooks/context/use-issue-modal";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useWorkspaceDraftIssues } from "@/hooks/store/workspace-draft";
@@ -111,6 +113,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
   const submitBtnRef = useRef<HTMLButtonElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const modalContainerRef = useRef<HTMLDivElement | null>(null);
+  const previousProjectIdRef = useRef<string | null>(null);
 
   // router
   const { workspaceSlug, projectId: routeProjectId } = useParams();
@@ -128,9 +131,12 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     handlePropertyValuesValidation,
     handleCreateUpdatePropertyValues,
     handleTemplateChange,
+    resetPropertyValuesToDefaults,
+    issuePropertyValues,
   } = useIssueModal();
   const { isMobile } = usePlatformOS();
   const { moveIssue } = useWorkspaceDraftIssues();
+  const issueTypeStore = useIssueType();
 
   const {
     issue: { getIssueById },
@@ -192,19 +198,57 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...dataResetProperties]);
 
-  // Update the issue type id when the project id changes
+  // Prefetch work item types for the active project so type/property defaults can bind
   useEffect(() => {
-    const issueTypeId = watch("type_id");
+    if (!workspaceSlug || !projectId) return;
+    if (!issueTypeStore.fetchedMap[projectId]) {
+      void issueTypeStore.fetchWorkItemTypesPropertiesAndOptions(workspaceSlug.toString(), projectId);
+    }
+  }, [workspaceSlug, projectId, issueTypeStore]);
 
-    // if issue type id is present or project not available, return
-    if (issueTypeId || !projectId) return;
+  // Bind type_id + custom property defaults to the current project only.
+  // Clear foreign type_ids left over from a previous project, then set the
+  // default type once that project's types have been fetched. Always reset
+  // property values when the project actually changes.
+  useEffect(() => {
+    if (!projectId || data?.id) return;
 
-    // get issue type id on project change
-    const issueTypeIdOnProjectChange = getIssueTypeIdOnProjectChange(projectId);
-    if (issueTypeIdOnProjectChange) setValue("type_id", issueTypeIdOnProjectChange, { shouldValidate: true });
+    const projectChanged = previousProjectIdRef.current !== null && previousProjectIdRef.current !== projectId;
+    const currentTypeId = watch("type_id");
+    const typesFetched = Boolean(issueTypeStore.fetchedMap[projectId]);
+    const typesEnabled = issueTypeStore.isIssueTypeEnabled(projectId);
+
+    if (!typesEnabled) {
+      if (currentTypeId || projectChanged) {
+        setValue("type_id", null, { shouldValidate: true });
+        resetPropertyValuesToDefaults(projectId, null);
+      }
+      previousProjectIdRef.current = projectId;
+      return;
+    }
+
+    if (!typesFetched) {
+      // Clear a type that belongs to another project while we wait for fetch
+      if (projectChanged || (currentTypeId && !issueTypeStore.isTypeInProject(projectId, currentTypeId))) {
+        setValue("type_id", null, { shouldValidate: true });
+        resetPropertyValuesToDefaults(projectId, null);
+      }
+      return;
+    }
+
+    const typeBelongsToProject = issueTypeStore.isTypeInProject(projectId, currentTypeId);
+    if (currentTypeId && typeBelongsToProject && !projectChanged) {
+      previousProjectIdRef.current = projectId;
+      return;
+    }
+
+    const nextTypeId = getIssueTypeIdOnProjectChange(projectId);
+    setValue("type_id", nextTypeId, { shouldValidate: true });
+    resetPropertyValuesToDefaults(projectId, nextTypeId);
+    previousProjectIdRef.current = projectId;
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, projectId]);
+  }, [data?.id, projectId, issueTypeStore.fetchedMap[projectId ?? ""], issueTypeStore.enabledMap[projectId ?? ""]]);
 
   useEffect(() => {
     if (workItemTemplateId && editorRef.current) {
@@ -261,14 +305,19 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
             editorRef,
           });
         } else {
+          const nextProjectId = getValues<"project_id">("project_id");
+          const nextTypeId = getValues<"type_id">("type_id");
           reset({
             ...DEFAULT_WORK_ITEM_FORM_VALUES,
             ...(isCreateMoreToggleEnabled ? { ...data } : {}),
-            project_id: getValues<"project_id">("project_id"),
-            type_id: getValues<"type_id">("type_id"),
+            project_id: nextProjectId,
+            type_id: nextTypeId,
             description_html: data?.description_html ?? "<p></p>",
           });
           editorRef?.current?.clearEditor();
+          if (isCreateMoreToggleEnabled) {
+            resetPropertyValuesToDefaults(nextProjectId, nextTypeId);
+          }
         }
       })
       .catch((error) => {
@@ -278,11 +327,24 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
   const handleMoveToProjects = async () => {
     if (!data?.id || !data?.project_id || !data) return;
+
+    if (
+      !handlePropertyValuesValidation({
+        projectId: data.project_id,
+        workspaceSlug: workspaceSlug?.toString(),
+        watch: watch,
+      })
+    ) {
+      return;
+    }
+
     setIsMoving(true);
     try {
+      // Persist latest property values onto the draft, then convert.
+      // Backend create_draft_to_issue transfers property_values onto the new issue.
       await handleCreateUpdatePropertyValues({
         issueId: data.id,
-        issueTypeId: data.type_id,
+        issueTypeId: data.type_id ?? getValues<"type_id">("type_id"),
         projectId: data.project_id,
         workspaceSlug: workspaceSlug?.toString(),
         isDraft: true,
@@ -291,6 +353,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
       await moveIssue(workspaceSlug.toString(), data.id, {
         ...data,
         ...getValues(),
+        property_values: issuePropertyValues,
       } as TWorkspaceDraftIssue);
     } catch {
       setToast({
@@ -480,6 +543,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                 />
               </div>
               <WorkItemModalAdditionalProperties
+                key={projectId ?? "no-project"}
                 isDraft={isDraft}
                 workItemId={data?.id ?? data?.sourceIssueId}
                 projectId={projectId}

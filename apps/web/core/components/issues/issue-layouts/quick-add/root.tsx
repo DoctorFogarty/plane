@@ -16,8 +16,14 @@ import { PlusIcon } from "@plane/propel/icons";
 import { setPromiseToast } from "@plane/propel/toast";
 import type { IProject, TIssue, EIssueLayoutTypes } from "@plane/types";
 import { cn, createIssuePayload } from "@plane/utils";
+// components
+import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
+// hooks
+import { useIssueType } from "@/hooks/store/use-issue-type";
 // plane web imports
 import { QuickAddIssueFormRoot } from "@/plane-web/components/issues/quick-add";
+import { shouldOpenCreateModalForQuickAdd } from "@/plane-web/components/issues/quick-add/property-gate";
+import { buildDefaultPropertyValues } from "@/plane-web/components/issues/issue-properties/property-values";
 // local imports
 import { CreateIssueToastActionItems } from "../../create-issue-toast-action-items";
 
@@ -70,6 +76,10 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
   const { workspaceSlug, projectId } = useParams();
   // states
   const [isOpen, setIsOpen] = useState(isQuickAddOpen ?? false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createModalData, setCreateModalData] = useState<Partial<TIssue> | undefined>(undefined);
+  // store hooks
+  const issueTypeStore = useIssueType();
   // form info
   const {
     reset,
@@ -89,33 +99,81 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
     if (!isOpen) reset({ ...defaultValues });
   }, [isOpen, reset]);
 
-  const handleIsOpen = (isOpen: boolean) => {
+  // Prefetch work item types/properties for required-property gating
+  useEffect(() => {
+    if (!workspaceSlug || !projectId) return;
+    if (!issueTypeStore.fetchedMap[projectId.toString()]) {
+      void issueTypeStore.fetchWorkItemTypesPropertiesAndOptions(workspaceSlug.toString(), projectId.toString());
+    }
+  }, [workspaceSlug, projectId, issueTypeStore]);
+
+  const handleIsOpen = (nextOpen: boolean) => {
     if (isQuickAddOpen !== undefined && setIsQuickAddOpen) {
-      setIsQuickAddOpen(isOpen);
+      setIsQuickAddOpen(nextOpen);
     } else {
-      setIsOpen(isOpen);
+      setIsOpen(nextOpen);
     }
   };
 
   const onSubmitHandler = async (formData: TIssue) => {
     if (isSubmitting || !workspaceSlug || !projectId) return;
 
+    const projectIdStr = projectId.toString();
+    const typeId =
+      prePopulatedData?.type_id ||
+      (issueTypeStore.isIssueTypeEnabled(projectIdStr) ? issueTypeStore.getDefaultIssueTypeId(projectIdStr) : null);
+    const properties =
+      typeId && issueTypeStore.isIssueTypeEnabled(projectIdStr)
+        ? issueTypeStore.getActivePropertiesForType(projectIdStr, typeId)
+        : [];
+
+    // Required custom properties → open full create modal with title/prefill
+    if (shouldOpenCreateModalForQuickAdd(properties)) {
+      setCreateModalData({
+        ...prePopulatedData,
+        ...formData,
+        project_id: projectIdStr,
+        type_id: typeId ?? undefined,
+      });
+      setIsCreateModalOpen(true);
+      reset({ ...defaultValues });
+      handleIsOpen(false);
+      return;
+    }
+
     reset({ ...defaultValues });
 
-    const payload = createIssuePayload(projectId.toString(), {
-      ...(prePopulatedData ?? {}),
+    const payload = createIssuePayload(projectIdStr, {
+      ...prePopulatedData,
       ...formData,
+      ...(typeId ? { type_id: typeId } : {}),
     });
 
     if (quickAddCallback) {
-      const quickAddPromise = quickAddCallback(projectId.toString(), { ...payload });
+      const quickAddPromise = quickAddCallback(projectIdStr, { ...payload }).then(async (created) => {
+        if (created?.id && created.project_id && typeId && issueTypeStore.isIssueTypeEnabled(created.project_id)) {
+          const defaults = buildDefaultPropertyValues(
+            issueTypeStore.getActivePropertiesForType(created.project_id, typeId)
+          );
+          if (Object.keys(defaults).length > 0) {
+            await issueTypeStore.upsertPropertyValues(
+              workspaceSlug.toString(),
+              created.project_id,
+              created.id,
+              defaults,
+              false
+            );
+          }
+        }
+        return created;
+      });
+
       setPromiseToast<any>(quickAddPromise, {
         loading: isEpic ? t("epic.adding") : t("issue.adding"),
         success: {
           title: t("common.success"),
           message: () => `${isEpic ? t("epic.create.success") : t("issue.create.success")}`,
           actionItems: (data) => (
-            // TODO: Translate here
             <CreateIssueToastActionItems
               workspaceSlug={workspaceSlug.toString()}
               projectId={projectId.toString()}
@@ -149,7 +207,7 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
           layout={layout}
           prePopulatedData={prePopulatedData}
           projectId={projectId?.toString()}
-          hasError={errors && errors?.name && errors?.name?.message ? true : false}
+          hasError={Boolean(errors?.name?.message)}
           setFocus={setFocus}
           register={register}
           onSubmit={handleSubmit(onSubmitHandler)}
@@ -171,6 +229,15 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
           )}
         </>
       )}
+      <CreateUpdateIssueModal
+        isOpen={isCreateModalOpen}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setCreateModalData(undefined);
+        }}
+        data={createModalData}
+        isProjectSelectionDisabled
+      />
     </div>
   );
 });

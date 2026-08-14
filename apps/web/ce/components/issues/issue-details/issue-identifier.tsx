@@ -24,7 +24,7 @@ export const IssueIdentifier = observer(function IssueIdentifier(props: TIssueId
   const issueSequenceId = isUsingStoreData ? issue?.sequence_id : props.issueSequenceId;
   const shouldRenderIssueID = displayProperties ? displayProperties.key : true;
   const issueTypeId = isUsingStoreData ? issue?.type_id : "issueTypeId" in props ? props.issueTypeId : undefined;
-  const issueType = issueTypeStore.getIssueTypeById(issueTypeId);
+  const issueType = issueTypeStore.getIssueTypeById(projectId, issueTypeId);
 
   if (!shouldRenderIssueID) return null;
 
@@ -45,10 +45,12 @@ export const IssueIdentifier = observer(function IssueIdentifier(props: TIssueId
   );
 });
 
-export const IssueTypeIdentifier = observer(function IssueTypeIdentifier(props: TIssueTypeIdentifier) {
-  const { issueTypeId } = props;
+export const IssueTypeIdentifier = observer(function IssueTypeIdentifier(
+  props: TIssueTypeIdentifier & { projectId: string }
+) {
+  const { issueTypeId, projectId } = props;
   const issueTypeStore = useIssueType();
-  const issueType = issueTypeStore.getIssueTypeById(issueTypeId);
+  const issueType = issueTypeStore.getIssueTypeById(projectId, issueTypeId);
   if (!issueType) return null;
   return (
     <span className="bg-custom-background-80 text-custom-text-200 rounded px-1.5 py-0.5 text-[10px] font-medium">
