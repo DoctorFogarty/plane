@@ -42,6 +42,7 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
 
   const notificationField = notification?.data?.issue_activity.field || undefined;
   const notificationTriggeredBy = notification.triggered_by_details || undefined;
+  const isDeletedWorkItem = notificationField === "issue" && notification?.data?.issue_activity?.verb === "deleted";
 
   const handleNotificationIssuePeekOverview = async () => {
     if (workspaceSlug && projectId && issueId && !isSnoozeStateModalOpen && !customSnoozeModal) {
@@ -56,6 +57,8 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
           console.error(error);
         }
       }
+
+      if (isDeletedWorkItem) return;
 
       if (notification?.is_inbox_issue === false) {
         if (!getIsIssuePeeked(issueId)) {

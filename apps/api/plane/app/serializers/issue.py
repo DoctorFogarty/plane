@@ -5,7 +5,7 @@
 # Django imports
 from django.utils import timezone
 from django.core.validators import URLValidator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import IntegrityError
 
 # Third Party imports
@@ -348,19 +348,35 @@ class IssueCreateSerializer(BaseSerializer):
         return super().update(instance, validated_data)
 
 
+def _activity_issue(obj):
+    if not getattr(obj, "issue_id", None):
+        return None
+    try:
+        return obj.issue
+    except ObjectDoesNotExist:
+        return Issue.all_objects.filter(pk=obj.issue_id).first()
+
+
 class IssueActivitySerializer(BaseSerializer):
     actor_detail = UserLiteSerializer(read_only=True, source="actor")
-    issue_detail = IssueFlatSerializer(read_only=True, source="issue")
+    issue_detail = serializers.SerializerMethodField()
     project_detail = ProjectLiteSerializer(read_only=True, source="project")
     workspace_detail = WorkspaceLiteSerializer(read_only=True, source="workspace")
     source_data = serializers.SerializerMethodField()
 
+    def get_issue_detail(self, obj):
+        issue = _activity_issue(obj)
+        if not issue:
+            return None
+        return IssueFlatSerializer(issue).data
+
     def get_source_data(self, obj):
-        if hasattr(obj, "issue") and hasattr(obj.issue, "source_data") and obj.issue.source_data:
+        issue = _activity_issue(obj)
+        if issue and hasattr(issue, "source_data") and issue.source_data:
             return {
-                "source": obj.issue.source_data[0].source,
-                "source_email": obj.issue.source_data[0].source_email,
-                "extra": obj.issue.source_data[0].extra,
+                "source": issue.source_data[0].source,
+                "source_email": issue.source_data[0].source_email,
+                "extra": issue.source_data[0].extra,
             }
         return None
 

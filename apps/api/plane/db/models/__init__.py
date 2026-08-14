@@ -28,6 +28,12 @@ from .integration import (
     IssueGithubBranch,
     IssueGithubPullRequest,
     SlackProjectSync,
+    SlackWorkspaceConnection,
+    SlackUserConnection,
+    SlackChannelSubscription,
+    SlackThreadLink,
+    SlackEventIdempotency,
+    SlackAuditLog,
     WorkspaceIntegration,
 )
 from .issue import (

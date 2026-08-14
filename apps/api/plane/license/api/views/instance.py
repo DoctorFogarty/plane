@@ -59,6 +59,8 @@ class InstanceEndpoint(BaseAPIView):
             ENABLE_MAGIC_LINK_LOGIN,
             ENABLE_EMAIL_PASSWORD,
             SLACK_CLIENT_ID,
+            SLACK_CLIENT_SECRET,
+            SLACK_SIGNING_SECRET,
             POSTHOG_API_KEY,
             POSTHOG_HOST,
             UNSPLASH_ACCESS_KEY,
@@ -107,6 +109,14 @@ class InstanceEndpoint(BaseAPIView):
                     "default": os.environ.get("SLACK_CLIENT_ID", None),
                 },
                 {
+                    "key": "SLACK_CLIENT_SECRET",
+                    "default": os.environ.get("SLACK_CLIENT_SECRET", ""),
+                },
+                {
+                    "key": "SLACK_SIGNING_SECRET",
+                    "default": os.environ.get("SLACK_SIGNING_SECRET", ""),
+                },
+                {
                     "key": "POSTHOG_API_KEY",
                     "default": os.environ.get("POSTHOG_API_KEY", None),
                 },
@@ -142,8 +152,9 @@ class InstanceEndpoint(BaseAPIView):
         data["github_app_name"] = normalize_github_app_name(str(GITHUB_APP_NAME or ""))
         data["is_github_app_configured"] = GitHubAppClient().is_configured and bool(data["github_app_name"])
 
-        # Slack client
+        # Slack client id only — never secrets
         data["slack_client_id"] = SLACK_CLIENT_ID
+        data["is_slack_configured"] = bool(SLACK_CLIENT_ID and SLACK_CLIENT_SECRET and SLACK_SIGNING_SECRET)
 
         # Posthog
         data["posthog_api_key"] = POSTHOG_API_KEY

@@ -78,6 +78,14 @@ def get_default_preference():
     }
 
 
+def default_slack_dm_events():
+    return ["create", "state", "assignee", "comment", "mention"]
+
+
+def default_slack_dm_filter():
+    return {}
+
+
 class UserNotificationPreference(BaseModel):
     # user it is related to
     user = models.ForeignKey(
@@ -106,6 +114,11 @@ class UserNotificationPreference(BaseModel):
     comment = models.BooleanField(default=True)
     mention = models.BooleanField(default=True)
     issue_completed = models.BooleanField(default=True)
+    slack_dm = models.BooleanField(default=True)
+    mute_email_when_slack_dm = models.BooleanField(default=False)
+    slack_dm_events = models.JSONField(default=default_slack_dm_events)
+    slack_dm_filter = models.JSONField(default=default_slack_dm_filter)
+    slack_dm_custom_properties = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "UserNotificationPreference"

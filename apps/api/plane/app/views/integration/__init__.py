@@ -11,3 +11,19 @@ from .base import (
 )
 from .github_issue import IssueGithubDevelopmentEndpoint
 from .webhook import GithubWebhookEndpoint
+from .slack import (
+    SlackEventsEndpoint,
+    SlackInteractiveEndpoint,
+    SlackCommandsEndpoint,
+    SlackWorkspaceOAuthInstallEndpoint,
+    SlackUserOAuthInstallEndpoint,
+    SlackWorkspaceOAuthCallbackEndpoint,
+    SlackUserOAuthCallbackEndpoint,
+    SlackConnectionEndpoint,
+    SlackUserConnectionEndpoint,
+    SlackChannelSubscriptionEndpoint,
+    SlackChannelSubscriptionDetailEndpoint,
+    SlackChannelListEndpoint,
+    SlackAuditLogEndpoint,
+    ensure_slack_integration,
+)

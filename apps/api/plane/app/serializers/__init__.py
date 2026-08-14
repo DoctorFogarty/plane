@@ -155,6 +155,13 @@ from .integration import (
     IssueGithubPullRequestSerializer,
 )
 
+from .slack import (
+    SlackWorkspaceConnectionSerializer,
+    SlackUserConnectionSerializer,
+    SlackChannelSubscriptionSerializer,
+    SlackAuditLogSerializer,
+)
+
 from .automation import (
     AutomationSerializer,
     AutomationListSerializer,

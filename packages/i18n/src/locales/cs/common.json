@@ -867,5 +867,31 @@
       "description": "Exportujte položky do JSON.",
       "short_description": "Exportovat jako JSON"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Upozorni mě ve Slacku na přiřazení, zmínky, komentáře a změny stavu po propojení účtu Slack.",
+  "slack_dm_events": "Události Slack DM",
+  "slack_dm_events_description": "Vyberte, které změny pracovních položek odesílají Slack DM.",
+  "slack_dm_custom_properties": "Vlastní vlastnosti",
+  "slack_dm_custom_properties_description": "Také upozornit ve Slacku, když se změní jakákoli vlastní vlastnost.",
+  "slack_dm_priority_filter": "Jen pro tyto priority",
+  "slack_dm_priority_filter_description": "Ponechte prázdné, abyste dostávali DM pro každou prioritu.",
+  "slack_event_create": "Vytvořeno",
+  "slack_event_state": "Stav",
+  "slack_event_assignee": "Přiřazený",
+  "slack_event_comment": "Komentáře",
+  "slack_event_mention": "Zmínky",
+  "slack_event_priority": "Priorita",
+  "slack_event_labels": "Štítky",
+  "slack_event_name": "Název",
+  "slack_event_start_date": "Datum zahájení",
+  "slack_event_target_date": "Termín",
+  "slack_event_type": "Typ pracovní položky",
+  "slack_filter_all_priorities": "Všechny priority",
+  "slack_filter_all_states": "Všechny stavy",
+  "slack_filter_all_types": "Všechny typy",
+  "slack_filter_all_labels": "Všechny štítky",
+  "slack_filter_any_value": "Jakákoli hodnota",
+  "mute_email_when_slack_dm": "Ztlumit e-mail, když jsou Slack DM zapnuté",
+  "mute_email_when_slack_dm_description": "Nepošílej e-mail pro stejné události, když jsou Slack DM zapnuté a účet Slack je propojený."
 }

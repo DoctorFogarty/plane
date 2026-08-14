@@ -867,5 +867,31 @@
       "description": "Експортуйте одиниці у формат JSON.",
       "short_description": "Експортувати як JSON"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Сповіщати в Slack про призначення, згадки, коментарі та зміну стану після прив’язки облікового запису Slack.",
+  "slack_dm_events": "Події Slack DM",
+  "slack_dm_events_description": "Виберіть, які зміни робочих елементів надсилають Slack DM.",
+  "slack_dm_custom_properties": "Користувацькі властивості",
+  "slack_dm_custom_properties_description": "Також сповіщати в Slack, коли змінюється будь-яка користувацька властивість.",
+  "slack_dm_priority_filter": "Лише для цих пріоритетів",
+  "slack_dm_priority_filter_description": "Залиште порожнім, щоб отримувати DM для кожного пріоритету.",
+  "slack_event_create": "Створено",
+  "slack_event_state": "Стан",
+  "slack_event_assignee": "Виконавець",
+  "slack_event_comment": "Коментарі",
+  "slack_event_mention": "Згадки",
+  "slack_event_priority": "Пріоритет",
+  "slack_event_labels": "Мітки",
+  "slack_event_name": "Назва",
+  "slack_event_start_date": "Дата початку",
+  "slack_event_target_date": "Термін",
+  "slack_event_type": "Тип робочого елемента",
+  "slack_filter_all_priorities": "Усі пріоритети",
+  "slack_filter_all_states": "Усі стани",
+  "slack_filter_all_types": "Усі типи",
+  "slack_filter_all_labels": "Усі мітки",
+  "slack_filter_any_value": "Будь-яке значення",
+  "mute_email_when_slack_dm": "Вимкнути пошту, коли Slack DM увімкнено",
+  "mute_email_when_slack_dm_description": "Не надсилати листи про ті самі події, якщо Slack DM увімкнено і обліковий запис Slack прив’язано."
 }

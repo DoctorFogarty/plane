@@ -265,6 +265,9 @@ from .integration import (
     GithubRepositorySyncEndpoint,
     IssueGithubDevelopmentEndpoint,
     GithubWebhookEndpoint,
+    SlackEventsEndpoint,
+    SlackInteractiveEndpoint,
+    SlackCommandsEndpoint,
 )
 
 from .automation import AutomationViewSet, AutomationRunViewSet

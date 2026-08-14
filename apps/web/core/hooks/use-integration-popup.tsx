@@ -11,9 +11,7 @@ import { WORKSPACE_INTEGRATIONS } from "@plane/constants";
 
 const useIntegrationPopup = ({
   provider,
-  stateParams,
   github_app_name,
-  slack_client_id,
 }: {
   provider: string | undefined;
   stateParams?: string;
@@ -22,17 +20,14 @@ const useIntegrationPopup = ({
 }) => {
   const [authLoader, setAuthLoader] = useState(false);
 
-  const { workspaceSlug, projectId } = useParams();
+  const { workspaceSlug } = useParams();
 
-  // GitHub App slug only — never secrets. Strip whitespace and reject invalid values.
   const githubAppSlug = (github_app_name || "").trim().split(/\s+/)[0] || "";
 
   const providerUrls: { [key: string]: string } = {
     github: `https://github.com/apps/${encodeURIComponent(githubAppSlug)}/installations/new?state=${workspaceSlug?.toString()}`,
-    slack: `https://slack.com/oauth/v2/authorize?scope=chat:write,im:history,im:write,links:read,links:write,users:read,users:read.email&amp;user_scope=&amp;&client_id=${slack_client_id}&state=${workspaceSlug?.toString()}`,
-    slackChannel: `https://slack.com/oauth/v2/authorize?scope=incoming-webhook&client_id=${slack_client_id}&state=${workspaceSlug?.toString()},${projectId?.toString()}${
-      stateParams ? "," + stateParams : ""
-    }`,
+    slack: `/api/workspaces/${workspaceSlug?.toString()}/integrations/slack/install/`,
+    slackUser: `/api/workspaces/${workspaceSlug?.toString()}/integrations/slack/connect-user/`,
   };
 
   const popup = useRef<Window | null>(null);
@@ -44,6 +39,8 @@ const useIntegrationPopup = ({
         setAuthLoader(false);
         if (workspaceSlug) {
           mutate(WORKSPACE_INTEGRATIONS(workspaceSlug.toString()));
+          mutate(`SLACK_CONNECTION_${workspaceSlug.toString()}`);
+          mutate(`SLACK_USER_CONNECTION_${workspaceSlug.toString()}`);
         }
       }
     }, 1000);

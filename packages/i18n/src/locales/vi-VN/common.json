@@ -867,5 +867,31 @@
       "description": "Xuất mục công việc thành tệp JSON.",
       "short_description": "Xuất sang JSON"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Thông báo cho tôi trên Slack về phân công, đề cập, bình luận và thay đổi trạng thái sau khi liên kết tài khoản Slack.",
+  "slack_dm_events": "Sự kiện DM Slack",
+  "slack_dm_events_description": "Chọn những thay đổi mục công việc nào sẽ gửi DM Slack.",
+  "slack_dm_custom_properties": "Thuộc tính tùy chỉnh",
+  "slack_dm_custom_properties_description": "Cũng thông báo trên Slack khi bất kỳ thuộc tính tùy chỉnh nào thay đổi.",
+  "slack_dm_priority_filter": "Chỉ với các mức ưu tiên này",
+  "slack_dm_priority_filter_description": "Để trống để nhận DM cho mọi mức ưu tiên.",
+  "slack_event_create": "Đã tạo",
+  "slack_event_state": "Trạng thái",
+  "slack_event_assignee": "Người phụ trách",
+  "slack_event_comment": "Bình luận",
+  "slack_event_mention": "Đề cập",
+  "slack_event_priority": "Mức ưu tiên",
+  "slack_event_labels": "Nhãn",
+  "slack_event_name": "Tiêu đề",
+  "slack_event_start_date": "Ngày bắt đầu",
+  "slack_event_target_date": "Hạn chót",
+  "slack_event_type": "Loại mục công việc",
+  "slack_filter_all_priorities": "Tất cả mức ưu tiên",
+  "slack_filter_all_states": "Tất cả trạng thái",
+  "slack_filter_all_types": "Tất cả loại",
+  "slack_filter_all_labels": "Tất cả nhãn",
+  "slack_filter_any_value": "Mọi giá trị",
+  "mute_email_when_slack_dm": "Tắt email khi Slack DM đang bật",
+  "mute_email_when_slack_dm_description": "Bỏ email cho cùng sự kiện khi Slack DM đang bật và tài khoản Slack đã được liên kết."
 }

@@ -98,6 +98,7 @@ class TestIssuePropertyValueNotifications:
         mock_redis = MagicMock()
         with (
             patch("plane.app.views.issue.type.notifications") as mock_notifications,
+            patch("plane.app.views.issue.type.dispatch_slack_channel_event") as mock_slack,
             patch("plane.app.views.issue.type.redis_instance", return_value=mock_redis),
             patch(
                 "plane.app.views.issue.type.base_host",
@@ -113,6 +114,10 @@ class TestIssuePropertyValueNotifications:
         assert response.status_code == status.HTTP_200_OK
         mock_redis.set.assert_called_once_with(str(ctx["issue"].id), "https://app.example.com", ex=600)
         mock_notifications.delay.assert_called_once()
+        mock_slack.delay.assert_called_once()
+        slack_args = mock_slack.delay.call_args.args
+        assert slack_args[2] == ["custom_property"]
+        assert prop_id in slack_args[4]
         kwargs = mock_notifications.delay.call_args.kwargs
         assert kwargs["type"] == "issue_property.activity.updated"
         assert str(kwargs["issue_id"]) == str(ctx["issue"].id)
@@ -134,6 +139,7 @@ class TestIssuePropertyValueNotifications:
         mock_redis = MagicMock()
         with (
             patch("plane.app.views.issue.type.notifications"),
+            patch("plane.app.views.issue.type.dispatch_slack_channel_event"),
             patch("plane.app.views.issue.type.redis_instance", return_value=mock_redis),
             patch(
                 "plane.app.views.issue.type.base_host",
@@ -149,6 +155,7 @@ class TestIssuePropertyValueNotifications:
 
         with (
             patch("plane.app.views.issue.type.notifications") as mock_notifications,
+            patch("plane.app.views.issue.type.dispatch_slack_channel_event"),
             patch("plane.app.views.issue.type.redis_instance", return_value=mock_redis),
             patch(
                 "plane.app.views.issue.type.base_host",
@@ -175,6 +182,7 @@ class TestIssuePropertyValueNotifications:
         mock_redis = MagicMock()
         with (
             patch("plane.app.views.issue.type.notifications"),
+            patch("plane.app.views.issue.type.dispatch_slack_channel_event"),
             patch("plane.app.views.issue.type.redis_instance", return_value=mock_redis),
             patch(
                 "plane.app.views.issue.type.base_host",

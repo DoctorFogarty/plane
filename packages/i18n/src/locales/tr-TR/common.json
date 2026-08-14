@@ -867,5 +867,31 @@
       "description": "İş öğelerini JSON dosyasına aktarın.",
       "short_description": "JSON olarak aktar"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Slack hesabımı bağladıktan sonra atamalar, bahsetmeler, yorumlar ve durum değişiklikleri için Slack’te bildir.",
+  "slack_dm_events": "Slack DM olayları",
+  "slack_dm_events_description": "Hangi iş öğesi değişikliklerinin Slack DM göndereceğini seçin.",
+  "slack_dm_custom_properties": "Özel özellikler",
+  "slack_dm_custom_properties_description": "Herhangi bir özel özellik değiştiğinde Slack’te de bildir.",
+  "slack_dm_priority_filter": "Yalnızca bu öncelikler",
+  "slack_dm_priority_filter_description": "Her öncelik için DM almak üzere boş bırakın.",
+  "slack_event_create": "Oluşturuldu",
+  "slack_event_state": "Durum",
+  "slack_event_assignee": "Atanan",
+  "slack_event_comment": "Yorumlar",
+  "slack_event_mention": "Bahsetmeler",
+  "slack_event_priority": "Öncelik",
+  "slack_event_labels": "Etiketler",
+  "slack_event_name": "Başlık",
+  "slack_event_start_date": "Başlangıç tarihi",
+  "slack_event_target_date": "Bitiş tarihi",
+  "slack_event_type": "İş öğesi türü",
+  "slack_filter_all_priorities": "Tüm öncelikler",
+  "slack_filter_all_states": "Tüm durumlar",
+  "slack_filter_all_types": "Tüm türler",
+  "slack_filter_all_labels": "Tüm etiketler",
+  "slack_filter_any_value": "Herhangi bir değer",
+  "mute_email_when_slack_dm": "Slack DM açıkken e-postayı sessize al",
+  "mute_email_when_slack_dm_description": "Slack DM açık ve Slack hesabım bağlıysa aynı olaylar için e-posta gönderme."
 }

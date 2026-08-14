@@ -23,12 +23,137 @@ from plane.db.models import (
     IssueActivity,
     UserNotificationPreference,
     ProjectMember,
+    SlackUserConnection,
 )
-from django.db.models import Subquery
+from plane.utils.slack.filters import (
+    DEFAULT_DM_EVENTS,
+    activity_event_keys,
+    events_allowed,
+    subscription_matches_issue,
+)
+from plane.utils.slack.transitions import build_slack_headline, slack_user_mention
+from django.db.models import Q, Subquery
 
 # Third Party imports
 from celery import shared_task
 from bs4 import BeautifulSoup
+
+
+def _has_slack_link(user_id, workspace_id) -> bool:
+    return SlackUserConnection.objects.filter(
+        user_id=user_id,
+        workspace_connection__workspace_id=workspace_id,
+        workspace_connection__is_enabled=True,
+    ).exists()
+
+
+def _mute_email_for_slack(preference, user_id, workspace_id) -> bool:
+    return bool(
+        preference
+        and preference.mute_email_when_slack_dm
+        and preference.slack_dm
+        and _has_slack_link(user_id, workspace_id)
+    )
+
+
+def _maybe_slack_dm(
+    preference,
+    receiver_id,
+    actor_id,
+    issue,
+    text,
+    field,
+    event_keys=None,
+    custom_property_ids=None,
+    activity_type=None,
+):
+    if not issue or str(receiver_id) == str(actor_id) or field == "description":
+        return
+    if not preference or not preference.slack_dm:
+        return
+    keys = set(event_keys or [])
+    custom_ids = {str(i) for i in (custom_property_ids or []) if i}
+    if not keys:
+        if field == "mention":
+            keys = {"mention"}
+        else:
+            keys, inferred_custom = activity_event_keys([{"field": field}], activity_type)
+            custom_ids |= inferred_custom
+    selected_events = preference.slack_dm_events
+    if not selected_events:
+        selected_events = DEFAULT_DM_EVENTS
+    if field == "issue" or "issue" in keys:
+        keys.add("issue")
+    elif not events_allowed(
+        selected_events,
+        keys,
+        custom_ids,
+        allow_all_custom=bool(preference.slack_dm_custom_properties),
+    ):
+        return
+    if not subscription_matches_issue(issue, preference.slack_dm_filter):
+        return
+    if not _has_slack_link(receiver_id, issue.workspace_id):
+        return
+    from plane.bgtasks.slack_task import deliver_slack_dm
+
+    deliver_slack_dm.delay(str(receiver_id), str(issue.id), text or "Work item updated")
+
+
+def _parse_payload(value) -> dict:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            loaded = json.loads(value)
+        except (TypeError, ValueError):
+            return {}
+        return loaded if isinstance(loaded, dict) else {}
+    return {}
+
+
+def deleted_issue_requested_data(issue) -> str:
+    subscriber_ids = [
+        str(sid)
+        for sid in IssueSubscriber.objects.filter(issue_id=issue.id).values_list("subscriber_id", flat=True)
+    ]
+    return json.dumps({"issue_id": str(issue.id), "subscriber_ids": subscriber_ids})
+
+
+def _activity_targets_issue(activity, issue_id) -> bool:
+    detail = activity.get("issue_detail")
+    if not isinstance(detail, dict) or not detail.get("id"):
+        return True
+    return str(detail.get("id")) == str(issue_id)
+
+
+def _subscriber_ids_for_notification(issue, project_id, project_members, excluded_ids, snapshot_ids=None):
+    exclude = {uuid.UUID(str(item)) for item in excluded_ids if item}
+    members = {uuid.UUID(str(member_id)) for member_id in project_members}
+    if snapshot_ids is not None:
+        ids = []
+        for item in snapshot_ids:
+            try:
+                subscriber_id = uuid.UUID(str(item))
+            except (TypeError, ValueError, AttributeError):
+                continue
+            if subscriber_id not in exclude and subscriber_id in members:
+                ids.append(subscriber_id)
+        return ids
+    queryset = IssueSubscriber.objects.filter(
+        project_id=project_id,
+        issue_id=issue.id,
+        subscriber__in=Subquery(project_members),
+    )
+    if issue.deleted_at:
+        queryset = IssueSubscriber.all_objects.filter(
+            project_id=project_id,
+            issue_id=issue.id,
+            subscriber__in=Subquery(project_members),
+        ).filter(Q(deleted_at__isnull=True) | Q(deleted_at__gte=issue.deleted_at))
+    return list(queryset.exclude(subscriber_id__in=list(exclude)).values_list("subscriber", flat=True))
 
 
 # =========== Issue Description Html Parsing and notification Functions ======================
@@ -277,19 +402,26 @@ def notifications(
             """
 
             # ---------------------------------------------------------------------------------------------------------
-            issue_subscribers = list(
-                IssueSubscriber.objects.filter(
-                    project_id=project_id,
-                    issue_id=issue_id,
-                    subscriber__in=Subquery(project_members),
-                )
-                .exclude(subscriber_id__in=list(new_mentions + comment_mentions + [actor_id]))
-                .values_list("subscriber", flat=True)
+            requested_payload = _parse_payload(requested_data)
+            snapshot_ids = requested_payload.get("subscriber_ids") if "subscriber_ids" in requested_payload else None
+            issue = (
+                Issue.all_objects.filter(pk=issue_id)
+                .select_related("project", "state", "project__workspace")
+                .prefetch_related("labels")
+                .first()
+            )
+            if not issue:
+                return
+
+            issue_subscribers = _subscriber_ids_for_notification(
+                issue,
+                project_id,
+                project_members,
+                new_mentions + comment_mentions + [actor_id],
+                snapshot_ids=snapshot_ids,
             )
 
-            issue = Issue.objects.filter(pk=issue_id).first()
-
-            if subscriber:
+            if subscriber and not issue.deleted_at:
                 # add the user to issue subscriber
                 try:
                     _ = IssueSubscriber.objects.get_or_create(
@@ -299,6 +431,7 @@ def notifications(
                     pass
 
             project = Project.objects.get(pk=project_id)
+            actor = User.objects.get(pk=actor_id)
 
             issue_assignees = IssueAssignee.objects.filter(
                 issue_id=issue_id,
@@ -307,6 +440,12 @@ def notifications(
             ).values_list("assignee", flat=True)
 
             issue_subscribers = list(set(issue_subscribers) - {uuid.UUID(actor_id)})
+            relevant_slack_activities = [
+                activity
+                for activity in issue_activities_created
+                if _activity_targets_issue(activity, issue_id) and activity.get("field") != "description"
+            ]
+            slack_event_keys, slack_custom_ids = activity_event_keys(relevant_slack_activities, type)
 
             for subscriber in issue_subscribers:
                 if issue.created_by_id and issue.created_by_id == subscriber:
@@ -317,15 +456,20 @@ def notifications(
                     sender = "in_app:issue_activities:subscribed"
 
                 preference = UserNotificationPreference.objects.get(user_id=subscriber)
+                slack_comment = None
+                slack_field = None
 
                 for issue_activity in issue_activities_created:
                     # If activity done in blocking then blocked by email should not go
-                    if issue_activity.get("issue_detail").get("id") != issue_id:
+                    if not _activity_targets_issue(issue_activity, issue_id):
                         continue
 
                     # Do not send notification for description update
                     if issue_activity.get("field") == "description":
                         continue
+
+                    slack_comment = issue_activity.get("comment") or "Work item updated"
+                    slack_field = issue_activity.get("field")
 
                     # Check if the value should be sent or not
                     send_email = False
@@ -346,6 +490,9 @@ def notifications(
                     elif preference.property_change:
                         send_email = True
                     else:
+                        send_email = False
+
+                    if send_email and _mute_email_for_slack(preference, subscriber, project.workspace_id):
                         send_email = False
 
                     # If activity is of issue comment fetch the comment
@@ -449,22 +596,45 @@ def notifications(
                             )
                         )
 
+                if slack_comment or relevant_slack_activities:
+                    headline = build_slack_headline(
+                        actor,
+                        project.workspace_id,
+                        relevant_slack_activities,
+                        current=current_instance,
+                        requested=requested_data,
+                        receiver_id=subscriber,
+                    )
+                    _maybe_slack_dm(
+                        preference,
+                        subscriber,
+                        actor_id,
+                        issue,
+                        headline,
+                        slack_field or "update",
+                        event_keys=slack_event_keys,
+                        custom_property_ids=slack_custom_ids,
+                        activity_type=type,
+                    )
+
             # -------------------------------------------------------------------------------------------------------- #
 
             # Add Mentioned as Issue Subscribers
-            IssueSubscriber.objects.bulk_create(
-                mention_subscribers + comment_mention_subscribers,
-                batch_size=100,
-                ignore_conflicts=True,
-            )
+            if not issue.deleted_at:
+                IssueSubscriber.objects.bulk_create(
+                    mention_subscribers + comment_mention_subscribers,
+                    batch_size=100,
+                    ignore_conflicts=True,
+                )
 
             last_activity = IssueActivity.objects.filter(issue_id=issue_id).order_by("-created_at").first()
-
-            actor = User.objects.get(pk=actor_id)
 
             for mention_id in comment_mentions:
                 if mention_id != actor_id:
                     preference = UserNotificationPreference.objects.get(user_id=mention_id)
+                    mention_headline = (
+                        f":bell: {slack_user_mention(actor, project.workspace_id)} mentioned you"
+                    )
                     for issue_activity in issue_activities_created:
                         notification = create_mention_notification(
                             project=project,
@@ -477,7 +647,7 @@ def notifications(
                         )
 
                         # check for email notifications
-                        if preference.mention:
+                        if preference.mention and not _mute_email_for_slack(preference, mention_id, project.workspace_id):
                             bulk_email_logs.append(
                                 EmailNotificationLog(
                                     triggered_by_id=actor_id,
@@ -518,6 +688,16 @@ def notifications(
                                 )
                             )
                         bulk_notifications.append(notification)
+                    _maybe_slack_dm(
+                        preference,
+                        mention_id,
+                        actor_id,
+                        issue,
+                        mention_headline,
+                        "mention",
+                        event_keys={"mention"},
+                        activity_type=type,
+                    )
 
             for mention_id in new_mentions:
                 if mention_id != actor_id:
@@ -569,7 +749,7 @@ def notifications(
                                 },
                             )
                         )
-                        if preference.mention:
+                        if preference.mention and not _mute_email_for_slack(preference, mention_id, project.workspace_id):
                             bulk_email_logs.append(
                                 EmailNotificationLog(
                                     triggered_by_id=actor_id,
@@ -618,7 +798,7 @@ def notifications(
                                 issue_id=issue_id,
                                 activity=issue_activity,
                             )
-                            if preference.mention:
+                            if preference.mention and not _mute_email_for_slack(preference, mention_id, project.workspace_id):
                                 bulk_email_logs.append(
                                     EmailNotificationLog(
                                         triggered_by_id=actor_id,
@@ -659,12 +839,13 @@ def notifications(
                             bulk_notifications.append(notification)
 
             # save new mentions for the particular issue and remove the mentions that has been deleted from the description # noqa: E501
-            update_mentions_for_issue(
-                issue=issue,
-                project=project,
-                new_mentions=new_mentions,
-                removed_mention=removed_mention,
-            )
+            if not issue.deleted_at:
+                update_mentions_for_issue(
+                    issue=issue,
+                    project=project,
+                    new_mentions=new_mentions,
+                    removed_mention=removed_mention,
+                )
             # Bulk create notifications
             Notification.objects.bulk_create(bulk_notifications, batch_size=100)
             EmailNotificationLog.objects.bulk_create(bulk_email_logs, batch_size=100, ignore_conflicts=True)

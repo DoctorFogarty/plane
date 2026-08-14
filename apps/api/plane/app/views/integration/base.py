@@ -28,6 +28,7 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.utils.github import GitHubAPIError, GitHubAppClient
+from plane.app.views.integration.slack import ensure_slack_integration
 
 
 def ensure_github_integration() -> Integration:
@@ -48,6 +49,7 @@ def ensure_github_integration() -> Integration:
 class IntegrationListEndpoint(BaseAPIView):
     def get(self, request):
         ensure_github_integration()
+        ensure_slack_integration()
         integrations = Integration.objects.filter(verified=True).order_by("title")
         serializer = IntegrationSerializer(integrations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -62,6 +64,20 @@ class WorkspaceIntegrationEndpoint(BaseAPIView):
 
     @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
     def post(self, request, slug, provider):
+        if provider == "slack":
+            ensure_slack_integration()
+            workspace = Workspace.objects.filter(slug=slug).first()
+            if not workspace:
+                return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+            existing = WorkspaceIntegration.objects.filter(workspace=workspace, integration__provider="slack").first()
+            if existing:
+                serializer = WorkspaceIntegrationSerializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                {"error": "Complete Slack OAuth from workspace settings to connect Slack"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if provider != "github":
             return Response({"error": "Unsupported provider"}, status=status.HTTP_400_BAD_REQUEST)
 

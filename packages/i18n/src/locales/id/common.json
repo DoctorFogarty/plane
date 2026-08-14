@@ -867,5 +867,31 @@
       "description": "Ekspor item kerja ke file JSON.",
       "short_description": "Ekspor sebagai json"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Beritahu saya di Slack untuk penugasan, sebutan, komentar, dan perubahan status setelah saya tautkan akun Slack.",
+  "slack_dm_events": "Peristiwa DM Slack",
+  "slack_dm_events_description": "Pilih perubahan item kerja mana yang mengirim DM Slack.",
+  "slack_dm_custom_properties": "Properti kustom",
+  "slack_dm_custom_properties_description": "Juga beri tahu di Slack saat properti kustom mana pun berubah.",
+  "slack_dm_priority_filter": "Hanya untuk prioritas ini",
+  "slack_dm_priority_filter_description": "Biarkan kosong untuk menerima DM untuk setiap prioritas.",
+  "slack_event_create": "Dibuat",
+  "slack_event_state": "Status",
+  "slack_event_assignee": "Penerima tugas",
+  "slack_event_comment": "Komentar",
+  "slack_event_mention": "Sebutan",
+  "slack_event_priority": "Prioritas",
+  "slack_event_labels": "Label",
+  "slack_event_name": "Judul",
+  "slack_event_start_date": "Tanggal mulai",
+  "slack_event_target_date": "Tanggal jatuh tempo",
+  "slack_event_type": "Jenis item kerja",
+  "slack_filter_all_priorities": "Semua prioritas",
+  "slack_filter_all_states": "Semua status",
+  "slack_filter_all_types": "Semua jenis",
+  "slack_filter_all_labels": "Semua label",
+  "slack_filter_any_value": "Nilai apa pun",
+  "mute_email_when_slack_dm": "Bisukan email saat Slack DM aktif",
+  "mute_email_when_slack_dm_description": "Lewati email untuk peristiwa yang sama saat Slack DM aktif dan akun Slack saya tertaut."
 }

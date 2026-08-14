@@ -867,5 +867,31 @@
       "description": "将工作项导出为 JSON 文件。",
       "short_description": "导出为 JSON"
     }
-  }
+  },
+  "slack_dms": "Slack 私信",
+  "slack_dms_description": "关联 Slack 账户后，在被分配、提及、评论和状态变更时通过 Slack 通知我。",
+  "slack_dm_events": "Slack 私信事件",
+  "slack_dm_events_description": "选择哪些工作项变更会发送 Slack 私信。",
+  "slack_dm_custom_properties": "自定义属性",
+  "slack_dm_custom_properties_description": "任何自定义属性变更时也通过 Slack 通知。",
+  "slack_dm_priority_filter": "仅限这些优先级",
+  "slack_dm_priority_filter_description": "留空即可接收所有优先级的私信。",
+  "slack_event_create": "已创建",
+  "slack_event_state": "状态",
+  "slack_event_assignee": "负责人",
+  "slack_event_comment": "评论",
+  "slack_event_mention": "提及",
+  "slack_event_priority": "优先级",
+  "slack_event_labels": "标签",
+  "slack_event_name": "标题",
+  "slack_event_start_date": "开始日期",
+  "slack_event_target_date": "截止日期",
+  "slack_event_type": "工作项类型",
+  "slack_filter_all_priorities": "全部优先级",
+  "slack_filter_all_states": "全部状态",
+  "slack_filter_all_types": "全部类型",
+  "slack_filter_all_labels": "全部标签",
+  "slack_filter_any_value": "任意值",
+  "mute_email_when_slack_dm": "开启 Slack 私信时静音邮件",
+  "mute_email_when_slack_dm_description": "在 Slack 私信已开启且已关联 Slack 账户时，跳过相同事件的邮件。"
 }

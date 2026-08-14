@@ -92,6 +92,11 @@ export const BASE_NOTIFICATION_CONTENT_MAP: TNotificationContentMap = {
     value: null,
     showConnector: false,
   }),
+  issue: ({ verb }) => ({
+    action: verb === "deleted" ? "deleted the work item" : verb,
+    value: null,
+    showConnector: false,
+  }),
   None: () => ({
     action: null,
     value: "the work item and assigned it to you.",

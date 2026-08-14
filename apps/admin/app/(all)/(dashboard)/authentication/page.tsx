@@ -11,11 +11,13 @@ import useSWR from "swr";
 // plane internal packages
 import { setPromiseToast, setToast, TOAST_TYPE } from "@plane/propel/toast";
 import type { TInstanceConfigurationKeys, TInstanceAuthenticationModes } from "@plane/types";
+import { Hash } from "lucide-react";
 import { Loader, ToggleSwitch } from "@plane/ui";
 import { cn, resolveGeneralTheme } from "@plane/utils";
 // components
 import { PageWrapper } from "@/components/common/page-wrapper";
 import { AuthenticationMethodCard } from "@/components/authentication/authentication-method-card";
+import { SlackConfiguration } from "@/components/authentication/slack-config";
 // helpers
 import { canDisableAuthMethod } from "@/helpers/authentication";
 // hooks
@@ -155,6 +157,14 @@ const InstanceAuthenticationPage = observer(function InstanceAuthenticationPage(
               unavailable={method.unavailable}
             />
           ))}
+          <div className="text-lg pt-6 font-medium">Integrations</div>
+          <AuthenticationMethodCard
+            name="Slack"
+            description="Connect a Slack app so workspaces can install Slack, unfurl work items, and send notifications."
+            icon={<Hash className="h-6 w-6" />}
+            config={<SlackConfiguration />}
+            disabled={isSubmitting}
+          />
         </div>
       ) : (
         <Loader className="space-y-10">

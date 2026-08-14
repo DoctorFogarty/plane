@@ -867,5 +867,31 @@
       "description": "Экспорт рабочих элементов в JSON-файл.",
       "short_description": "Экспорт в json"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Уведомлять в Slack о назначениях, упоминаниях, комментариях и смене статуса после привязки аккаунта Slack.",
+  "slack_dm_events": "События Slack DM",
+  "slack_dm_events_description": "Выберите, какие изменения рабочих элементов отправляют Slack DM.",
+  "slack_dm_custom_properties": "Пользовательские свойства",
+  "slack_dm_custom_properties_description": "Также уведомлять в Slack при изменении любого пользовательского свойства.",
+  "slack_dm_priority_filter": "Только для этих приоритетов",
+  "slack_dm_priority_filter_description": "Оставьте пустым, чтобы получать DM для любого приоритета.",
+  "slack_event_create": "Создано",
+  "slack_event_state": "Состояние",
+  "slack_event_assignee": "Исполнитель",
+  "slack_event_comment": "Комментарии",
+  "slack_event_mention": "Упоминания",
+  "slack_event_priority": "Приоритет",
+  "slack_event_labels": "Метки",
+  "slack_event_name": "Название",
+  "slack_event_start_date": "Дата начала",
+  "slack_event_target_date": "Срок",
+  "slack_event_type": "Тип рабочего элемента",
+  "slack_filter_all_priorities": "Все приоритеты",
+  "slack_filter_all_states": "Все состояния",
+  "slack_filter_all_types": "Все типы",
+  "slack_filter_all_labels": "Все метки",
+  "slack_filter_any_value": "Любое значение",
+  "mute_email_when_slack_dm": "Отключить почту при включённых Slack DM",
+  "mute_email_when_slack_dm_description": "Не отправлять письма по тем же событиям, если Slack DM включены и аккаунт Slack связан."
 }

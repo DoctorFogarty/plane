@@ -19,6 +19,7 @@ from plane.app.serializers.issue_type import (
     IssueTypeSerializer,
 )
 from plane.bgtasks.notification_task import notifications
+from plane.bgtasks.slack_task import dispatch_slack_channel_event
 from plane.db.models import (
     Issue,
     IssueActivity,
@@ -36,6 +37,7 @@ from plane.utils.issue_property import (
     get_issues_property_values_maps,
     upsert_property_values,
 )
+from plane.utils.slack.transitions import activities_from_models, build_slack_headline
 
 from .. import BaseAPIView, BaseViewSet
 
@@ -608,6 +610,19 @@ class IssuePropertyValueEndpoint(BaseAPIView):
                 ),
                 requested_data=None,
                 current_instance=None,
+            )
+            headline = build_slack_headline(
+                request.user,
+                project.workspace_id,
+                activities_from_models(created),
+                event_type="issue_property.activity.updated",
+            )
+            dispatch_slack_channel_event.delay(
+                str(project_id),
+                str(issue_id),
+                ["custom_property"],
+                headline,
+                [str(activity.new_identifier) for activity in created if activity.new_identifier],
             )
 
         return Response(result, status=status.HTTP_200_OK)

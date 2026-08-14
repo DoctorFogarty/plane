@@ -867,5 +867,31 @@
       "description": "작업 항목을 JSON 파일로 내보냅니다.",
       "short_description": "JSON으로 내보내기"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Slack 계정을 연결하면 담당, 멘션, 댓글, 상태 변경을 Slack으로 알려줍니다.",
+  "slack_dm_events": "Slack DM 이벤트",
+  "slack_dm_events_description": "Slack DM을 보낼 작업 항목 변경을 선택하세요.",
+  "slack_dm_custom_properties": "사용자 지정 속성",
+  "slack_dm_custom_properties_description": "사용자 지정 속성이 변경될 때도 Slack으로 알립니다.",
+  "slack_dm_priority_filter": "다음 우선순위만",
+  "slack_dm_priority_filter_description": "비워 두면 모든 우선순위에 대해 DM을 받습니다.",
+  "slack_event_create": "생성됨",
+  "slack_event_state": "상태",
+  "slack_event_assignee": "담당자",
+  "slack_event_comment": "댓글",
+  "slack_event_mention": "멘션",
+  "slack_event_priority": "우선순위",
+  "slack_event_labels": "레이블",
+  "slack_event_name": "제목",
+  "slack_event_start_date": "시작일",
+  "slack_event_target_date": "기한",
+  "slack_event_type": "작업 항목 유형",
+  "slack_filter_all_priorities": "모든 우선순위",
+  "slack_filter_all_states": "모든 상태",
+  "slack_filter_all_types": "모든 유형",
+  "slack_filter_all_labels": "모든 레이블",
+  "slack_filter_any_value": "모든 값",
+  "mute_email_when_slack_dm": "Slack DM이 켜져 있으면 이메일 음소거",
+  "mute_email_when_slack_dm_description": "Slack DM이 켜져 있고 Slack 계정이 연결되어 있으면 같은 이벤트에 대한 이메일을 보내지 않습니다."
 }

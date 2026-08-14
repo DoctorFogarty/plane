@@ -108,7 +108,13 @@ export function IntegrationCard({ integration }: Props) {
   return (
     <>
       {integration && (
-        <div className="flex items-center justify-between gap-2 border-b border-subtle bg-surface-1 px-4 py-6">
+        <div
+          className={
+            integration.integration_detail.provider === "slack"
+              ? "flex flex-col items-stretch gap-4 border-b border-subtle bg-surface-1 px-4 py-6"
+              : "flex items-center justify-between gap-2 border-b border-subtle bg-surface-1 px-4 py-6"
+          }
+        >
           <div className="flex items-start gap-4">
             <div className="h-10 w-10 flex-shrink-0">
               <img
@@ -143,7 +149,11 @@ export function IntegrationCard({ integration }: Props) {
               ) : null}
             </div>
           )}
-          {integration.integration_detail.provider === "slack" && <SelectChannel integration={integration} />}
+          {integration.integration_detail.provider === "slack" && (
+            <div className="w-full max-w-xl">
+              <SelectChannel integration={integration} />
+            </div>
+          )}
         </div>
       )}
     </>

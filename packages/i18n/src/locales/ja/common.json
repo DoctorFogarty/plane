@@ -867,5 +867,31 @@
       "description": "作業項目をJSONファイルにエクスポートします。",
       "short_description": "JSONとしてエクスポート"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Slack アカウントを連携すると、担当、メンション、コメント、状態変更を Slack で通知します。",
+  "slack_dm_events": "Slack DM のイベント",
+  "slack_dm_events_description": "Slack DM を送る作業項目の変更を選択します。",
+  "slack_dm_custom_properties": "カスタムプロパティ",
+  "slack_dm_custom_properties_description": "カスタムプロパティが変更されたときも Slack で通知します。",
+  "slack_dm_priority_filter": "これらの優先度のみ",
+  "slack_dm_priority_filter_description": "空のままにすると、すべての優先度で DM を受け取ります。",
+  "slack_event_create": "作成",
+  "slack_event_state": "状態",
+  "slack_event_assignee": "担当者",
+  "slack_event_comment": "コメント",
+  "slack_event_mention": "メンション",
+  "slack_event_priority": "優先度",
+  "slack_event_labels": "ラベル",
+  "slack_event_name": "タイトル",
+  "slack_event_start_date": "開始日",
+  "slack_event_target_date": "期限",
+  "slack_event_type": "作業項目タイプ",
+  "slack_filter_all_priorities": "すべての優先度",
+  "slack_filter_all_states": "すべての状態",
+  "slack_filter_all_types": "すべてのタイプ",
+  "slack_filter_all_labels": "すべてのラベル",
+  "slack_filter_any_value": "任意の値",
+  "mute_email_when_slack_dm": "Slack DM がオンのときはメールを停止",
+  "mute_email_when_slack_dm_description": "Slack DM が有効で Slack アカウントが連携されている場合、同じイベントのメールを送りません。"
 }

@@ -867,5 +867,31 @@
       "description": "Exportă activitățile într-un fișier JSON.",
       "short_description": "Exportă ca JSON"
     }
-  }
+  },
+  "slack_dms": "Slack DM",
+  "slack_dms_description": "Anunță-mă în Slack pentru asignări, mențiuni, comentarii și schimbări de stare după ce îmi conectez contul Slack.",
+  "slack_dm_events": "Evenimente DM Slack",
+  "slack_dm_events_description": "Alege ce modificări ale elementelor de lucru trimit DM-uri Slack.",
+  "slack_dm_custom_properties": "Proprietăți personalizate",
+  "slack_dm_custom_properties_description": "Anunță-mă și în Slack când se modifică orice proprietate personalizată.",
+  "slack_dm_priority_filter": "Doar pentru aceste priorități",
+  "slack_dm_priority_filter_description": "Lasă gol pentru a primi DM-uri pentru fiecare prioritate.",
+  "slack_event_create": "Creat",
+  "slack_event_state": "Stare",
+  "slack_event_assignee": "Responsabil",
+  "slack_event_comment": "Comentarii",
+  "slack_event_mention": "Mențiuni",
+  "slack_event_priority": "Prioritate",
+  "slack_event_labels": "Etichete",
+  "slack_event_name": "Titlu",
+  "slack_event_start_date": "Data de început",
+  "slack_event_target_date": "Data scadentă",
+  "slack_event_type": "Tipul elementului de lucru",
+  "slack_filter_all_priorities": "Toate prioritățile",
+  "slack_filter_all_states": "Toate stările",
+  "slack_filter_all_types": "Toate tipurile",
+  "slack_filter_all_labels": "Toate etichetele",
+  "slack_filter_any_value": "Orice valoare",
+  "mute_email_when_slack_dm": "Dezactivează e-mailul când Slack DM sunt active",
+  "mute_email_when_slack_dm_description": "Nu trimite e-mail pentru aceleași evenimente când Slack DM sunt active și contul Slack este conectat."
 }

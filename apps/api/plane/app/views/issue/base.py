@@ -44,6 +44,7 @@ from plane.app.serializers import (
 )
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.bgtasks.issue_description_version_task import issue_description_version_task
+from plane.bgtasks.notification_task import deleted_issue_requested_data
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.webhook_task import model_activity
 from plane.db.models import (
@@ -726,6 +727,9 @@ class IssueViewSet(BaseViewSet):
     @allow_permission([ROLE.ADMIN], creator=True, model=Issue)
     def destroy(self, request, slug, project_id, pk=None):
         issue = Issue.objects.get(workspace__slug=slug, project_id=project_id, pk=pk)
+        current_instance = json.dumps(IssueSerializer(issue).data, cls=DjangoJSONEncoder)
+        requested_data = deleted_issue_requested_data(issue)
+
         issue.delete()
         # delete the issue from recent visits
         UserRecentVisit.objects.filter(
@@ -736,11 +740,11 @@ class IssueViewSet(BaseViewSet):
         ).delete(soft=False)
         issue_activity.delay(
             type="issue.activity.deleted",
-            requested_data=json.dumps({"issue_id": str(pk)}),
+            requested_data=requested_data,
             actor_id=str(request.user.id),
             issue_id=str(pk),
             project_id=str(project_id),
-            current_instance={},
+            current_instance=current_instance,
             epoch=int(timezone.now().timestamp()),
             notification=True,
             origin=base_host(request=request, is_app=True),
@@ -788,8 +792,17 @@ class BulkDeleteIssuesEndpoint(BaseAPIView):
             return Response({"error": "Issue IDs are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         issues = Issue.issue_objects.filter(workspace__slug=slug, project_id=project_id, pk__in=issue_ids)
+        issue_list = list(issues)
+        delete_payloads = [
+            (
+                str(issue.id),
+                deleted_issue_requested_data(issue),
+                json.dumps(IssueSerializer(issue).data, cls=DjangoJSONEncoder),
+            )
+            for issue in issue_list
+        ]
 
-        total_issues = len(issues)
+        total_issues = len(issue_list)
 
         # First, delete all related cycle issues
         CycleIssue.objects.filter(issue__in=issues).delete()
@@ -799,6 +812,20 @@ class BulkDeleteIssuesEndpoint(BaseAPIView):
 
         # Finally, delete the issues themselves
         issues.delete()
+
+        for issue_id, requested_data, current_instance in delete_payloads:
+            issue_activity.delay(
+                type="issue.activity.deleted",
+                requested_data=requested_data,
+                actor_id=str(request.user.id),
+                issue_id=issue_id,
+                project_id=str(project_id),
+                current_instance=current_instance,
+                epoch=int(timezone.now().timestamp()),
+                notification=True,
+                origin=base_host(request=request, is_app=True),
+                subscriber=False,
+            )
 
         return Response(
             {"message": f"{total_issues} issues were deleted"},

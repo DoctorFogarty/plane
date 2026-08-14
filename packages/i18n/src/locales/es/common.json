@@ -867,5 +867,31 @@
       "description": "Exporta elementos de trabajo a un archivo JSON.",
       "short_description": "Exportar como json"
     }
-  }
+  },
+  "slack_dms": "MD de Slack",
+  "slack_dms_description": "Avísame en Slack de asignaciones, menciones, comentarios y cambios de estado después de vincular mi cuenta de Slack.",
+  "slack_dm_events": "Eventos de MD de Slack",
+  "slack_dm_events_description": "Elige qué cambios de elementos de trabajo envían MD de Slack.",
+  "slack_dm_custom_properties": "Propiedades personalizadas",
+  "slack_dm_custom_properties_description": "También avisar en Slack cuando cambie cualquier propiedad personalizada.",
+  "slack_dm_priority_filter": "Solo para estas prioridades",
+  "slack_dm_priority_filter_description": "Déjalo vacío para recibir MD de todas las prioridades.",
+  "slack_event_create": "Creado",
+  "slack_event_state": "Estado",
+  "slack_event_assignee": "Asignado",
+  "slack_event_comment": "Comentarios",
+  "slack_event_mention": "Menciones",
+  "slack_event_priority": "Prioridad",
+  "slack_event_labels": "Etiquetas",
+  "slack_event_name": "Título",
+  "slack_event_start_date": "Fecha de inicio",
+  "slack_event_target_date": "Fecha de vencimiento",
+  "slack_event_type": "Tipo de elemento de trabajo",
+  "slack_filter_all_priorities": "Todas las prioridades",
+  "slack_filter_all_states": "Todos los estados",
+  "slack_filter_all_types": "Todos los tipos",
+  "slack_filter_all_labels": "Todas las etiquetas",
+  "slack_filter_any_value": "Cualquier valor",
+  "mute_email_when_slack_dm": "Silenciar el correo cuando los MD de Slack estén activos",
+  "mute_email_when_slack_dm_description": "Omite el correo para los mismos eventos cuando los MD de Slack están activados y mi cuenta de Slack está vinculada."
 }

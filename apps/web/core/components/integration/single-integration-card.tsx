@@ -1,40 +1,35 @@
-/* eslint-disable no-shadow, no-unused-expressions, promise/always-return */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
 
+/* eslint-disable promise/always-return */
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import { CheckCircle } from "lucide-react";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { EUserPermissions, EUserPermissionsLevel, WORKSPACE_INTEGRATIONS } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IAppIntegration, IWorkspaceIntegration } from "@plane/types";
-// ui
 import { Loader } from "@plane/ui";
-// assets
 import GithubLogo from "@/app/assets/services/github.png?url";
 import SlackLogo from "@/app/assets/services/slack.png?url";
-// constants
-import { WORKSPACE_INTEGRATIONS } from "@plane/constants";
-// hooks
 import { useInstance } from "@/hooks/store/use-instance";
 import { useUserPermissions } from "@/hooks/store/user";
 import useIntegrationPopup from "@/hooks/use-integration-popup";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-// services
+import { SlackIntegrationService } from "@/services/integrations/slack.service";
 import { IntegrationService } from "@/services/integrations";
 
 type Props = {
   integration: IAppIntegration;
 };
 
-const integrationDetails: { [key: string]: any } = {
+const integrationDetails: { [key: string]: { logo: string; installed: string; notInstalled: string } } = {
   github: {
     logo: GithubLogo,
     installed: "Activate GitHub on individual projects to sync with specific repositories.",
@@ -42,48 +37,51 @@ const integrationDetails: { [key: string]: any } = {
   },
   slack: {
     logo: SlackLogo,
-    installed: "Activate Slack on individual projects to sync with specific channels.",
-    notInstalled: "Connect with Slack with your Plane workspace to sync project work items.",
+    installed: "Disconnect workspace to uninstall Slack, or link your Slack account for DMs and slash commands.",
+    notInstalled: "Connect Slack to create work items, unfurl links, and send notifications from this workspace.",
   },
 };
 
-// services
 const integrationService = new IntegrationService();
+const slackService = new SlackIntegrationService();
 
 export const SingleIntegrationCard = observer(function SingleIntegrationCard({ integration }: Props) {
-  // states
   const [deletingIntegration, setDeletingIntegration] = useState(false);
-  // router
   const { workspaceSlug } = useParams();
-  // store hooks
   const { config } = useInstance();
   const { allowPermissions } = useUserPermissions();
-
   const isUserAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
   const { isMobile } = usePlatformOS();
   const githubAppName = (config?.github_app_name || "").trim().split(/\s+/)[0] || "";
   const isGithubProvider = integration.provider === "github";
-  // Prefer server readiness flag; fall back to slug for older API payloads
+  const isSlackProvider = integration.provider === "slack";
   const isGithubAppConfigured =
     !isGithubProvider ||
     (typeof config?.is_github_app_configured === "boolean" ? config.is_github_app_configured : Boolean(githubAppName));
+  const isSlackConfigured = !isSlackProvider || Boolean(config?.is_slack_configured);
+  const providerReady = isGithubProvider ? isGithubAppConfigured : isSlackProvider ? isSlackConfigured : true;
+
   const { startAuth, isConnecting: isInstalling } = useIntegrationPopup({
     provider: integration.provider,
     github_app_name: githubAppName,
-    slack_client_id: config?.slack_client_id || "",
+  });
+  const { startAuth: startUserAuth, isConnecting: isLinkingUser } = useIntegrationPopup({
+    provider: "slackUser",
   });
 
   const { data: workspaceIntegrations } = useSWR(workspaceSlug ? WORKSPACE_INTEGRATIONS(workspaceSlug) : null, () =>
     workspaceSlug ? integrationService.getWorkspaceIntegrationsList(workspaceSlug) : null
   );
 
+  const { data: slackUser } = useSWR(
+    workspaceSlug && isSlackProvider ? `SLACK_USER_CONNECTION_${workspaceSlug}` : null,
+    () => (workspaceSlug ? slackService.getUserConnection(workspaceSlug.toString()) : null)
+  );
+
   const handleRemoveIntegration = async () => {
     if (!workspaceSlug || !integration || !workspaceIntegrations) return;
-
     const workspaceIntegrationId = workspaceIntegrations?.find((i) => i.integration === integration.id)?.id;
-
     setDeletingIntegration(true);
-
     await integrationService
       .deleteWorkspaceIntegration(workspaceSlug, workspaceIntegrationId ?? "")
       .then(() => {
@@ -93,16 +91,16 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
           false
         );
         setDeletingIntegration(false);
-
         setToast({
           type: TOAST_TYPE.SUCCESS,
-          title: "Deleted successfully!",
-          message: `${integration.title} integration deleted successfully.`,
+          title: "Disconnected",
+          message: isSlackProvider
+            ? "Disconnected workspace from Slack."
+            : `${integration.title} integration deleted successfully.`,
         });
       })
       .catch(() => {
         setDeletingIntegration(false);
-
         setToast({
           type: TOAST_TYPE.ERROR,
           title: "Error!",
@@ -111,7 +109,12 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
       });
   };
 
-  const isInstalled = workspaceIntegrations?.find((i: any) => i.integration_detail.id === integration.id);
+  const isInstalled = workspaceIntegrations?.find((i) => i.integration_detail.id === integration.id);
+  const notConfiguredCopy = isGithubProvider
+    ? "GitHub App is not configured. Set App slug, App ID, and private key in God Mode (Authentication → GitHub), then try again."
+    : isSlackProvider
+      ? "Slack is not configured. Set Client ID, Client Secret, and Signing Secret in God Mode, then try again."
+      : "Connect this integration to your Plane workspace.";
 
   return (
     <div className="flex items-center justify-between gap-2 border-b border-subtle bg-surface-1 px-4 py-6">
@@ -134,8 +137,8 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
             {workspaceIntegrations
               ? isInstalled
                 ? integrationDetails[integration.provider]?.installed || "Connected to this workspace."
-                : !isGithubAppConfigured
-                  ? "GitHub App is not configured. Set App slug, App ID, and private key in God Mode (Authentication → GitHub), then try again."
+                : !providerReady
+                  ? notConfiguredCopy
                   : integrationDetails[integration.provider]?.notInstalled ||
                     "Connect this integration to your Plane workspace."
               : "Loading..."}
@@ -145,47 +148,60 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
 
       {workspaceIntegrations ? (
         isInstalled ? (
-          <Tooltip
-            isMobile={isMobile}
-            disabled={isUserAdmin}
-            tooltipContent={!isUserAdmin ? "You don't have permission to perform this" : null}
-          >
-            <Button
-              className={`${!isUserAdmin ? "hover:cursor-not-allowed" : ""}`}
-              variant="error-fill"
-              onClick={() => {
-                if (!isUserAdmin) return;
-                handleRemoveIntegration();
-              }}
-              disabled={!isUserAdmin}
-              loading={deletingIntegration}
+          <div className="flex items-center gap-2">
+            {isSlackProvider ? (
+              slackUser ? (
+                <span className="text-body-xs-regular text-secondary">Slack account linked</span>
+              ) : (
+                <Button variant="secondary" onClick={() => startUserAuth()} loading={isLinkingUser}>
+                  Link your Slack account
+                </Button>
+              )
+            ) : null}
+            <Tooltip
+              isMobile={isMobile}
+              disabled={isUserAdmin}
+              tooltipContent={!isUserAdmin ? "You don't have permission to perform this" : null}
             >
-              {deletingIntegration ? "Uninstalling..." : "Uninstall"}
-            </Button>
-          </Tooltip>
+              <Button
+                className={`${!isUserAdmin ? "hover:cursor-not-allowed" : ""}`}
+                variant="error-fill"
+                onClick={() => {
+                  if (!isUserAdmin) return;
+                  handleRemoveIntegration();
+                }}
+                disabled={!isUserAdmin}
+                loading={deletingIntegration}
+              >
+                {deletingIntegration ? "Disconnecting..." : isSlackProvider ? "Disconnect workspace" : "Uninstall"}
+              </Button>
+            </Tooltip>
+          </div>
         ) : (
           <Tooltip
             isMobile={isMobile}
-            disabled={isUserAdmin && isGithubAppConfigured}
+            disabled={isUserAdmin && providerReady}
             tooltipContent={
               !isUserAdmin
                 ? "You don't have permission to perform this"
-                : !isGithubAppConfigured
-                  ? "Configure App slug, App ID, and private key in God Mode before installing"
+                : !providerReady
+                  ? isSlackProvider
+                    ? "Configure Slack credentials in God Mode before connecting"
+                    : "Configure App slug, App ID, and private key in God Mode before installing"
                   : null
             }
           >
             <Button
-              className={`${!isUserAdmin || !isGithubAppConfigured ? "hover:cursor-not-allowed" : ""}`}
+              className={`${!isUserAdmin || !providerReady ? "hover:cursor-not-allowed" : ""}`}
               variant="primary"
               onClick={() => {
-                if (!isUserAdmin || !isGithubAppConfigured) return;
+                if (!isUserAdmin || !providerReady) return;
                 startAuth();
               }}
-              disabled={!isUserAdmin || !isGithubAppConfigured}
+              disabled={!isUserAdmin || !providerReady}
               loading={isInstalling}
             >
-              {isInstalling ? "Installing..." : "Install"}
+              {isInstalling ? "Connecting..." : isSlackProvider ? "Connect Slack" : "Install"}
             </Button>
           </Tooltip>
         )

@@ -867,5 +867,31 @@
       "description": "Esporta elementi di lavoro in un file JSON.",
       "short_description": "Esporta come JSON"
     }
-  }
+  },
+  "slack_dms": "DM Slack",
+  "slack_dms_description": "Avvisami su Slack per assegnazioni, menzioni, commenti e cambi di stato dopo aver collegato il mio account Slack.",
+  "slack_dm_events": "Eventi DM Slack",
+  "slack_dm_events_description": "Scegli quali modifiche agli elementi di lavoro inviano DM Slack.",
+  "slack_dm_custom_properties": "Proprietà personalizzate",
+  "slack_dm_custom_properties_description": "Avvisami anche su Slack quando cambia una proprietà personalizzata.",
+  "slack_dm_priority_filter": "Solo per queste priorità",
+  "slack_dm_priority_filter_description": "Lascia vuoto per ricevere DM per ogni priorità.",
+  "slack_event_create": "Creato",
+  "slack_event_state": "Stato",
+  "slack_event_assignee": "Assegnatario",
+  "slack_event_comment": "Commenti",
+  "slack_event_mention": "Menzioni",
+  "slack_event_priority": "Priorità",
+  "slack_event_labels": "Etichette",
+  "slack_event_name": "Titolo",
+  "slack_event_start_date": "Data di inizio",
+  "slack_event_target_date": "Data di scadenza",
+  "slack_event_type": "Tipo di elemento di lavoro",
+  "slack_filter_all_priorities": "Tutte le priorità",
+  "slack_filter_all_states": "Tutti gli stati",
+  "slack_filter_all_types": "Tutti i tipi",
+  "slack_filter_all_labels": "Tutte le etichette",
+  "slack_filter_any_value": "Qualsiasi valore",
+  "mute_email_when_slack_dm": "Disattiva e-mail quando i DM Slack sono attivi",
+  "mute_email_when_slack_dm_description": "Non inviare e-mail per gli stessi eventi quando i DM Slack sono attivi e il mio account Slack è collegato."
 }

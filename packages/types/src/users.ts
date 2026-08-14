@@ -187,6 +187,11 @@ export interface IUserEmailNotificationSettings {
   comment: boolean;
   mention: boolean;
   issue_completed: boolean;
+  slack_dm?: boolean;
+  mute_email_when_slack_dm?: boolean;
+  slack_dm_events?: string[];
+  slack_dm_filter?: { priority?: string[] };
+  slack_dm_custom_properties?: boolean;
 }
 
 export type TProfileViews = "assigned" | "created" | "subscribed";

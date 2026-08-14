@@ -11,4 +11,13 @@ from .github import (
     IssueGithubBranch,
     IssueGithubPullRequest,
 )
-from .slack import SlackProjectSync
+from .slack import (
+    SlackProjectSync,
+    SlackWorkspaceConnection,
+    SlackUserConnection,
+    SlackChannelSubscription,
+    SlackThreadLink,
+    SlackEventIdempotency,
+    SlackAuditLog,
+    compute_filter_hash,
+)

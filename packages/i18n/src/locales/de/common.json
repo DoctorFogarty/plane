@@ -867,5 +867,31 @@
       "description": "Arbeitselemente in JSON exportieren.",
       "short_description": "Als JSON exportieren"
     }
-  }
+  },
+  "slack_dms": "Slack-DMs",
+  "slack_dms_description": "Benachrichtige mich in Slack bei Zuweisungen, Erwähnungen, Kommentaren und Statusänderungen, nachdem ich mein Slack-Konto verknüpft habe.",
+  "slack_dm_events": "Slack-DM-Ereignisse",
+  "slack_dm_events_description": "Wählen Sie, welche Änderungen an Arbeitselementen Slack-DMs senden.",
+  "slack_dm_custom_properties": "Benutzerdefinierte Eigenschaften",
+  "slack_dm_custom_properties_description": "Auch in Slack benachrichtigen, wenn sich eine benutzerdefinierte Eigenschaft ändert.",
+  "slack_dm_priority_filter": "Nur für diese Prioritäten",
+  "slack_dm_priority_filter_description": "Leer lassen, um DMs für jede Priorität zu erhalten.",
+  "slack_event_create": "Erstellt",
+  "slack_event_state": "Status",
+  "slack_event_assignee": "Zugewiesen",
+  "slack_event_comment": "Kommentare",
+  "slack_event_mention": "Erwähnungen",
+  "slack_event_priority": "Priorität",
+  "slack_event_labels": "Labels",
+  "slack_event_name": "Titel",
+  "slack_event_start_date": "Startdatum",
+  "slack_event_target_date": "Fälligkeitsdatum",
+  "slack_event_type": "Arbeitselementtyp",
+  "slack_filter_all_priorities": "Alle Prioritäten",
+  "slack_filter_all_states": "Alle Status",
+  "slack_filter_all_types": "Alle Typen",
+  "slack_filter_all_labels": "Alle Labels",
+  "slack_filter_any_value": "Beliebiger Wert",
+  "mute_email_when_slack_dm": "E-Mail stummschalten, wenn Slack-DMs aktiv sind",
+  "mute_email_when_slack_dm_description": "Keine E-Mail für dieselben Ereignisse, wenn Slack-DMs aktiviert sind und mein Slack-Konto verknüpft ist."
 }

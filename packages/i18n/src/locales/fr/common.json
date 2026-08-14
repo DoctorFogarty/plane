@@ -867,5 +867,31 @@
       "description": "Exportez les éléments de travail vers un fichier JSON.",
       "short_description": "Exporter en json"
     }
-  }
+  },
+  "slack_dms": "Messages Slack",
+  "slack_dms_description": "M’avertir dans Slack pour les assignations, mentions, commentaires et changements d’état après avoir lié mon compte Slack.",
+  "slack_dm_events": "Événements des messages Slack",
+  "slack_dm_events_description": "Choisissez quels changements d’éléments de travail envoient des messages Slack.",
+  "slack_dm_custom_properties": "Propriétés personnalisées",
+  "slack_dm_custom_properties_description": "M’avertir aussi dans Slack lorsqu’une propriété personnalisée change.",
+  "slack_dm_priority_filter": "Uniquement pour ces priorités",
+  "slack_dm_priority_filter_description": "Laissez vide pour recevoir des messages pour chaque priorité.",
+  "slack_event_create": "Créé",
+  "slack_event_state": "État",
+  "slack_event_assignee": "Assigné",
+  "slack_event_comment": "Commentaires",
+  "slack_event_mention": "Mentions",
+  "slack_event_priority": "Priorité",
+  "slack_event_labels": "Étiquettes",
+  "slack_event_name": "Titre",
+  "slack_event_start_date": "Date de début",
+  "slack_event_target_date": "Date d’échéance",
+  "slack_event_type": "Type d’élément de travail",
+  "slack_filter_all_priorities": "Toutes les priorités",
+  "slack_filter_all_states": "Tous les états",
+  "slack_filter_all_types": "Tous les types",
+  "slack_filter_all_labels": "Toutes les étiquettes",
+  "slack_filter_any_value": "Toute valeur",
+  "mute_email_when_slack_dm": "Couper les e-mails lorsque les messages Slack sont activés",
+  "mute_email_when_slack_dm_description": "Ne pas envoyer d’e-mail pour les mêmes événements lorsque les messages Slack sont activés et que mon compte Slack est lié."
 }

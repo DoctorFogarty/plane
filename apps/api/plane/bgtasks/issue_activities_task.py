@@ -36,6 +36,8 @@ from plane.db.models import (
 from plane.settings.redis import redis_instance
 from plane.utils.exception_logger import log_exception
 from plane.utils.issue_relation_mapper import get_inverse_relation
+from plane.utils.slack.filters import activity_event_keys, event_keys_from_requested
+from plane.utils.slack.transitions import activities_from_models, build_slack_headline
 from plane.utils.uuid import is_valid_uuid
 
 
@@ -1772,6 +1774,36 @@ def issue_activity(
                 project_id=project_id,
                 activity_ids=activity_ids,
             )
+
+        if type in {"issue.activity.created", "issue.activity.updated", "comment.activity.created"} and issue_id:
+            from plane.bgtasks.slack_task import dispatch_slack_channel_event, sync_plane_comment_to_slack
+
+            serialized_activities = activities_from_models(issue_activities_created)
+            event_keys, custom_ids = activity_event_keys(serialized_activities, type)
+            if type == "issue.activity.updated":
+                event_keys |= event_keys_from_requested(requested_data)
+            if type == "comment.activity.created":
+                requested = json.loads(requested_data) if requested_data else {}
+                comment_id = requested.get("id")
+                if comment_id:
+                    sync_plane_comment_to_slack.delay(str(comment_id))
+            if event_keys:
+                actor = User.objects.filter(pk=actor_id).first()
+                headline = build_slack_headline(
+                    actor,
+                    workspace_id,
+                    serialized_activities,
+                    current=current_instance,
+                    requested=requested_data,
+                    event_type=type,
+                )
+                dispatch_slack_channel_event.delay(
+                    str(project_id),
+                    str(issue_id),
+                    list(event_keys),
+                    headline,
+                    list(custom_ids),
+                )
 
         return
     except Exception as e:

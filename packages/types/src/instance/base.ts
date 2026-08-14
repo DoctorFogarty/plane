@@ -14,6 +14,7 @@ import type {
   TCoreLoginMediums,
 } from "./";
 import type { TExtendedLoginMediums } from "./auth-ee";
+import type { TInstanceSlackConfigurationKeys } from "./slack";
 
 export interface IInstanceInfo {
   instance: IInstance;
@@ -56,6 +57,7 @@ export interface IInstanceConfig {
   github_app_name: string | undefined;
   is_github_app_configured?: boolean;
   slack_client_id: string | undefined;
+  is_slack_configured?: boolean;
   posthog_api_key: string | undefined;
   posthog_host: string | undefined;
   has_unsplash_configured: boolean;
@@ -86,7 +88,8 @@ export type TInstanceConfigurationKeys =
   | TInstanceEmailConfigurationKeys
   | TInstanceImageConfigurationKeys
   | TInstanceAuthenticationKeys
-  | TInstanceWorkspaceConfigurationKeys;
+  | TInstanceWorkspaceConfigurationKeys
+  | TInstanceSlackConfigurationKeys;
 
 export interface IInstanceConfiguration {
   id: string;

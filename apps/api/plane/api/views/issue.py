@@ -65,6 +65,7 @@ from plane.app.permissions import (
     ProjectMemberPermission,
 )
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.bgtasks.notification_task import deleted_issue_requested_data
 from plane.db.models import (
     Issue,
     IssueActivity,
@@ -848,15 +849,19 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
         current_instance = json.dumps(IssueSerializer(issue).data, cls=DjangoJSONEncoder)
+        requested_data = deleted_issue_requested_data(issue)
         issue.delete()
         issue_activity.delay(
             type="issue.activity.deleted",
-            requested_data=json.dumps({"issue_id": str(pk)}),
+            requested_data=requested_data,
             actor_id=str(request.user.id),
             issue_id=str(pk),
             project_id=str(project_id),
             current_instance=current_instance,
             epoch=int(timezone.now().timestamp()),
+            notification=True,
+            origin=base_host(request=request, is_app=True),
+            subscriber=False,
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 

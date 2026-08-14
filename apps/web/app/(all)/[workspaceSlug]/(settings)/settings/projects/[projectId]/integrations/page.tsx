@@ -43,6 +43,7 @@ function ProjectIntegrationsPage() {
   if (!isAdmin) return <NotAuthorizedView section="settings" className="h-auto" />;
 
   const githubIntegration = workspaceIntegrations?.find((i) => i.integration_detail?.provider === "github");
+  const slackIntegration = workspaceIntegrations?.find((i) => i.integration_detail?.provider === "slack");
 
   return (
     <>
@@ -50,7 +51,7 @@ function ProjectIntegrationsPage() {
       <div className="w-full">
         <SettingsHeading
           title={t("workspace_settings.settings.integrations.heading")}
-          description="Link a GitHub repository to this project so work items can create branches and track pull requests."
+          description="Link GitHub repositories or Slack channels for this project. Connect the integration in workspace settings first."
         />
         <div className="mt-4">
           {githubIntegration ? (
@@ -60,6 +61,22 @@ function ProjectIntegrationsPage() {
               <p className="text-sm font-medium text-primary">No repositories linked</p>
               <p className="text-sm mt-1 text-secondary">
                 Connect GitHub in workspace integrations first, then choose a repository here.
+              </p>
+              <a
+                href={`/${workspaceSlug}/settings/integrations`}
+                className="text-sm mt-4 inline-block text-accent-primary hover:underline"
+              >
+                Open workspace integrations
+              </a>
+            </div>
+          )}
+          {slackIntegration ? (
+            <IntegrationCard integration={slackIntegration} />
+          ) : (
+            <div className="mt-4 rounded-md border border-subtle bg-surface-1 px-4 py-8 text-center">
+              <p className="text-sm font-medium text-primary">No channels connected</p>
+              <p className="text-sm mt-1 text-secondary">
+                Connect Slack in workspace integrations first, then map a channel here.
               </p>
               <a
                 href={`/${workspaceSlug}/settings/integrations`}

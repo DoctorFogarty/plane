@@ -350,6 +350,8 @@ CELERY_IMPORTS = (
     "plane.bgtasks.issue_description_version_sync",
     # custom automations
     "plane.bgtasks.automation_task",
+    # Slack Events API / DMs / channel posts
+    "plane.bgtasks.slack_task",
 )
 
 FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))

@@ -247,6 +247,33 @@ llm_config_variables = [
     },
 ]
 
+slack_config_variables = [
+    {
+        "key": "SLACK_CLIENT_ID",
+        "value": os.environ.get("SLACK_CLIENT_ID"),
+        "category": "SLACK",
+        "is_encrypted": False,
+    },
+    {
+        "key": "SLACK_CLIENT_SECRET",
+        "value": os.environ.get("SLACK_CLIENT_SECRET"),
+        "category": "SLACK",
+        "is_encrypted": True,
+    },
+    {
+        "key": "SLACK_SIGNING_SECRET",
+        "value": os.environ.get("SLACK_SIGNING_SECRET"),
+        "category": "SLACK",
+        "is_encrypted": True,
+    },
+    {
+        "key": "SLACK_APP_TOKEN",
+        "value": os.environ.get("SLACK_APP_TOKEN"),
+        "category": "SLACK",
+        "is_encrypted": True,
+    },
+]
+
 unsplash_config_variables = [
     {
         "key": "UNSPLASH_ACCESS_KEY",
@@ -265,5 +292,6 @@ core_config_variables = [
     *gitea_config_variables,
     *smtp_config_variables,
     *llm_config_variables,
+    *slack_config_variables,
     *unsplash_config_variables,
 ]
