@@ -12,6 +12,7 @@ import { IssueGithubService } from "@/services/issue";
 const issueGithubService = new IssueGithubService();
 
 export const EMPTY_GITHUB_REPOSITORIES: TIssueGithubDevelopment["repositories"] = [];
+export const EMPTY_GITHUB_BRANCHES: TIssueGithubDevelopment["branches"] = [];
 
 export function useIssueGithubDevelopment(
   workspaceSlug: string | undefined,

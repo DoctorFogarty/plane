@@ -16,6 +16,7 @@ const githubMocks = vi.hoisted(() => ({
   createBranch: vi.fn(),
   linkBranch: vi.fn(),
   linkPullRequest: vi.fn(),
+  createPullRequest: vi.fn(),
 }));
 
 vi.mock("@/services/issue", () => ({
@@ -25,6 +26,7 @@ vi.mock("@/services/issue", () => ({
     createBranch = githubMocks.createBranch;
     linkBranch = githubMocks.linkBranch;
     linkPullRequest = githubMocks.linkPullRequest;
+    createPullRequest = githubMocks.createPullRequest;
   },
 }));
 
@@ -82,10 +84,12 @@ beforeEach(() => {
   githubMocks.createBranch.mockReset();
   githubMocks.linkBranch.mockReset();
   githubMocks.linkPullRequest.mockReset();
+  githubMocks.createPullRequest.mockReset();
   githubMocks.listRepositoryBranches.mockResolvedValue({
     branches: [
       { name: "main", protected: true, commit_sha: "abc" },
       { name: "develop", protected: false, commit_sha: "def" },
+      { name: "feature/login", protected: false, commit_sha: "ghi" },
     ],
   });
 });
@@ -135,6 +139,87 @@ describe("Connect Code create branch base selector", () => {
     expect(screen.getByRole("option", { name: "develop" })).toBeTruthy();
     expect(screen.queryByPlaceholderText("main")).toBeNull();
     expect((baseBranchSelect as HTMLSelectElement).value).toBe("main");
+  });
+});
+
+const REPOSITORY = {
+  id: "repository-record-id",
+  name: "plane",
+  owner: "makeplane",
+  repository_id: 123,
+  url: "https://github.com/makeplane/plane",
+  project: "project-id",
+};
+
+describe("Connect Code create pull request", () => {
+  it("shows the compare rail and creates a pull request", async () => {
+    const user = userEvent.setup();
+    githubMocks.createPullRequest.mockResolvedValue({
+      id: "pr-1",
+      number: 42,
+      title: "PROJ-12 Add login",
+      state: "open",
+      draft: false,
+      merged: false,
+      html_url: "https://github.com/makeplane/plane/pull/42",
+      head_branch: "feature/login",
+      base_branch: "main",
+      repository: "repository-record-id",
+      issue: ISSUE_ID,
+    });
+
+    render(
+      <ConnectCodeModal
+        isOpen
+        onClose={() => undefined}
+        mode="create_pull_request"
+        onModeChange={() => undefined}
+        workspaceSlug="workspace"
+        projectId="project-id"
+        issueId={ISSUE_ID}
+        repositories={[REPOSITORY]}
+        isRepositoriesLoading={false}
+        defaultBranchName="PROJ-12-add-login"
+        linkedBranches={[
+          {
+            id: "branch-1",
+            name: "feature/login",
+            head_sha: "abc",
+            url: "https://github.com/makeplane/plane/tree/feature/login",
+            status: "active",
+            repository: "repository-record-id",
+            issue: ISSUE_ID,
+          },
+        ]}
+        defaultPrTitle="PROJ-12 Add login"
+        defaultPrBody={"PROJ-12\n\nhttp://localhost/workspace/projects/project-id/issues/" + ISSUE_ID}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Create pull request", pressed: true })).toBeTruthy();
+    expect(await screen.findByTestId("compare-rail")).toBeTruthy();
+
+    const headSelect = await screen.findByLabelText("head");
+    await waitFor(() => {
+      expect((headSelect as HTMLSelectElement).value).toBe("feature/login");
+    });
+
+    const submitButtons = screen.getAllByRole("button", { name: "Create pull request" });
+    await user.click(submitButtons[submitButtons.length - 1]);
+
+    await waitFor(() =>
+      expect(githubMocks.createPullRequest).toHaveBeenCalledWith("workspace", "project-id", ISSUE_ID, {
+        repository_id: "repository-record-id",
+        head_branch: "feature/login",
+        base_branch: "main",
+        title: "PROJ-12 Add login",
+        body: expect.stringContaining("PROJ-12"),
+        draft: false,
+      })
+    );
+
+    expect(await screen.findByText("#42 PROJ-12 Add login")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open pull request on GitHub" })).toBeTruthy();
   });
 });
 

@@ -11,6 +11,7 @@ import { ISSUE_GITHUB_DEVELOPMENT } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssueGithubBranch, TIssueGithubCommit, TIssueGithubDevelopment } from "@plane/types";
 import { copyTextToClipboard } from "@plane/utils";
+import { connectCodeModalStore } from "@/plane-web/store/connect-code-modal.store";
 import { IssueGithubService } from "@/services/issue";
 
 type Props = {
@@ -215,7 +216,18 @@ export function DevelopmentCollapsibleContent(props: Props) {
       <div className="space-y-2">
         <p className="text-12 font-medium text-tertiary">Pull requests</p>
         {development.pull_requests.length === 0 ? (
-          <p className="text-13 text-secondary">No linked pull requests</p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="text-13 text-secondary">No pull requests yet</p>
+            {!disabled ? (
+              <button
+                type="button"
+                className="text-13 text-accent-primary hover:underline"
+                onClick={() => connectCodeModalStore.open(issueId, "create_pull_request")}
+              >
+                Create pull request
+              </button>
+            ) : null}
+          </div>
         ) : (
           development.pull_requests.map((pr) => (
             <div key={pr.id} className="flex items-center justify-between gap-2 rounded border border-subtle px-3 py-2">

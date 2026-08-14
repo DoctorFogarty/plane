@@ -31,6 +31,8 @@ from plane.utils.github import (
     GitHubAPIError,
     GitHubAppClient,
     build_branch_name,
+    build_pull_request_body,
+    build_pull_request_title,
 )
 from plane.utils.host import base_host
 
@@ -123,6 +125,77 @@ def _slim_pull_request(pr: dict) -> dict:
         "head_branch": ((pr.get("head") or {}).get("ref") or ""),
         "base_branch": ((pr.get("base") or {}).get("ref") or ""),
     }
+
+
+def _github_error_blob(exc: GitHubAPIError) -> str:
+    raw = exc.response
+    if isinstance(raw, dict):
+        return json.dumps(raw)
+    if isinstance(raw, (bytes, bytearray)):
+        return raw.decode("utf-8", errors="ignore")
+    return str(raw or exc)
+
+
+def _pull_request_create_error_message(exc: GitHubAPIError) -> str:
+    blob = _github_error_blob(exc).lower()
+    if "already exists" in blob:
+        return "A pull request already exists for this branch."
+    if "no commits" in blob or "commits between" in blob:
+        return "No commits on this branch yet. Push at least one commit, then try again."
+    if exc.status_code == 404 or "not found" in blob:
+        return "Branch not found on GitHub."
+    return "Failed to create pull request on GitHub"
+
+
+def _work_item_url(request, slug, project_id, issue_id) -> str:
+    origin = base_host(request=request, is_app=True).rstrip("/")
+    return f"{origin}/{slug}/projects/{project_id}/issues/{issue_id}"
+
+
+def _upsert_pull_request(issue, repository, project_id, pr: dict, number: int | None = None) -> IssueGithubPullRequest:
+    pr_number = number if number is not None else pr.get("number")
+    if pr_number is None:
+        raise ValueError("Pull request number is required")
+    pr_number = int(pr_number)
+    pull_request, _ = IssueGithubPullRequest.objects.update_or_create(
+        issue=issue,
+        repository=repository,
+        number=pr_number,
+        defaults={
+            "project_id": project_id,
+            "github_id": pr.get("id"),
+            "title": pr.get("title") or "",
+            "state": pr.get("state") or "open",
+            "draft": bool(pr.get("draft")),
+            "merged": bool(pr.get("merged")),
+            "html_url": pr.get("html_url") or "",
+            "head_branch": ((pr.get("head") or {}).get("ref") or ""),
+            "base_branch": ((pr.get("base") or {}).get("ref") or ""),
+            "metadata": {"node_id": pr.get("node_id")},
+        },
+    )
+    return pull_request
+
+
+def _upsert_head_branch(issue, repository, project_id, pr: dict) -> IssueGithubBranch | None:
+    head = pr.get("head") or {}
+    head_branch = (head.get("ref") or "").strip()
+    if not head_branch:
+        return None
+    head_sha = head.get("sha") or ""
+    url = f"https://github.com/{repository.owner}/{repository.name}/tree/{head_branch}"
+    branch, _ = IssueGithubBranch.objects.update_or_create(
+        issue=issue,
+        repository=repository,
+        name=head_branch,
+        defaults={
+            "project_id": project_id,
+            "head_sha": head_sha,
+            "url": url,
+            "status": "active",
+        },
+    )
+    return branch
 
 
 class IssueGithubDevelopmentEndpoint(BaseAPIView):
@@ -230,8 +303,12 @@ class IssueGithubDevelopmentEndpoint(BaseAPIView):
             return self._link_branch(request, slug, project_id, issue_id)
         if action == "link_pull_request":
             return self._link_pull_request(request, slug, project_id, issue_id)
+        if action == "create_pull_request":
+            return self._create_pull_request(request, slug, project_id, issue_id)
         return Response(
-            {"error": "action must be create_branch, link_branch, or link_pull_request"},
+            {
+                "error": "action must be create_branch, link_branch, link_pull_request, or create_pull_request"
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -449,23 +526,81 @@ class IssueGithubDevelopmentEndpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        pull_request, _ = IssueGithubPullRequest.objects.update_or_create(
-            issue=issue,
-            repository=repository,
-            number=int(number),
-            defaults={
-                "project_id": project_id,
-                "github_id": pr.get("id"),
-                "title": pr.get("title") or "",
-                "state": pr.get("state") or "open",
-                "draft": bool(pr.get("draft")),
-                "merged": bool(pr.get("merged")),
-                "html_url": pr.get("html_url") or "",
-                "head_branch": ((pr.get("head") or {}).get("ref") or ""),
-                "base_branch": ((pr.get("base") or {}).get("ref") or ""),
-                "metadata": {"node_id": pr.get("node_id")},
-            },
+        pull_request = _upsert_pull_request(issue, repository, project_id, pr, number=int(number))
+        serializer = IssueGithubPullRequestSerializer(pull_request)
+        _emit_activity(
+            request,
+            activity_type="github_pull_request.activity.created",
+            issue_id=issue_id,
+            project_id=project_id,
+            data=serializer.data,
         )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def _create_pull_request(self, request, slug, project_id, issue_id):
+        issue = Issue.objects.filter(workspace__slug=slug, project_id=project_id, pk=issue_id).first()
+        if not issue:
+            return Response({"error": "Work item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        repository_id = request.data.get("repository_id")
+        head_branch = (request.data.get("head_branch") or "").strip()
+        if not head_branch:
+            return Response({"error": "head_branch is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        repository, error = _resolve_repository(project_id, repository_id)
+        if error:
+            return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
+        client = _get_client_for_project(project_id)
+        if not client:
+            return Response(
+                {"error": "GitHub App is not installed for this project"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        project = Project.objects.get(pk=project_id)
+        default_base = ((repository.config or {}).get("default_branch") or "").strip() or "main"
+        base_branch = (request.data.get("base_branch") or "").strip() or default_base
+        title = (request.data.get("title") or "").strip() or build_pull_request_title(
+            project.identifier, issue.sequence_id, issue.name
+        )
+        body = request.data.get("body")
+        if body is None or (isinstance(body, str) and not body.strip()):
+            body = build_pull_request_body(
+                project.identifier,
+                issue.sequence_id,
+                _work_item_url(request, slug, project_id, issue_id),
+            )
+        draft_raw = request.data.get("draft")
+        if isinstance(draft_raw, str):
+            draft = draft_raw.strip().lower() in ("1", "true", "yes")
+        else:
+            draft = bool(draft_raw)
+
+        try:
+            pr = client.create_pull_request(
+                repository.owner,
+                repository.name,
+                title,
+                head_branch,
+                base_branch,
+                body=body,
+                draft=draft,
+            )
+        except GitHubAPIError as exc:
+            return Response(
+                {"error": _pull_request_create_error_message(exc), "detail": exc.response},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not isinstance(pr, dict) or not pr.get("number"):
+            return Response(
+                {"error": "GitHub returned invalid pull request metadata"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        _upsert_head_branch(issue, repository, project_id, pr)
+        pull_request = _upsert_pull_request(issue, repository, project_id, pr)
         serializer = IssueGithubPullRequestSerializer(pull_request)
         _emit_activity(
             request,

@@ -7,8 +7,15 @@
 import { Suspense, lazy } from "react";
 import { observer } from "mobx-react";
 import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
-import { useDefaultGithubBranchName } from "@/plane-web/hooks/use-default-github-branch-name";
-import { EMPTY_GITHUB_REPOSITORIES, useIssueGithubDevelopment } from "@/plane-web/hooks/use-issue-github-development";
+import {
+  useDefaultGithubBranchName,
+  useDefaultGithubPullRequestCopy,
+} from "@/plane-web/hooks/use-default-github-branch-name";
+import {
+  EMPTY_GITHUB_BRANCHES,
+  EMPTY_GITHUB_REPOSITORIES,
+  useIssueGithubDevelopment,
+} from "@/plane-web/hooks/use-issue-github-development";
 import { connectCodeModalStore } from "@/plane-web/store/connect-code-modal.store";
 
 const ConnectCodeModal = lazy(() =>
@@ -31,6 +38,12 @@ export const WorkItemAdditionalWidgetModals = observer(function WorkItemAddition
 
   const isModalForThisIssue = isOpen && modalWorkItemId === workItemId;
   const defaultBranchName = useDefaultGithubBranchName(issueServiceType, projectId, workItemId);
+  const { title: defaultPrTitle, body: defaultPrBody } = useDefaultGithubPullRequestCopy(
+    issueServiceType,
+    projectId,
+    workItemId,
+    workspaceSlug
+  );
 
   const { data, isLoading, error } = useIssueGithubDevelopment(
     workspaceSlug,
@@ -55,6 +68,9 @@ export const WorkItemAdditionalWidgetModals = observer(function WorkItemAddition
         isRepositoriesLoading={isLoading && !data}
         repositoriesError={Boolean(error)}
         defaultBranchName={defaultBranchName}
+        linkedBranches={data?.branches ?? EMPTY_GITHUB_BRANCHES}
+        defaultPrTitle={defaultPrTitle}
+        defaultPrBody={defaultPrBody}
       />
     </Suspense>
   );

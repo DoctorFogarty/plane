@@ -39,3 +39,26 @@ def build_branch_name(project_identifier: str, sequence_id: int, title: str, max
         return base[:max_length]
     name = f"{base}-{slug}"
     return name[:max_length].rstrip("-")
+
+
+def build_work_item_identifier(project_identifier: str, sequence_id: int) -> str:
+    """Return IDENTIFIER-SEQUENCE (e.g. PROJ-12)."""
+    return f"{(project_identifier or '').upper()}-{sequence_id}"
+
+
+def build_pull_request_title(project_identifier: str, sequence_id: int, title: str) -> str:
+    """Default PR title: `{IDENTIFIER}-{sequence} {issue name}`."""
+    identifier = build_work_item_identifier(project_identifier, sequence_id)
+    name = (title or "").strip()
+    if not name:
+        return identifier
+    return f"{identifier} {name}"
+
+
+def build_pull_request_body(project_identifier: str, sequence_id: int, work_item_url: str) -> str:
+    """Default PR body: identifier plus the Plane work-item URL."""
+    identifier = build_work_item_identifier(project_identifier, sequence_id)
+    url = (work_item_url or "").strip()
+    if not url:
+        return identifier
+    return f"{identifier}\n\n{url}"

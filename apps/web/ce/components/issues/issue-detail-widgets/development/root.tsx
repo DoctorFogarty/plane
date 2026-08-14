@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { GitBranchPlus, Link2 } from "lucide-react";
+import { GitBranchPlus, GitPullRequest, Link2 } from "lucide-react";
 import type { TIssueServiceType } from "@plane/types";
 import { Collapsible, CollapsibleButton } from "@plane/ui";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -75,6 +75,17 @@ export const DevelopmentCollapsible = observer(function DevelopmentCollapsible(p
                   title="Create branch"
                 >
                   <GitBranchPlus className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    connectCodeModalStore.open(issueId, "create_pull_request");
+                  }}
+                  title="Create pull request"
+                >
+                  <GitPullRequest className="h-4 w-4" />
                 </button>
               </span>
             ) : undefined

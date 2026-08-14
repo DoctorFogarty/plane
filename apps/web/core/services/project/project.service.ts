@@ -173,6 +173,20 @@ export class ProjectService extends APIService {
       });
   }
 
+  async unlinkGithubRepository(
+    workspaceSlug: string,
+    projectId: string,
+    workspaceIntegrationId: string,
+    syncId?: string
+  ): Promise<void> {
+    const basePath = `/api/workspaces/${workspaceSlug}/projects/${projectId}/workspace-integrations/${workspaceIntegrationId}/github-repository-sync/`;
+    return this.delete(syncId ? `${basePath}${syncId}/` : basePath)
+      .then(() => undefined)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async getUserProjectFavorites(workspaceSlug: string): Promise<any[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/user-favorite-projects/`)
       .then((response) => response?.data)

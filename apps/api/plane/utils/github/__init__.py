@@ -11,6 +11,9 @@ from .client import (
 )
 from .identifier import (
     build_branch_name,
+    build_pull_request_body,
+    build_pull_request_title,
+    build_work_item_identifier,
     extract_work_item_identifier,
     parse_work_item_identifier,
 )
@@ -23,6 +26,9 @@ __all__ = [
     "normalize_private_key",
     "validate_private_key",
     "build_branch_name",
+    "build_pull_request_body",
+    "build_pull_request_title",
+    "build_work_item_identifier",
     "extract_work_item_identifier",
     "parse_work_item_identifier",
     "verify_github_webhook_signature",

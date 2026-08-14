@@ -26,7 +26,7 @@ type Props = {
 const integrationDetails: { [key: string]: any } = {
   github: {
     logo: GithubLogo,
-    description: "Select GitHub repository to enable sync.",
+    description: "Select GitHub repository to enable sync. Unlink anytime if this project does not need a repository.",
   },
   slack: {
     logo: SlackLogo,
@@ -45,6 +45,9 @@ export function IntegrationCard({ integration }: Props) {
       ? projectService.getProjectGithubRepository(workspaceSlug, projectId, integration.id)
       : null
   );
+
+  const activeGithubSync =
+    syncedGithubRepository && syncedGithubRepository.length > 0 ? syncedGithubRepository[0] : null;
 
   const handleChange = async (repo: IGithubRepository) => {
     if (!workspaceSlug || !projectId || !integration) return;
@@ -73,6 +76,35 @@ export function IntegrationCard({ integration }: Props) {
     }
   };
 
+  const handleUnlink = async () => {
+    if (!workspaceSlug || !projectId || !integration || !activeGithubSync) return;
+
+    const repoLabel = `${activeGithubSync.repo_detail.owner}/${activeGithubSync.repo_detail.name}`;
+
+    try {
+      await projectService.unlinkGithubRepository(
+        workspaceSlug.toString(),
+        projectId.toString(),
+        integration.id,
+        activeGithubSync.id
+      );
+      await mutate(PROJECT_GITHUB_REPOSITORY(projectId));
+
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Unlinked",
+        message: `${repoLabel} was unlinked from this project.`,
+      });
+    } catch (error) {
+      console.error(error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Repository could not be unlinked from the project. Please try again.",
+      });
+    }
+  };
+
   return (
     <>
       {integration && (
@@ -93,20 +125,23 @@ export function IntegrationCard({ integration }: Props) {
             </div>
           </div>
           {integration.integration_detail.provider === "github" && (
-            <SelectRepository
-              integration={integration}
-              value={
-                syncedGithubRepository && syncedGithubRepository.length > 0
-                  ? syncedGithubRepository[0].repo_detail.repository_id
-                  : null
-              }
-              label={
-                syncedGithubRepository && syncedGithubRepository.length > 0
-                  ? `${syncedGithubRepository[0].repo_detail.owner}/${syncedGithubRepository[0].repo_detail.name}`
-                  : "Select Repository"
-              }
-              onChange={handleChange}
-            />
+            <div className="flex items-center gap-3">
+              <SelectRepository
+                integration={integration}
+                value={activeGithubSync ? activeGithubSync.repo_detail.repository_id : null}
+                label={
+                  activeGithubSync
+                    ? `${activeGithubSync.repo_detail.owner}/${activeGithubSync.repo_detail.name}`
+                    : "Select Repository"
+                }
+                onChange={handleChange}
+              />
+              {activeGithubSync ? (
+                <button type="button" className="shrink-0 text-13 text-danger-primary" onClick={handleUnlink}>
+                  Unlink
+                </button>
+              ) : null}
+            </div>
           )}
           {integration.integration_detail.provider === "slack" && <SelectChannel integration={integration} />}
         </div>

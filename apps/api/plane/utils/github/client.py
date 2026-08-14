@@ -241,6 +241,28 @@ class GitHubAppClient:
     def get_pull_request(self, owner: str, repo: str, number: int) -> Dict[str, Any]:
         return self.request("GET", f"/repos/{owner}/{repo}/pulls/{number}")
 
+    def create_pull_request(
+        self,
+        owner: str,
+        repo: str,
+        title: str,
+        head: str,
+        base: str,
+        body: str = "",
+        draft: bool = False,
+    ) -> Dict[str, Any]:
+        return self.request(
+            "POST",
+            f"/repos/{owner}/{repo}/pulls",
+            json={
+                "title": title,
+                "head": head,
+                "base": base,
+                "body": body,
+                "draft": draft,
+            },
+        )
+
     def get_branch(self, owner: str, repo: str, branch: str) -> Dict[str, Any]:
         return self.request("GET", f"/repos/{owner}/{repo}/branches/{branch}")
 

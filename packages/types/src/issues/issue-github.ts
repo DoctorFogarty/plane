@@ -11,6 +11,11 @@ export type TIssueGithubRepository = {
   repository_id: number;
   url: string;
   project: string;
+  config?: {
+    default_branch?: string;
+    full_name?: string;
+    private?: boolean;
+  };
 };
 
 export type TIssueGithubBranch = {
@@ -76,4 +81,4 @@ export type TIssueGithubDevelopment = {
   commits_error?: string;
 };
 
-export type TConnectCodeMode = "create_branch" | "link_branch" | "link_pull_request";
+export type TConnectCodeMode = "create_branch" | "link_branch" | "link_pull_request" | "create_pull_request";

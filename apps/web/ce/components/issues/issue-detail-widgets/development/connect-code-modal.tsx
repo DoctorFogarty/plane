@@ -18,8 +18,9 @@ import type {
 } from "@plane/types";
 import { EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
 import { copyTextToClipboard, cn } from "@plane/utils";
-import { EMPTY_GITHUB_REPOSITORIES } from "@/plane-web/hooks/use-issue-github-development";
+import { EMPTY_GITHUB_BRANCHES, EMPTY_GITHUB_REPOSITORIES } from "@/plane-web/hooks/use-issue-github-development";
 import { IssueGithubService } from "@/services/issue";
+import { CreatePullRequestForm } from "./create-pull-request-form";
 
 type Props = {
   isOpen: boolean;
@@ -33,6 +34,9 @@ type Props = {
   isRepositoriesLoading: boolean;
   repositoriesError?: boolean;
   defaultBranchName: string;
+  linkedBranches?: TIssueGithubBranch[];
+  defaultPrTitle?: string;
+  defaultPrBody?: string;
 };
 
 const issueGithubService = new IssueGithubService();
@@ -41,6 +45,7 @@ const MODE_LABELS: Record<TConnectCodeMode, string> = {
   create_branch: "Create branch",
   link_branch: "Link branch",
   link_pull_request: "Link pull request",
+  create_pull_request: "Create pull request",
 };
 
 export function ConnectCodeModal(props: Props) {
@@ -56,18 +61,26 @@ export function ConnectCodeModal(props: Props) {
     isRepositoriesLoading,
     repositoriesError,
     defaultBranchName,
+    linkedBranches = EMPTY_GITHUB_BRANCHES,
+    defaultPrTitle = "",
+    defaultPrBody = "",
   } = props;
 
   const [repositoryId, setRepositoryId] = useState("");
   const [baseBranch, setBaseBranch] = useState("main");
   const [branchName, setBranchName] = useState(defaultBranchName);
   const [prNumber, setPrNumber] = useState("");
+  const [prTitle, setPrTitle] = useState(defaultPrTitle);
+  const [prBody, setPrBody] = useState(defaultPrBody);
+  const [draft, setDraft] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [created, setCreated] = useState<TIssueGithubBranch | null>(null);
   const [linkedPr, setLinkedPr] = useState<TIssueGithubPullRequest | null>(null);
   const ignoreCloseRef = useRef(false);
 
   const repos = repositories.length > 0 ? repositories : EMPTY_GITHUB_REPOSITORIES;
+  const selectedRepository = repos.find((repo) => repo.id === repositoryId) ?? repos[0];
+  const defaultBaseFromRepo = selectedRepository?.config?.default_branch || "";
 
   const {
     data: remoteBranches,
@@ -75,7 +88,7 @@ export function ConnectCodeModal(props: Props) {
     isLoading: isBranchesLoading,
     mutate: retryBranches,
   } = useSWR(
-    isOpen && (mode === "link_branch" || mode === "create_branch") && repositoryId
+    isOpen && (mode === "link_branch" || mode === "create_branch" || mode === "create_pull_request") && repositoryId
       ? `ISSUE_GITHUB_REMOTE_BRANCHES_${issueId}_${repositoryId}`
       : null,
     () => issueGithubService.listRepositoryBranches(workspaceSlug, projectId, issueId, repositoryId),
@@ -95,30 +108,62 @@ export function ConnectCodeModal(props: Props) {
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
 
+  const remoteBranchList = remoteBranches?.branches || [];
+  const remoteBranchNames = new Set(remoteBranchList.map((branch) => branch.name));
+  const compareBranches = [
+    ...linkedBranches
+      .filter((branch) => !remoteBranchNames.has(branch.name))
+      .map((branch) => ({
+        name: branch.name,
+        protected: false,
+        commit_sha: branch.head_sha || "",
+      })),
+    ...remoteBranchList,
+  ];
+
   useEffect(() => {
     if (!isOpen) return;
     setCreated(null);
     setLinkedPr(null);
     setBranchName(defaultBranchName);
-    setBaseBranch("main");
+    setBaseBranch(repositories[0]?.config?.default_branch || "main");
     setPrNumber("");
+    setPrTitle(defaultPrTitle);
+    setPrBody(defaultPrBody);
+    setDraft(false);
     setRepositoryId(repositories[0]?.id || "");
     ignoreCloseRef.current = false;
     // Reset when modal opens, mode changes, or first repo becomes available
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally key off first repo id
-  }, [defaultBranchName, isOpen, mode, repositories[0]?.id]);
+  }, [defaultBranchName, defaultPrBody, defaultPrTitle, isOpen, mode, repositories[0]?.id]);
 
   useEffect(() => {
-    if (!isOpen || mode !== "create_branch") return;
+    if (!isOpen || (mode !== "create_branch" && mode !== "create_pull_request")) return;
     const branches = remoteBranches?.branches;
     if (!branches?.length) return;
     const names = branches.map((branch) => branch.name);
     setBaseBranch((current) => {
       if (current && names.includes(current)) return current;
+      if (defaultBaseFromRepo && names.includes(defaultBaseFromRepo)) return defaultBaseFromRepo;
       if (names.includes("main")) return "main";
       return names[0] ?? "";
     });
-  }, [isOpen, mode, remoteBranches, repositoryId]);
+  }, [defaultBaseFromRepo, isOpen, mode, remoteBranches, repositoryId]);
+
+  // compareBranches is derived from remoteBranches; listing it retriggers this effect every render.
+  useEffect(() => {
+    if (!isOpen || mode !== "create_pull_request") return;
+    const names = compareBranches.map((branch) => branch.name);
+    const linkedName = linkedBranches[0]?.name || "";
+    setBranchName((current) => {
+      if (linkedName && (!current || current === defaultBranchName || !names.includes(current))) {
+        return linkedName;
+      }
+      if (current && (names.includes(current) || names.length === 0)) return current;
+      return names[0] ?? linkedName;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- compareBranches is an inline array
+  }, [defaultBranchName, isOpen, linkedBranches, mode, remoteBranches, repositoryId]);
 
   const handleClose = () => {
     if (ignoreCloseRef.current || isSubmitting) return;
@@ -284,12 +329,79 @@ export function ConnectCodeModal(props: Props) {
     });
   };
 
+  const handleCreatePr = async () => {
+    if (!repositoryId) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Repository required",
+        message: "Select a repository to create a pull request.",
+      });
+      return;
+    }
+    if (!branchName.trim()) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Head branch required",
+        message: "Select a head branch.",
+      });
+      return;
+    }
+    if (!baseBranch.trim()) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Base branch required",
+        message: "Select a base branch.",
+      });
+      return;
+    }
+    if (!prTitle.trim()) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Title required",
+        message: "Enter a pull request title.",
+      });
+      return;
+    }
+
+    await withSubmitGuard(async () => {
+      try {
+        const result = await issueGithubService.createPullRequest(workspaceSlug, projectId, issueId, {
+          repository_id: repositoryId,
+          head_branch: branchName.trim(),
+          base_branch: baseBranch.trim(),
+          title: prTitle.trim(),
+          body: prBody,
+          draft,
+        });
+        setLinkedPr(result);
+        mutate(ISSUE_GITHUB_DEVELOPMENT(issueId));
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Pull request created",
+          message: `#${result.number} is ready on GitHub.`,
+        });
+      } catch (error: unknown) {
+        const message =
+          error && typeof error === "object" && "error" in error
+            ? String((error as { error?: string }).error)
+            : "Check the branches and try again.";
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Could not create pull request",
+          message,
+        });
+      }
+    });
+  };
+
   const checkoutCommand =
     created?.checkout_command || (created ? `git fetch origin ${created.name} && git checkout ${created.name}` : "");
 
   const showSuccess = Boolean(created || linkedPr);
   const title = linkedPr
-    ? "Pull request linked"
+    ? mode === "create_pull_request"
+      ? "Pull request created"
+      : "Pull request linked"
     : created
       ? mode === "create_branch"
         ? "Branch created"
@@ -327,12 +439,22 @@ export function ConnectCodeModal(props: Props) {
 
         {linkedPr ? (
           <div className="space-y-3">
-            <p className="text-sm text-secondary">
-              <span className="font-medium text-primary">
+            <div className="rounded-md border border-subtle bg-surface-2 p-3">
+              <p className="text-sm font-medium text-primary">
                 #{linkedPr.number} {linkedPr.title}
-              </span>{" "}
-              is linked.
-            </p>
+              </p>
+              {linkedPr.head_branch || linkedPr.base_branch ? (
+                <p className="mt-1 text-12 text-secondary">
+                  {linkedPr.head_branch || "head"} → {linkedPr.base_branch || "base"}
+                  {linkedPr.draft ? " · Draft" : ""}
+                </p>
+              ) : mode === "create_pull_request" ? (
+                <p className="mt-1 text-12 text-secondary">
+                  {branchName} → {baseBranch}
+                  {draft ? " · Draft" : ""}
+                </p>
+              ) : null}
+            </div>
             {linkedPr.html_url ? (
               <a
                 href={linkedPr.html_url}
@@ -589,6 +711,28 @@ export function ConnectCodeModal(props: Props) {
               </>
             ) : null}
 
+            {mode === "create_pull_request" ? (
+              <CreatePullRequestForm
+                issueId={issueId}
+                branches={compareBranches}
+                isBranchesLoading={isBranchesLoading}
+                branchesError={Boolean(branchesError)}
+                onRetryBranches={() => {
+                  void retryBranches();
+                }}
+                headBranch={branchName}
+                baseBranch={baseBranch}
+                title={prTitle}
+                body={prBody}
+                draft={draft}
+                onHeadBranchChange={setBranchName}
+                onBaseBranchChange={setBaseBranch}
+                onTitleChange={setPrTitle}
+                onBodyChange={setPrBody}
+                onDraftChange={setDraft}
+              />
+            ) : null}
+
             <div className="flex justify-end gap-2">
               <Button variant="secondary" size="sm" onClick={handleClose} disabled={isSubmitting}>
                 Cancel
@@ -612,6 +756,17 @@ export function ConnectCodeModal(props: Props) {
               {mode === "link_pull_request" ? (
                 <Button variant="primary" size="sm" onClick={handleLinkPr} loading={isSubmitting}>
                   Link pull request
+                </Button>
+              ) : null}
+              {mode === "create_pull_request" ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCreatePr}
+                  loading={isSubmitting}
+                  disabled={isBranchesLoading || Boolean(branchesError) || !baseBranch.trim() || !branchName.trim()}
+                >
+                  Create pull request
                 </Button>
               ) : null}
             </div>

@@ -122,6 +122,12 @@ describe("GitHub integration controls", () => {
     expect(connectCodeModalStore.workItemId).toBe("issue-id");
   });
 
+  it("opens the connect code store in create pull request mode", () => {
+    connectCodeModalStore.open("issue-id", "create_pull_request");
+    expect(connectCodeModalStore.isOpen).toBe(true);
+    expect(connectCodeModalStore.mode).toBe("create_pull_request");
+  });
+
   it("uses the numeric repository id as value and sync payload", async () => {
     const user = userEvent.setup();
     render(<IntegrationCard integration={integration} />);

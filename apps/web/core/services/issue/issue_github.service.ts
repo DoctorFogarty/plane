@@ -125,6 +125,29 @@ export class IssueGithubService extends APIService {
       });
   }
 
+  async createPullRequest(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    data: {
+      repository_id: string;
+      head_branch: string;
+      base_branch?: string;
+      title?: string;
+      body?: string;
+      draft?: boolean;
+    }
+  ): Promise<TIssueGithubPullRequest> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/github/`, {
+      action: "create_pull_request",
+      ...data,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async unlink(
     workspaceSlug: string,
     projectId: string,

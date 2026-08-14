@@ -11,6 +11,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 from plane.utils.github import (
     build_branch_name,
+    build_pull_request_body,
+    build_pull_request_title,
     extract_work_item_identifier,
     normalize_github_app_name,
     normalize_private_key,
@@ -49,6 +51,16 @@ class TestGithubIdentifier:
         assert name.startswith("PROJ-12-")
         assert "add-login-flow" in name
         assert " " not in name
+
+    def test_build_pull_request_title(self):
+        assert build_pull_request_title("PROJ", 12, "Add login") == "PROJ-12 Add login"
+        assert build_pull_request_title("proj", 12, "  ") == "PROJ-12"
+
+    def test_build_pull_request_body(self):
+        body = build_pull_request_body("PROJ", 12, "http://localhost:3000/ws/projects/p/issues/i")
+        assert body.startswith("PROJ-12")
+        assert "http://localhost:3000/ws/projects/p/issues/i" in body
+        assert build_pull_request_body("PROJ", 12, "") == "PROJ-12"
 
 
 @pytest.mark.unit

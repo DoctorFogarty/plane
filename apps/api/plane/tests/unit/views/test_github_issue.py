@@ -10,6 +10,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from plane.app.views.integration.github_issue import (
     IssueGithubDevelopmentEndpoint,
+    _pull_request_create_error_message,
     _resolve_repository,
     _slim_branch,
     _slim_pull_request,
@@ -21,6 +22,7 @@ from plane.db.models import (
     Integration,
     Issue,
     IssueGithubBranch,
+    IssueGithubPullRequest,
     Project,
     ProjectMember,
     State,
@@ -124,6 +126,42 @@ class TestGithubClientListMethods:
             result = client.list_pull_requests("owner", "repo", state="open", per_page=10)
         mock_req.assert_called_once_with("GET", "/repos/owner/repo/pulls?state=open&per_page=10")
         assert result[0]["number"] == 7
+
+    def test_create_pull_request_calls_api(self):
+        with patch(
+            "plane.utils.github.client._get_github_app_config",
+            return_value={
+                "app_id": "1",
+                "private_key": "",
+                "client_id": "",
+                "client_secret": "",
+                "webhook_secret": "",
+                "app_name": "test",
+            },
+        ):
+            client = GitHubAppClient(installation_id="1")
+        with patch.object(client, "request", return_value={"number": 9}) as mock_req:
+            result = client.create_pull_request(
+                "makeplane",
+                "plane",
+                "PROJ-12 Add login",
+                "feature/login",
+                "main",
+                body="PROJ-12",
+                draft=True,
+            )
+        mock_req.assert_called_once_with(
+            "POST",
+            "/repos/makeplane/plane/pulls",
+            json={
+                "title": "PROJ-12 Add login",
+                "head": "feature/login",
+                "base": "main",
+                "body": "PROJ-12",
+                "draft": True,
+            },
+        )
+        assert result["number"] == 9
 
     def test_list_methods_return_empty_on_none(self):
         with patch(
@@ -464,3 +502,191 @@ class TestIssueGithubDevelopmentLink:
             )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "not installed" in response.data["error"]
+
+    def test_create_pull_request_success(self, github_dev_context):
+        ctx = github_dev_context
+        mock_client = MagicMock()
+        mock_client.create_pull_request.return_value = {
+            "id": 88,
+            "number": 42,
+            "title": "PROJ-12 Add login",
+            "state": "open",
+            "draft": False,
+            "merged": False,
+            "html_url": "https://github.com/makeplane/plane/pull/42",
+            "head": {"ref": "feature/login", "sha": "abc123"},
+            "base": {"ref": "main"},
+            "node_id": "PR_42",
+        }
+        with (
+            patch(
+                "plane.app.views.integration.github_issue._get_client_for_project",
+                return_value=mock_client,
+            ),
+            patch("plane.app.views.integration.github_issue._emit_activity"),
+        ):
+            response = self._post(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                {
+                    "action": "create_pull_request",
+                    "repository_id": str(ctx["repo"].id),
+                    "head_branch": "feature/login",
+                    "base_branch": "main",
+                    "title": "PROJ-12 Add login",
+                    "body": "PROJ-12",
+                },
+            )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["number"] == 42
+        assert response.data["title"] == "PROJ-12 Add login"
+        mock_client.create_pull_request.assert_called_once_with(
+            "makeplane",
+            "plane",
+            "PROJ-12 Add login",
+            "feature/login",
+            "main",
+            body="PROJ-12",
+            draft=False,
+        )
+        assert IssueGithubPullRequest.objects.filter(issue=ctx["issue"], number=42).exists()
+        assert IssueGithubBranch.objects.filter(issue=ctx["issue"], name="feature/login").exists()
+
+    def test_create_pull_request_requires_head_branch(self, github_dev_context):
+        ctx = github_dev_context
+        response = self._post(
+            ctx["user"],
+            ctx["workspace"],
+            ctx["project"],
+            ctx["issue"],
+            {
+                "action": "create_pull_request",
+                "repository_id": str(ctx["repo"].id),
+            },
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "head_branch" in response.data["error"]
+
+    def test_create_pull_request_requires_install(self, github_dev_context):
+        ctx = github_dev_context
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=None,
+        ):
+            response = self._post(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                {
+                    "action": "create_pull_request",
+                    "repository_id": str(ctx["repo"].id),
+                    "head_branch": "feature/login",
+                },
+            )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "not installed" in response.data["error"]
+
+    def test_create_pull_request_already_exists(self, github_dev_context):
+        ctx = github_dev_context
+        mock_client = MagicMock()
+        mock_client.create_pull_request.side_effect = GitHubAPIError(
+            "failed",
+            status_code=422,
+            response='{"message":"Validation Failed","errors":[{"message":"A pull request already exists for makeplane:feature/login"}]}',
+        )
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            response = self._post(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                {
+                    "action": "create_pull_request",
+                    "repository_id": str(ctx["repo"].id),
+                    "head_branch": "feature/login",
+                },
+            )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["error"] == "A pull request already exists for this branch."
+
+    def test_create_pull_request_no_commits(self, github_dev_context):
+        ctx = github_dev_context
+        mock_client = MagicMock()
+        mock_client.create_pull_request.side_effect = GitHubAPIError(
+            "failed",
+            status_code=422,
+            response='{"message":"Validation Failed","errors":[{"message":"No commits between main and feature/login"}]}',
+        )
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            response = self._post(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                {
+                    "action": "create_pull_request",
+                    "repository_id": str(ctx["repo"].id),
+                    "head_branch": "feature/login",
+                },
+            )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "No commits on this branch yet" in response.data["error"]
+
+    def test_create_pull_request_defaults_title_and_body(self, github_dev_context):
+        ctx = github_dev_context
+        mock_client = MagicMock()
+        mock_client.create_pull_request.return_value = {
+            "id": 1,
+            "number": 7,
+            "title": "PROJ-12 Test issue",
+            "state": "open",
+            "draft": False,
+            "merged": False,
+            "html_url": "https://github.com/makeplane/plane/pull/7",
+            "head": {"ref": "feature/login", "sha": "abc"},
+            "base": {"ref": "main"},
+        }
+        with (
+            patch(
+                "plane.app.views.integration.github_issue._get_client_for_project",
+                return_value=mock_client,
+            ),
+            patch("plane.app.views.integration.github_issue._emit_activity"),
+            patch(
+                "plane.app.views.integration.github_issue.base_host",
+                return_value="http://localhost:3000",
+            ),
+        ):
+            response = self._post(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                {
+                    "action": "create_pull_request",
+                    "repository_id": str(ctx["repo"].id),
+                    "head_branch": "feature/login",
+                },
+            )
+        assert response.status_code == status.HTTP_201_CREATED
+        args, kwargs = mock_client.create_pull_request.call_args
+        assert args[2] == "PROJ-12 Test issue"
+        assert "PROJ-12" in kwargs["body"]
+        assert str(ctx["issue"].id) in kwargs["body"]
+
+    def test_pull_request_create_error_message_mapping(self):
+        already = GitHubAPIError("x", status_code=422, response="A pull request already exists for foo")
+        assert _pull_request_create_error_message(already) == "A pull request already exists for this branch."
+        empty = GitHubAPIError("x", status_code=422, response="No commits between main and head")
+        assert "No commits on this branch yet" in _pull_request_create_error_message(empty)
+        missing = GitHubAPIError("x", status_code=404, response="Not Found")
+        assert _pull_request_create_error_message(missing) == "Branch not found on GitHub."
