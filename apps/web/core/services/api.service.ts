@@ -27,8 +27,19 @@ export abstract class APIService {
       (response) => response,
       (error) => {
         if (error.response && error.response.status === 401) {
-          const currentPath = window.location.pathname;
-          window.location.replace(`/${currentPath ? `?next_path=${currentPath}` : ``}`);
+          // Preserve search params (e.g. workspace invite slug/code) so signup can unlock.
+          const nextPath = `${window.location.pathname}${window.location.search}`;
+          const params = new URLSearchParams();
+          if (nextPath && nextPath !== "/") {
+            params.set("next_path", nextPath);
+          }
+          const currentParams = new URLSearchParams(window.location.search);
+          const inviteCode = currentParams.get("code") || currentParams.get("invite_code");
+          const workspaceSlug = currentParams.get("slug") || currentParams.get("workspace_slug");
+          if (inviteCode) params.set("invite_code", inviteCode);
+          if (workspaceSlug) params.set("workspace_slug", workspaceSlug);
+          const query = params.toString();
+          window.location.replace(query ? `/?${query}` : "/");
         }
         return Promise.reject(error);
       }

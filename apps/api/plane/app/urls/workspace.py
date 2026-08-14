@@ -11,6 +11,10 @@ from plane.app.views import (
     WorkspaceJoinEndpoint,
     WorkSpaceMemberViewSet,
     WorkspaceInvitationsViewset,
+    WorkspaceInviteLinkViewSet,
+    WorkspaceInviteLinkPublicEndpoint,
+    WorkspaceInviteLinkClaimEndpoint,
+    WorkspaceInviteLinkJoinEndpoint,
     WorkspaceMemberUserEndpoint,
     WorkspaceMemberUserViewsEndpoint,
     WorkSpaceAvailabilityCheckEndpoint,
@@ -83,6 +87,32 @@ urlpatterns = [
         WorkspaceJoinEndpoint.as_view(),
         name="workspace-join",
     ),
+    # workspace shareable invite links
+    path(
+        "workspaces/<str:slug>/invite-links/",
+        WorkspaceInviteLinkViewSet.as_view({"get": "list", "post": "create"}),
+        name="workspace-invite-links",
+    ),
+    path(
+        "workspaces/<str:slug>/invite-links/<uuid:pk>/",
+        WorkspaceInviteLinkViewSet.as_view({"patch": "partial_update", "delete": "destroy"}),
+        name="workspace-invite-links",
+    ),
+    path(
+        "workspaces/<str:slug>/invite-links/<str:code>/",
+        WorkspaceInviteLinkPublicEndpoint.as_view(),
+        name="workspace-invite-link-public",
+    ),
+    path(
+        "workspaces/<str:slug>/invite-links/<str:code>/claim/",
+        WorkspaceInviteLinkClaimEndpoint.as_view(),
+        name="workspace-invite-link-claim",
+    ),
+    path(
+        "workspaces/<str:slug>/invite-links/<str:code>/join/",
+        WorkspaceInviteLinkJoinEndpoint.as_view(),
+        name="workspace-invite-link-join",
+    ),
     # user join workspace
     path(
         "workspaces/<str:slug>/members/",
@@ -98,6 +128,11 @@ urlpatterns = [
         "workspaces/<str:slug>/members/<uuid:pk>/",
         WorkSpaceMemberViewSet.as_view({"patch": "partial_update", "delete": "destroy", "get": "retrieve"}),
         name="workspace-member",
+    ),
+    path(
+        "workspaces/<str:slug>/members/<uuid:pk>/permanent/",
+        WorkSpaceMemberViewSet.as_view({"delete": "permanent_delete"}),
+        name="workspace-member-permanent-delete",
     ),
     path(
         "workspaces/<str:slug>/members/leave/",

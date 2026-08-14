@@ -157,6 +157,65 @@ class WorkSpaceMemberViewSet(BaseViewSet):
     )
     @invalidate_cache(path="/api/users/me/settings/")
     @invalidate_cache(path="api/users/me/workspaces/", user=False, multiple=True)
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def permanent_delete(self, request, slug, pk):
+        # Soft-delete membership (deleted_at) so the member disappears from the list.
+        # Works for both active and suspended (is_active=False) members.
+        try:
+            workspace_member = WorkspaceMember.objects.get(
+                workspace__slug=slug, pk=pk, member__is_bot=False
+            )
+        except WorkspaceMember.DoesNotExist:
+            return Response(
+                {"error": "Workspace member not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        requesting_workspace_member = WorkspaceMember.objects.get(
+            workspace__slug=slug, member=request.user, is_active=True
+        )
+
+        if workspace_member.member_id == request.user.id:
+            return Response(
+                {"error": "You cannot delete yourself from the workspace. Please use leave workspace"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if requesting_workspace_member.role < workspace_member.role:
+            return Response(
+                {"error": "You cannot delete a user having role higher than you"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Block deleting the last active workspace admin
+        if (
+            workspace_member.role == ROLE.ADMIN.value
+            and workspace_member.is_active
+            and not WorkspaceMember.objects.filter(workspace__slug=slug, role=ROLE.ADMIN.value, is_active=True)
+            .exclude(pk=workspace_member.pk)
+            .exists()
+        ):
+            return Response(
+                {
+                    "error": "You cannot delete the only admin of the workspace. Please promote another user to admin first."  # noqa: E501
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Soft-delete all project memberships for this user in the workspace
+        ProjectMember.objects.filter(workspace__slug=slug, member_id=workspace_member.member_id).delete()
+
+        workspace_member.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @invalidate_cache(
+        path="/api/workspaces/:slug/members/",
+        url_params=True,
+        user=False,
+        multiple=True,
+    )
+    @invalidate_cache(path="/api/users/me/settings/")
+    @invalidate_cache(path="api/users/me/workspaces/", user=False, multiple=True)
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def leave(self, request, slug):
         workspace_member = WorkspaceMember.objects.get(workspace__slug=slug, member=request.user, is_active=True)

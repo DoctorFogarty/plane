@@ -45,6 +45,21 @@
         "pending_invites": "Lời mời đang chờ xử lý",
         "invitations_sent_successfully": "Đã gửi lời mời thành công",
         "leave_confirmation": "Bạn có chắc chắn muốn rời khỏi không gian làm việc này không? Bạn sẽ không thể truy cập không gian làm việc này nữa. Hành động này không thể hoàn tác.",
+        "invite_link": {
+          "title": "Liên kết mời",
+          "description": "Chia sẻ liên kết này để mọi người có thể tham gia không gian làm việc này. Bất kỳ ai có liên kết đều có thể đăng ký và trở thành thành viên.",
+          "enable": "Bật liên kết mời",
+          "disable": "Tắt liên kết",
+          "copy": "Sao chép liên kết",
+          "copied": "Đã sao chép liên kết mời vào clipboard.",
+          "regenerate": "Tạo lại",
+          "regenerate_confirmation": "Tạo lại sẽ làm vô hiệu liên kết hiện tại. Tiếp tục?",
+          "role": "Vai trò mặc định",
+          "enabled_success": "Đã bật liên kết mời.",
+          "disabled_success": "Đã tắt liên kết mời.",
+          "regenerated_success": "Đã tạo lại liên kết mời.",
+          "role_updated": "Đã cập nhật vai trò mặc định."
+        },
         "details": {
           "full_name": "Tên đầy đủ",
           "display_name": "Tên hiển thị",
@@ -63,7 +78,15 @@
             "required": "Chúng tôi cần một địa chỉ email để mời họ.",
             "invalid": "Email không hợp lệ"
           }
-        }
+        },
+        "leave_title": "Rời khỏi workspace?",
+        "remove_title": "Xóa {name}?",
+        "remove_confirmation": "Bạn có chắc muốn xóa {name} không? Họ sẽ bị tạm ngưng và mất quyền truy cập workspace này. Bạn có thể xóa vĩnh viễn sau hoặc mời lại để khôi phục quyền truy cập.",
+        "delete_title": "Xóa vĩnh viễn {name}?",
+        "delete_confirmation": "Bạn có chắc muốn xóa vĩnh viễn {name} khỏi workspace này không? Họ sẽ bị gỡ khỏi danh sách thành viên. Bạn có thể mời lại sau nếu cần.",
+        "cancel_invite_title": "Xóa {name}?",
+        "cancel_invite_confirmation": "Bạn có chắc muốn xóa lời mời của {name} không? Hành động này không thể hoàn tác.",
+        "delete_member": "Xóa"
       },
       "billing_and_plans": {
         "heading": "Thanh toán và Kế hoạch",

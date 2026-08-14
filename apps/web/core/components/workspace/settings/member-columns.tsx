@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, jsx-a11y/prefer-tag-over-role */
 
 import { observer } from "mobx-react";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Disclosure } from "@headlessui/react";
 // plane imports
 import { ROLE, EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 import { TrashIcon, SuspendedUserIcon } from "@plane/propel/icons";
 import { Pill, EPillVariant, EPillSize } from "@plane/propel/pill";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -19,6 +21,8 @@ import type { IUser, IWorkspaceMember } from "@plane/types";
 import { CustomSelect, PopoverMenu } from "@plane/ui";
 // helpers
 import { getFileURL } from "@plane/utils";
+// components
+import type { TConfirmWorkspaceMemberAction } from "@/components/workspace/confirm-workspace-member-remove";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
@@ -29,12 +33,14 @@ export interface RowData {
   is_active: boolean;
 }
 
+type MemberMenuAction = TConfirmWorkspaceMemberAction;
+
 type NameProps = {
   rowData: RowData;
   workspaceSlug: string;
   isAdmin: boolean;
   currentUser: IUser | undefined;
-  setRemoveMemberModal: (rowData: RowData) => void;
+  onMemberAction: (rowData: RowData, action: MemberMenuAction) => void;
 };
 
 type AccountTypeProps = {
@@ -43,10 +49,20 @@ type AccountTypeProps = {
 };
 
 export function NameColumn(props: NameProps) {
-  const { rowData, workspaceSlug, isAdmin, currentUser, setRemoveMemberModal } = props;
+  const { rowData, workspaceSlug, isAdmin, currentUser, onMemberAction } = props;
+  const { t } = useTranslation();
   // derived values
   const { avatar_url, display_name, email, first_name, id, last_name } = rowData.member;
   const isSuspended = rowData.is_active === false;
+  const isCurrentUser = id === currentUser?.id;
+
+  const menuActions: MemberMenuAction[] = [];
+  if (!isSuspended && (isAdmin || isCurrentUser)) {
+    menuActions.push(isCurrentUser ? "leave" : "remove");
+  }
+  if (isAdmin && !isCurrentUser) {
+    menuActions.push("delete");
+  }
 
   return (
     <Disclosure>
@@ -80,27 +96,32 @@ export function NameColumn(props: NameProps) {
               </span>
             </div>
 
-            {!isSuspended && (isAdmin || id === currentUser?.id) && (
+            {menuActions.length > 0 && (
               <PopoverMenu
-                data={[""]}
+                data={menuActions}
                 keyExtractor={(item) => item}
                 popoverClassName="justify-end"
                 buttonClassName="outline-none	origin-center rotate-90 size-8 aspect-square flex-shrink-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
-                render={() => (
+                render={(action) => (
                   <div
                     role="button"
                     tabIndex={0}
-                    className="flex cursor-pointer items-center gap-x-3"
-                    onClick={() => setRemoveMemberModal(rowData)}
+                    className="flex cursor-pointer items-center gap-x-3 py-1"
+                    onClick={() => onMemberAction(rowData, action)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setRemoveMemberModal(rowData);
+                        onMemberAction(rowData, action);
                       }
                     }}
                     data-ph-element={MEMBER_TRACKER_ELEMENTS.WORKSPACE_MEMBER_TABLE_CONTEXT_MENU}
                   >
-                    <TrashIcon className="size-3.5 align-middle" /> {id === currentUser?.id ? "Leave " : "Remove "}
+                    <TrashIcon className="size-3.5 align-middle" />
+                    {action === "leave"
+                      ? t("leave")
+                      : action === "delete"
+                        ? t("workspace_settings.settings.members.delete_member")
+                        : t("remove")}
                   </div>
                 )}
               />

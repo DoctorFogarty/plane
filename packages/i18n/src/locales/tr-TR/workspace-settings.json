@@ -45,6 +45,21 @@
         "pending_invites": "Bekleyen davetler",
         "invitations_sent_successfully": "Davetler başarıyla gönderildi",
         "leave_confirmation": "Çalışma alanından ayrılmak istediğinizden emin misiniz? Artık bu çalışma alanına erişiminiz olmayacak. Bu işlem geri alınamaz.",
+        "invite_link": {
+          "title": "Davet bağlantısı",
+          "description": "Bu bağlantıyı paylaşarak kişilerin bu çalışma alanına katılmasını sağlayın. Bağlantıya sahip herkes kaydolup üye olabilir.",
+          "enable": "Davet bağlantısını etkinleştir",
+          "disable": "Bağlantıyı devre dışı bırak",
+          "copy": "Bağlantıyı kopyala",
+          "copied": "Davet bağlantısı panoya kopyalandı.",
+          "regenerate": "Yeniden oluştur",
+          "regenerate_confirmation": "Yeniden oluşturmak mevcut bağlantıyı geçersiz kılar. Devam edilsin mi?",
+          "role": "Varsayılan rol",
+          "enabled_success": "Davet bağlantısı etkinleştirildi.",
+          "disabled_success": "Davet bağlantısı devre dışı bırakıldı.",
+          "regenerated_success": "Davet bağlantısı yeniden oluşturuldu.",
+          "role_updated": "Varsayılan rol güncellendi."
+        },
         "details": {
           "full_name": "Tam ad",
           "display_name": "Görünen ad",
@@ -63,7 +78,15 @@
             "required": "Davet etmek için bir e-posta adresine ihtiyacımız var.",
             "invalid": "E-posta geçersiz"
           }
-        }
+        },
+        "leave_title": "Workspace'ten ayrılmak istiyor musunuz?",
+        "remove_title": "{name} kaldırılsın mı?",
+        "remove_confirmation": "{name} adlı kişiyi kaldırmak istediğinizden emin misiniz? Bu kişi askıya alınır ve bu workspace erişimini kaybeder. Daha sonra kalıcı olarak silebilir veya erişimi geri yüklemek için yeniden davet edebilirsiniz.",
+        "delete_title": "{name} kalıcı olarak silinsin mi?",
+        "delete_confirmation": "{name} adlı kişiyi bu workspace'ten kalıcı olarak silmek istediğinizden emin misiniz? Üye listesinden kaldırılacaktır. Gerektiğinde daha sonra yeniden davet edebilirsiniz.",
+        "cancel_invite_title": "{name} kaldırılsın mı?",
+        "cancel_invite_confirmation": "{name} için daveti kaldırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+        "delete_member": "Sil"
       },
       "billing_and_plans": {
         "heading": "Faturalandırma ve Planlar",

@@ -5,6 +5,7 @@
 # Python imports
 import pytz
 from typing import Optional, Any
+from uuid import uuid4
 
 # Django imports
 from django.conf import settings
@@ -17,6 +18,12 @@ from plane.utils.constants import RESTRICTED_WORKSPACE_SLUGS
 from plane.utils.color import get_random_color
 
 ROLE_CHOICES = ((20, "Admin"), (15, "Member"), (5, "Guest"))
+# Shareable invite links cannot grant Admin
+INVITE_LINK_ROLE_CHOICES = ((15, "Member"), (5, "Guest"))
+
+
+def get_workspace_invite_link_anchor():
+    return uuid4().hex
 
 
 def get_default_props():
@@ -256,6 +263,31 @@ class WorkspaceMemberInvite(BaseModel):
 
     def __str__(self):
         return f"{self.workspace.name} {self.email} {self.accepted}"
+
+
+class WorkspaceInviteLink(WorkspaceBaseModel):
+    """Reusable shareable link for joining a workspace."""
+
+    anchor = models.CharField(max_length=255, default=get_workspace_invite_link_anchor, unique=True, db_index=True)
+    role = models.PositiveSmallIntegerField(choices=INVITE_LINK_ROLE_CHOICES, default=15)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ["workspace", "deleted_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workspace"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="workspace_invite_link_unique_workspace_when_deleted_at_null",
+            )
+        ]
+        verbose_name = "Workspace Invite Link"
+        verbose_name_plural = "Workspace Invite Links"
+        db_table = "workspace_invite_links"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.workspace_id} {self.anchor} active={self.is_active}"
 
 
 class Team(BaseModel):

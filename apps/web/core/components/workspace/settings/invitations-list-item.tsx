@@ -119,6 +119,7 @@ export const WorkspaceInvitationsListItem = observer(function WorkspaceInvitatio
           id: invitationDetails.id,
           display_name: `${invitationDetails.email}`,
         }}
+        variant="cancel_invite"
         onSubmit={handleRemoveInvitation}
       />
       <div className="group flex h-full w-full items-center justify-between px-3 py-4 hover:bg-layer-transparent-hover">

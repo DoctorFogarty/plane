@@ -13,6 +13,39 @@ from django.utils import timezone
 # Module imports
 from plane.db.models import Project
 
+DEFAULT_USER_TIMEZONE = "UTC"
+
+
+def sanitize_user_timezone(value):
+    """Return a pytz-known IANA timezone, or UTC if the value is missing/invalid."""
+    if not isinstance(value, str):
+        return DEFAULT_USER_TIMEZONE
+    candidate = value.strip()
+    if not candidate or len(candidate) > 255:
+        return DEFAULT_USER_TIMEZONE
+    if candidate in pytz.common_timezones_set:
+        return candidate
+    try:
+        zone = pytz.timezone(candidate).zone
+    except pytz.UnknownTimeZoneError:
+        return DEFAULT_USER_TIMEZONE
+    if zone in pytz.common_timezones_set:
+        return zone
+    # Valid IANA alias (e.g. Asia/Calcutta) that is not in the common list
+    return zone or DEFAULT_USER_TIMEZONE
+
+
+def resolve_signup_timezone(request):
+    """Read timezone from POST, GET, then session. Invalid values become UTC."""
+    if request is None:
+        return DEFAULT_USER_TIMEZONE
+    raw = (
+        request.POST.get("user_timezone")
+        or request.GET.get("user_timezone")
+        or request.session.get("user_timezone")
+    )
+    return sanitize_user_timezone(raw)
+
 
 def user_timezone_converter(queryset, datetime_fields, user_timezone):
     # Create a timezone object for the user's timezone

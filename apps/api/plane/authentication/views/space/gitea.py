@@ -20,6 +20,7 @@ from plane.authentication.adapter.error import (
     AuthenticationException,
 )
 from plane.utils.path_validator import validate_next_path
+from plane.authentication.utils.invite_session import store_user_timezone_session
 
 
 class GiteaOauthInitiateSpaceEndpoint(View):
@@ -29,6 +30,7 @@ class GiteaOauthInitiateSpaceEndpoint(View):
         next_path = request.GET.get("next_path")
         if next_path:
             request.session["next_path"] = str(validate_next_path(next_path))
+        store_user_timezone_session(request)
 
         # Check instance configuration
         instance = Instance.objects.first()

@@ -45,6 +45,21 @@
         "pending_invites": "Čekající pozvánky",
         "invitations_sent_successfully": "Pozvánky úspěšně odeslány",
         "leave_confirmation": "Opravdu chcete opustit prostor? Ztratíte přístup. Akce je nevratná.",
+        "invite_link": {
+          "title": "Pozvánkový odkaz",
+          "description": "Sdílejte tento odkaz, aby se lidé mohli připojit k tomuto pracovnímu prostoru. Kdokoli s odkazem se může zaregistrovat a stát se členem.",
+          "enable": "Povolit pozvánkový odkaz",
+          "disable": "Deaktivovat odkaz",
+          "copy": "Kopírovat odkaz",
+          "copied": "Pozvánkový odkaz byl zkopírován do schránky.",
+          "regenerate": "Obnovit",
+          "regenerate_confirmation": "Obnovení zneplatní aktuální odkaz. Pokračovat?",
+          "role": "Výchozí role",
+          "enabled_success": "Pozvánkový odkaz byl povolen.",
+          "disabled_success": "Pozvánkový odkaz byl deaktivován.",
+          "regenerated_success": "Pozvánkový odkaz byl obnoven.",
+          "role_updated": "Výchozí role byla aktualizována."
+        },
         "details": {
           "full_name": "Celé jméno",
           "display_name": "Zobrazované jméno",
@@ -63,7 +78,15 @@
             "required": "Vyžaduje se e-mailová adresa.",
             "invalid": "E-mail je neplatný"
           }
-        }
+        },
+        "leave_title": "Opustit workspace?",
+        "remove_title": "Odebrat {name}?",
+        "remove_confirmation": "Opravdu chcete odebrat {name}? Člen bude pozastaven a ztratí přístup k tomuto workspace. Později jej můžete trvale smazat nebo znovu pozvat a obnovit přístup.",
+        "delete_title": "Trvale smazat {name}?",
+        "delete_confirmation": "Opravdu chcete trvale smazat {name} z tohoto workspace? Člen bude odstraněn ze seznamu. V případě potřeby jej můžete později znovu pozvat.",
+        "cancel_invite_title": "Odebrat {name}?",
+        "cancel_invite_confirmation": "Opravdu chcete odebrat pozvánku pro {name}? Tuto akci nelze vrátit zpět.",
+        "delete_member": "Smazat"
       },
       "billing_and_plans": {
         "heading": "Fakturace a plány",

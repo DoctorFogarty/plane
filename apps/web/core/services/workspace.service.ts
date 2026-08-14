@@ -10,6 +10,8 @@ import type {
   IWorkspaceMemberMe,
   IWorkspaceMember,
   IWorkspaceMemberInvitation,
+  IWorkspaceInviteLink,
+  IWorkspaceInviteLinkPublic,
   ILastActiveWorkspaceDetails,
   IWorkspaceSearchResults,
   IProductUpdateResponse,
@@ -77,6 +79,79 @@ export class WorkspaceService extends APIService {
 
   async inviteWorkspace(workspaceSlug: string, data: IWorkspaceBulkInviteFormData): Promise<any> {
     return this.post(`/api/workspaces/${workspaceSlug}/invitations/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async getWorkspaceInviteLinks(workspaceSlug: string): Promise<IWorkspaceInviteLink[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/invite-links/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async createWorkspaceInviteLink(workspaceSlug: string, data: { role?: number } = {}): Promise<IWorkspaceInviteLink> {
+    return this.post(`/api/workspaces/${workspaceSlug}/invite-links/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async updateWorkspaceInviteLink(
+    workspaceSlug: string,
+    inviteLinkId: string,
+    data: Partial<Pick<IWorkspaceInviteLink, "role" | "is_active">>
+  ): Promise<IWorkspaceInviteLink> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/invite-links/${inviteLinkId}/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async deleteWorkspaceInviteLink(workspaceSlug: string, inviteLinkId: string): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/invite-links/${inviteLinkId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async getWorkspaceInviteLinkPublic(workspaceSlug: string, code: string): Promise<IWorkspaceInviteLinkPublic> {
+    return this.get(`/api/workspaces/${workspaceSlug}/invite-links/${code}/`, { headers: {} })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async claimWorkspaceInviteLink(
+    workspaceSlug: string,
+    code: string,
+    email: string
+  ): Promise<IWorkspaceMemberInvitation> {
+    return this.post(
+      `/api/workspaces/${workspaceSlug}/invite-links/${code}/claim/`,
+      { email },
+      {
+        headers: {},
+      }
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async joinWorkspaceViaInviteLink(
+    workspaceSlug: string,
+    code: string
+  ): Promise<{ message: string; workspace_slug: string }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/invite-links/${code}/join/`, {})
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -155,6 +230,14 @@ export class WorkspaceService extends APIService {
 
   async deleteWorkspaceMember(workspaceSlug: string, memberId: string): Promise<any> {
     return this.delete(`/api/workspaces/${workspaceSlug}/members/${memberId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async permanentDeleteWorkspaceMember(workspaceSlug: string, memberId: string): Promise<any> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/members/${memberId}/permanent/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

@@ -65,6 +65,12 @@ from .workspace.invite import (
     WorkspaceJoinEndpoint,
     UserWorkspaceInvitationsViewSet,
 )
+from .workspace.invite_link import (
+    WorkspaceInviteLinkViewSet,
+    WorkspaceInviteLinkPublicEndpoint,
+    WorkspaceInviteLinkClaimEndpoint,
+    WorkspaceInviteLinkJoinEndpoint,
+)
 from .workspace.label import WorkspaceLabelsEndpoint
 from .workspace.state import WorkspaceStatesEndpoint
 from .workspace.user import (

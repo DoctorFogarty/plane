@@ -63,6 +63,30 @@ export interface IWorkspaceBulkInviteFormData {
   emails: { email: string; role: TUserPermissions }[];
 }
 
+export interface IWorkspaceInviteLink {
+  id: string;
+  workspace: string;
+  anchor: string;
+  role: TUserPermissions | EUserWorkspaceRoles;
+  is_active: boolean;
+  invite_link: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface IWorkspaceInviteLinkPublic {
+  id: string;
+  workspace: {
+    id: string;
+    logo_url: string;
+    name: string;
+    slug: string;
+  };
+  role: TUserPermissions | EUserWorkspaceRoles;
+  is_active: boolean;
+}
+
 export type Properties = {
   assignee: boolean;
   start_date: boolean;

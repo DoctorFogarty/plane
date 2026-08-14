@@ -45,6 +45,21 @@
         "pending_invites": "Invitații în așteptare",
         "invitations_sent_successfully": "Invitațiile au fost trimise cu succes",
         "leave_confirmation": "Ești sigur că vrei să părăsești spațiul de lucru? Nu vei mai avea acces la acest spațiu. Această acțiune este ireversibilă.",
+        "invite_link": {
+          "title": "Link de invitație",
+          "description": "Distribuie acest link pentru ca oamenii să se poată alătura acestui spațiu de lucru. Oricine are linkul se poate înregistra și deveni membru.",
+          "enable": "Activează linkul de invitație",
+          "disable": "Dezactivează linkul",
+          "copy": "Copiază linkul",
+          "copied": "Linkul de invitație a fost copiat în clipboard.",
+          "regenerate": "Regenerează",
+          "regenerate_confirmation": "Regenerarea va invalida linkul curent. Continui?",
+          "role": "Rol implicit",
+          "enabled_success": "Linkul de invitație a fost activat.",
+          "disabled_success": "Linkul de invitație a fost dezactivat.",
+          "regenerated_success": "Linkul de invitație a fost regenerat.",
+          "role_updated": "Rolul implicit a fost actualizat."
+        },
         "details": {
           "full_name": "Nume complet",
           "display_name": "Nume afișat",
@@ -63,7 +78,15 @@
             "required": "Avem nevoie de o adresă de email pentru a trimite invitația.",
             "invalid": "Adresa de email este invalidă"
           }
-        }
+        },
+        "leave_title": "Părăsiți workspace-ul?",
+        "remove_title": "Eliminați {name}?",
+        "remove_confirmation": "Sigur doriți să îl eliminați pe {name}? Persoana va fi suspendată și va pierde accesul la acest workspace. Ulterior o puteți șterge definitiv sau o puteți reinvida pentru a restabili accesul.",
+        "delete_title": "Ștergeți definitiv {name}?",
+        "delete_confirmation": "Sigur doriți să îl ștergeți definitiv pe {name} din acest workspace? Persoana va fi eliminată din lista de membri. Dacă este necesar, o puteți reinvida mai târziu.",
+        "cancel_invite_title": "Eliminați {name}?",
+        "cancel_invite_confirmation": "Sigur doriți să eliminați invitația pentru {name}? Această acțiune nu poate fi anulată.",
+        "delete_member": "Șterge"
       },
       "billing_and_plans": {
         "heading": "Facturare și abonamente",

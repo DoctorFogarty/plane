@@ -43,6 +43,9 @@ export const coreRoutes: RouteConfigEntry[] = [
     route("workspace-invitations", "./(all)/workspace-invitations/page.tsx"),
   ]),
 
+  // Workspace join via shareable invite link
+  layout("./(all)/workspace-join/layout.tsx", [route("workspace-join", "./(all)/workspace-join/page.tsx")]),
+
   // ========================================================================
   // ALL APP ROUTES
   // ========================================================================

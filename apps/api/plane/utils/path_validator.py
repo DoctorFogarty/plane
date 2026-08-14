@@ -103,7 +103,11 @@ def get_allowed_hosts() -> list[str]:
 
 
 def validate_next_path(next_path: str) -> str:
-    """Validates that next_path is a safe relative path for redirection."""
+    """Validates that next_path is a safe relative path for redirection.
+
+    Query strings are preserved so invite links like
+    ``/workspace-join/?slug=…&code=…`` survive auth redirects.
+    """
     # Browsers interpret backslashes as forward slashes. Remove all backslashes.
     if not next_path or not isinstance(next_path, str):
         return ""
@@ -115,23 +119,31 @@ def validate_next_path(next_path: str) -> str:
     next_path = next_path.replace("\\", "")
     parsed_url = urlparse(next_path)
 
-    # Block absolute URLs or anything with scheme/netloc
+    # Block absolute URLs or anything with scheme/netloc — keep only path (+ query)
+    path = parsed_url.path
+    query = parsed_url.query
+
     if parsed_url.scheme or parsed_url.netloc:
-        next_path = parsed_url.path  # Extract only the path component
+        # Absolute URL: use path/query only
+        pass
+    elif not path and next_path.startswith("/"):
+        # urlparse can leave path empty for odd inputs; fall back to raw path segment
+        path = next_path.split("?", 1)[0]
 
     # Must start with a forward slash and not be empty
-    if not next_path or not next_path.startswith("/"):
+    if not path or not path.startswith("/"):
         return ""
 
     # Prevent path traversal
-    if ".." in next_path:
+    if ".." in path or (query and ".." in query):
         return ""
 
-    # Additional security checks
-    if _contains_suspicious_patterns(next_path):
+    # Additional security checks on path and query
+    candidate = f"{path}?{query}" if query else path
+    if _contains_suspicious_patterns(candidate):
         return ""
 
-    return next_path
+    return candidate
 
 
 def get_safe_redirect_url(base_url: str, next_path: str = "", params: dict = {}) -> str:
@@ -153,23 +165,16 @@ def get_safe_redirect_url(base_url: str, next_path: str = "", params: dict = {})
     # Add the next path to the parameters
     base_url = base_url.rstrip("/")
 
-    # Prepare the query parameters
-    query_parts = []
-    encoded_params = ""
-
-    # Add the next path to the parameters
+    # Prepare the query parameters — always encode so `?` / `&` in next_path
+    # are not interpreted as top-level query separators.
+    redirect_params = {}
     if validated_path:
-        query_parts.append(f"next_path={validated_path}")
-
-    # Add additional parameters
+        redirect_params["next_path"] = validated_path
     if params:
-        encoded_params = urlencode(params)
-        query_parts.append(encoded_params)
+        redirect_params.update(params)
 
-    # Construct the url query string
-    if query_parts:
-        query_string = "&".join(query_parts)
-        url = f"{base_url}/?{query_string}"
+    if redirect_params:
+        url = f"{base_url}/?{urlencode(redirect_params)}"
     else:
         url = base_url
 
@@ -178,4 +183,5 @@ def get_safe_redirect_url(base_url: str, next_path: str = "", params: dict = {})
         return url
 
     # Return the base URL if the URL is not allowed
-    return base_url + (f"?{encoded_params}" if encoded_params else "")
+    fallback_params = {k: v for k, v in redirect_params.items() if k != "next_path"}
+    return base_url + (f"/?{urlencode(fallback_params)}" if fallback_params else "")

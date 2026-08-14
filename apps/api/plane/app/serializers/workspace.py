@@ -14,6 +14,7 @@ from plane.db.models import (
     Workspace,
     WorkspaceMember,
     WorkspaceMemberInvite,
+    WorkspaceInviteLink,
     WorkspaceTheme,
     WorkspaceUserProperties,
     WorkspaceUserLink,
@@ -160,6 +161,55 @@ class WorkSpaceMemberInvitePublicSerializer(BaseSerializer):
             "created_at",
             "updated_at",
             "created_by",
+        ]
+        read_only_fields = fields
+
+
+class WorkspaceInviteLinkSerializer(BaseSerializer):
+    invite_link = serializers.SerializerMethodField()
+
+    def get_invite_link(self, obj):
+        return f"/workspace-join/?slug={obj.workspace.slug}&code={obj.anchor}"
+
+    def validate_role(self, value):
+        if int(value) not in (5, 15):
+            raise serializers.ValidationError("Invite link role must be Guest (5) or Member (15)")
+        return int(value)
+
+    class Meta:
+        model = WorkspaceInviteLink
+        fields = [
+            "id",
+            "workspace",
+            "anchor",
+            "role",
+            "is_active",
+            "invite_link",
+            "created_at",
+            "updated_at",
+            "created_by",
+        ]
+        read_only_fields = [
+            "id",
+            "workspace",
+            "anchor",
+            "invite_link",
+            "created_at",
+            "updated_at",
+            "created_by",
+        ]
+
+
+class WorkspaceInviteLinkPublicSerializer(BaseSerializer):
+    workspace = WorkspaceLiteSerializer(read_only=True)
+
+    class Meta:
+        model = WorkspaceInviteLink
+        fields = [
+            "id",
+            "workspace",
+            "role",
+            "is_active",
         ]
         read_only_fields = fields
 

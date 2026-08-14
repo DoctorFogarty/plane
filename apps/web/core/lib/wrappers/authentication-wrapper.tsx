@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow */
 
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
@@ -46,6 +47,21 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     revalidateOnFocus: false,
     shouldRetryOnError: false,
   });
+
+  const getLoginRedirectUrl = (): string => {
+    const search = searchParams.toString();
+    const nextPath = `${pathname}${search ? `?${search}` : ""}`;
+    const params = new URLSearchParams();
+    if (nextPath && nextPath !== "/") {
+      params.set("next_path", nextPath);
+    }
+    const inviteCode = searchParams.get("code") || searchParams.get("invite_code");
+    const workspaceSlug = searchParams.get("slug") || searchParams.get("workspace_slug");
+    if (inviteCode) params.set("invite_code", inviteCode);
+    if (workspaceSlug) params.set("workspace_slug", workspaceSlug);
+    const query = params.toString();
+    return query ? `/?${query}` : "/";
+  };
 
   const isUserOnboard =
     currentUserProfile?.is_onboarded ||
@@ -103,7 +119,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   if (pageType === EPageTypes.ONBOARDING) {
     if (!currentUser?.id) {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(getLoginRedirectUrl());
       return <></>;
     } else {
       if (currentUser && currentUserProfile?.id && isUserOnboard) {
@@ -116,7 +132,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   if (pageType === EPageTypes.SET_PASSWORD) {
     if (!currentUser?.id) {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(getLoginRedirectUrl());
       return <></>;
     } else {
       if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
@@ -135,7 +151,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
         return <></>;
       }
     } else {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      router.push(getLoginRedirectUrl());
       return <></>;
     }
   }

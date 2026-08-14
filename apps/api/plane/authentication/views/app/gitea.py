@@ -21,6 +21,7 @@ from plane.authentication.adapter.error import (
     AUTHENTICATION_ERROR_CODES,
 )
 from plane.utils.path_validator import validate_next_path
+from plane.authentication.utils.invite_session import store_workspace_invite_session
 
 
 class GiteaOauthInitiateEndpoint(View):
@@ -30,6 +31,7 @@ class GiteaOauthInitiateEndpoint(View):
         next_path = request.GET.get("next_path")
         if next_path:
             request.session["next_path"] = str(validate_next_path(next_path))
+        store_workspace_invite_session(request)
 
         # Check instance configuration
         instance = Instance.objects.first()

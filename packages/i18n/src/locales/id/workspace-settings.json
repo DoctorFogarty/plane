@@ -45,6 +45,21 @@
         "pending_invites": "Undangan yang tertunda",
         "invitations_sent_successfully": "Undangan berhasil dikirim",
         "leave_confirmation": "Apakah Anda yakin ingin meninggalkan ruang kerja? Anda tidak akan lagi memiliki akses ke ruang kerja ini. Tindakan ini tidak dapat dibatalkan.",
+        "invite_link": {
+          "title": "Tautan undangan",
+          "description": "Bagikan tautan ini agar orang dapat bergabung ke ruang kerja ini. Siapa pun yang memiliki tautan dapat mendaftar dan menjadi anggota.",
+          "enable": "Aktifkan tautan undangan",
+          "disable": "Nonaktifkan tautan",
+          "copy": "Salin tautan",
+          "copied": "Tautan undangan disalin ke clipboard.",
+          "regenerate": "Buat ulang",
+          "regenerate_confirmation": "Membuat ulang akan membatalkan tautan saat ini. Lanjutkan?",
+          "role": "Peran default",
+          "enabled_success": "Tautan undangan diaktifkan.",
+          "disabled_success": "Tautan undangan dinonaktifkan.",
+          "regenerated_success": "Tautan undangan dibuat ulang.",
+          "role_updated": "Peran default diperbarui."
+        },
         "details": {
           "full_name": "Nama lengkap",
           "display_name": "Nama tampilan",
@@ -63,7 +78,15 @@
             "required": "Kami perlu alamat email untuk mengundang mereka.",
             "invalid": "Email tidak valid"
           }
-        }
+        },
+        "leave_title": "Keluar dari workspace?",
+        "remove_title": "Hapus {name}?",
+        "remove_confirmation": "Yakin ingin menghapus {name}? Mereka akan ditangguhkan dan kehilangan akses ke workspace ini. Anda dapat menghapusnya secara permanen nanti, atau mengundang ulang untuk memulihkan akses.",
+        "delete_title": "Hapus permanen {name}?",
+        "delete_confirmation": "Yakin ingin menghapus {name} secara permanen dari workspace ini? Mereka akan dihapus dari daftar anggota. Anda dapat mengundang ulang nanti jika diperlukan.",
+        "cancel_invite_title": "Hapus {name}?",
+        "cancel_invite_confirmation": "Yakin ingin menghapus undangan untuk {name}? Tindakan ini tidak dapat dibatalkan.",
+        "delete_member": "Hapus"
       },
       "billing_and_plans": {
         "heading": "Penagihan & Rencana",

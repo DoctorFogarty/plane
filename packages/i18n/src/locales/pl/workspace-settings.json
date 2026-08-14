@@ -45,6 +45,21 @@
         "pending_invites": "Oczekujące zaproszenia",
         "invitations_sent_successfully": "Zaproszenia wysłano pomyślnie",
         "leave_confirmation": "Czy na pewno chcesz opuścić przestrzeń? Stracisz dostęp. Ta akcja jest nieodwracalna.",
+        "invite_link": {
+          "title": "Link zaproszenia",
+          "description": "Udostępnij ten link, aby osoby mogły dołączyć do tej przestrzeni roboczej. Każdy posiadający link może się zarejestrować i zostać członkiem.",
+          "enable": "Włącz link zaproszenia",
+          "disable": "Wyłącz link",
+          "copy": "Kopiuj link",
+          "copied": "Link zaproszenia skopiowano do schowka.",
+          "regenerate": "Wygeneruj ponownie",
+          "regenerate_confirmation": "Ponowne wygenerowanie unieważni bieżący link. Kontynuować?",
+          "role": "Domyślna rola",
+          "enabled_success": "Włączono link zaproszenia.",
+          "disabled_success": "Wyłączono link zaproszenia.",
+          "regenerated_success": "Wygenerowano ponownie link zaproszenia.",
+          "role_updated": "Zaktualizowano domyślną rolę."
+        },
         "details": {
           "full_name": "Imię i nazwisko",
           "display_name": "Nazwa wyświetlana",
@@ -63,7 +78,15 @@
             "required": "Wymagany jest adres e-mail.",
             "invalid": "E-mail jest nieprawidłowy"
           }
-        }
+        },
+        "leave_title": "Opuścić workspace?",
+        "remove_title": "Usunąć {name}?",
+        "remove_confirmation": "Czy na pewno chcesz usunąć {name}? Osoba zostanie zawieszona i straci dostęp do tego workspace. Później możesz trwale ją usunąć albo zaprosić ponownie, aby przywrócić dostęp.",
+        "delete_title": "Usunąć trwale {name}?",
+        "delete_confirmation": "Czy na pewno chcesz trwale usunąć {name} z tego workspace? Osoba zniknie z listy członków. W razie potrzeby możesz zaprosić ją ponownie później.",
+        "cancel_invite_title": "Usunąć {name}?",
+        "cancel_invite_confirmation": "Czy na pewno chcesz usunąć zaproszenie dla {name}? Tej operacji nie można cofnąć.",
+        "delete_member": "Usuń"
       },
       "billing_and_plans": {
         "heading": "Rozliczenia i plany",

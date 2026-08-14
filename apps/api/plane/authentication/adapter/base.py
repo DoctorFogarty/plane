@@ -22,14 +22,37 @@ from zxcvbn import zxcvbn
 from plane.bgtasks.user_activation_email_task import user_activation_email
 
 # Module imports
-from plane.db.models import FileAsset, Profile, User, WorkspaceMemberInvite
+from plane.db.models import FileAsset, Profile, User, WorkspaceMemberInvite, WorkspaceInviteLink
 from plane.license.utils.instance_value import get_configuration_value
 from plane.settings.storage import S3Storage
 from plane.utils.exception_logger import log_exception
 from plane.utils.host import base_host
 from plane.utils.ip_address import get_client_ip
+from plane.utils.timezone_converter import resolve_signup_timezone
 
 from .error import AUTHENTICATION_ERROR_CODES, AuthenticationException
+
+
+def parse_workspace_invite_link_from_next_path(next_path):
+    """Extract workspace slug and invite code from a /workspace-join/ next_path."""
+    if not next_path:
+        return None, None
+
+    path = str(next_path).strip()
+    # Accept absolute or relative paths
+    if "workspace-join" not in path:
+        return None, None
+
+    try:
+        from urllib.parse import urlparse, parse_qs
+
+        parsed = urlparse(path if "://" in path else f"https://placeholder.local{path if path.startswith('/') else '/' + path}")
+        params = parse_qs(parsed.query)
+        slug = (params.get("slug") or [None])[0]
+        code = (params.get("code") or [None])[0]
+        return slug, code
+    except Exception:
+        return None, None
 
 
 class Adapter:
@@ -99,6 +122,82 @@ class Adapter:
             )
         return
 
+    def __resolve_workspace_invite_link(self):
+        """Resolve an active WorkspaceInviteLink from the current request.
+
+        Invite context can arrive via POST/GET (password/magic forms), session
+        (OAuth round-trip), or a ``next_path`` that points at ``/workspace-join/``.
+        """
+        request = self.request
+        code = (
+            request.POST.get("invite_code")
+            or request.GET.get("invite_code")
+            or request.session.get("invite_code")
+        )
+        slug = (
+            request.POST.get("workspace_slug")
+            or request.GET.get("workspace_slug")
+            or request.session.get("workspace_slug")
+        )
+
+        if not code or not slug:
+            next_path = (
+                request.POST.get("next_path")
+                or request.GET.get("next_path")
+                or request.session.get("next_path")
+            )
+            parsed_slug, parsed_code = parse_workspace_invite_link_from_next_path(next_path)
+            slug = slug or parsed_slug
+            code = code or parsed_code
+
+        if not code or not slug:
+            return None
+
+        return (
+            WorkspaceInviteLink.objects.filter(
+                workspace__slug=slug,
+                anchor=code,
+                is_active=True,
+            )
+            .select_related("workspace")
+            .first()
+        )
+
+    def __ensure_invite_from_link(self, email, invite_link):
+        """Create or refresh a WorkspaceMemberInvite from a shareable invite link.
+
+        Marks the invite accepted so ``process_workspace_project_invitations``
+        joins the user to the workspace after signup.
+        """
+        from datetime import datetime
+
+        import jwt
+        from django.conf import settings
+        from django.utils import timezone
+
+        invite = WorkspaceMemberInvite.objects.filter(workspace=invite_link.workspace, email=email).first()
+        if invite:
+            if not invite.accepted:
+                invite.accepted = True
+                invite.responded_at = timezone.now()
+                invite.role = invite_link.role
+                invite.save(update_fields=["accepted", "responded_at", "role", "updated_at"])
+            return invite
+
+        return WorkspaceMemberInvite.objects.create(
+            email=email,
+            workspace=invite_link.workspace,
+            token=jwt.encode(
+                {"email": email, "timestamp": datetime.now().timestamp()},
+                settings.SECRET_KEY,
+                algorithm="HS256",
+            ),
+            role=invite_link.role,
+            accepted=True,
+            responded_at=timezone.now(),
+            created_by=invite_link.created_by,
+        )
+
     def __check_signup(self, email):
         """Check if sign up is enabled or not and raise exception if not enabled"""
 
@@ -107,17 +206,25 @@ class Adapter:
             {"key": "ENABLE_SIGNUP", "default": os.environ.get("ENABLE_SIGNUP", "1")}
         ])
 
-        # Check if sign up is disabled and invite is present or not
-        if ENABLE_SIGNUP == "0" and not WorkspaceMemberInvite.objects.filter(email=email).exists():
-            self.logger.warning("Sign up is disabled and invite is not present")
-            # Raise exception
-            raise AuthenticationException(
-                error_code=AUTHENTICATION_ERROR_CODES["SIGNUP_DISABLED"],
-                error_message="SIGNUP_DISABLED",
-                payload={"email": email},
-            )
+        if ENABLE_SIGNUP != "0":
+            return True
 
-        return True
+        # Per-email workspace invite unlocks signup
+        if WorkspaceMemberInvite.objects.filter(email=email).exists():
+            return True
+
+        # Shareable workspace invite link also unlocks signup (invite-only instances)
+        invite_link = self.__resolve_workspace_invite_link()
+        if invite_link:
+            self.__ensure_invite_from_link(email, invite_link)
+            return True
+
+        self.logger.warning("Sign up is disabled and invite is not present")
+        raise AuthenticationException(
+            error_code=AUTHENTICATION_ERROR_CODES["SIGNUP_DISABLED"],
+            error_message="SIGNUP_DISABLED",
+            payload={"email": email},
+        )
 
     def get_avatar_download_headers(self):
         return {}
@@ -372,6 +479,7 @@ class Adapter:
             last_name = self.user_data.get("user", {}).get("last_name", "")
             user.first_name = first_name if first_name else ""
             user.last_name = last_name if last_name else ""
+            user.user_timezone = resolve_signup_timezone(self.request)
 
             user.save()
 

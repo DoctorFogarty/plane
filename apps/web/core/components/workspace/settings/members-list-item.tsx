@@ -29,19 +29,18 @@ type Props = {
 
 export const WorkspaceMembersListItem = observer(function WorkspaceMembersListItem(props: Props) {
   const { memberDetails } = props;
-  const { columns, workspaceSlug, removeMemberModal, setRemoveMemberModal } = useMemberColumns();
+  const { columns, workspaceSlug, memberActionModal, setMemberActionModal } = useMemberColumns();
   // router
   const router = useAppRouter();
   // store hooks
   const { data: currentUser } = useUser();
   const {
-    workspace: { removeMemberFromWorkspace },
+    workspace: { removeMemberFromWorkspace, deleteMemberFromWorkspace },
   } = useMember();
   const { leaveWorkspace } = useUserPermissions();
   const { getWorkspaceRedirectionUrl } = useWorkspace();
   const { fetchCurrentUserSettings } = useUserSettings();
   const { t } = useTranslation();
-  // derived values
 
   const handleLeaveWorkspace = async () => {
     if (!workspaceSlug || !currentUser) return;
@@ -75,32 +74,43 @@ export const WorkspaceMembersListItem = observer(function WorkspaceMembersListIt
     }
   };
 
-  const handleRemove = async (memberId: string) => {
-    if (memberId === currentUser?.id) await handleLeaveWorkspace();
-    else await handleRemoveMember(memberId);
+  const handleDeleteMember = async (memberId: string) => {
+    if (!workspaceSlug || !memberId) return;
+
+    try {
+      await deleteMemberFromWorkspace(workspaceSlug.toString(), memberId);
+    } catch (err: unknown) {
+      const error = err as { error?: string };
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: error?.error || t("something_went_wrong_please_try_again"),
+      });
+    }
   };
 
-  // is the member current logged in user
-  // const isCurrentUser = memberDetails?.member.id === currentUser?.id;
-  // is the current logged in user admin
-  // role change access-
-  // 1. user cannot change their own role
-  // 2. only admin or member can change role
-  // 3. user cannot change role of higher role
+  const handleMemberAction = async () => {
+    if (!memberActionModal) return;
+    const memberId = memberActionModal.rowData.member.id;
+    if (memberActionModal.variant === "leave") await handleLeaveWorkspace();
+    else if (memberActionModal.variant === "delete") await handleDeleteMember(memberId);
+    else await handleRemoveMember(memberId);
+  };
 
   if (isEmpty(columns)) return <MembersLayoutLoader />;
 
   return (
     <div className="grid border-t border-subtle">
-      {removeMemberModal && (
+      {memberActionModal && (
         <ConfirmWorkspaceMemberRemove
-          isOpen={removeMemberModal.member.id.length > 0}
-          onClose={() => setRemoveMemberModal(null)}
+          isOpen={memberActionModal.rowData.member.id.length > 0}
+          onClose={() => setMemberActionModal(null)}
           userDetails={{
-            id: removeMemberModal.member.id,
-            display_name: removeMemberModal.member.display_name || "",
+            id: memberActionModal.rowData.member.id,
+            display_name: memberActionModal.rowData.member.display_name || "",
           }}
-          onSubmit={() => handleRemove(removeMemberModal.member.id)}
+          variant={memberActionModal.variant}
+          onSubmit={handleMemberAction}
         />
       )}
       <Table<RowData>

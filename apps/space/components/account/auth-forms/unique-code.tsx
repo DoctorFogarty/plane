@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, jsx-a11y/no-autofocus */
 
 import React, { useEffect, useState } from "react";
 import { CircleCheck, XCircle } from "lucide-react";
@@ -11,6 +12,7 @@ import { API_BASE_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
 import { Input, Spinner } from "@plane/ui";
+import { stampBrowserTimezoneOnForm } from "@/helpers/browser-timezone";
 // hooks
 import useTimer from "@/hooks/use-timer";
 // types
@@ -79,10 +81,14 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
       className="mt-5 space-y-4"
       method="POST"
       action={`${API_BASE_URL}/auth/spaces/${mode === EAuthModes.SIGN_IN ? "magic-sign-in" : "magic-sign-up"}/`}
-      onSubmit={() => setIsSubmitting(true)}
+      onSubmit={(event) => {
+        stampBrowserTimezoneOnForm(event.currentTarget);
+        setIsSubmitting(true);
+      }}
       onError={() => setIsSubmitting(false)}
     >
       <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
+      <input type="hidden" name="user_timezone" />
       <input type="hidden" value={uniqueCodeFormData.email} name="email" />
       <input type="hidden" value={nextPath} name="next_path" />
       <div className="space-y-1">

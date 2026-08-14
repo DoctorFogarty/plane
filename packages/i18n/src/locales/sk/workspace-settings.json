@@ -45,6 +45,21 @@
         "pending_invites": "Čakajúce pozvánky",
         "invitations_sent_successfully": "Pozvánky boli úspešne odoslané",
         "leave_confirmation": "Naozaj chcete opustiť priestor? Stratíte prístup. Akcia je nevratná.",
+        "invite_link": {
+          "title": "Pozvánkový odkaz",
+          "description": "Zdieľajte tento odkaz, aby sa ľudia mohli pripojiť k tomuto pracovnému priestoru. Ktokoľvek s odkazom sa môže zaregistrovať a stať sa členom.",
+          "enable": "Povoliť pozvánkový odkaz",
+          "disable": "Deaktivovať odkaz",
+          "copy": "Kopírovať odkaz",
+          "copied": "Pozvánkový odkaz bol skopírovaný do schránky.",
+          "regenerate": "Obnoviť",
+          "regenerate_confirmation": "Obnovenie zneplatní aktuálny odkaz. Pokračovať?",
+          "role": "Predvolená rola",
+          "enabled_success": "Pozvánkový odkaz bol povolený.",
+          "disabled_success": "Pozvánkový odkaz bol deaktivovaný.",
+          "regenerated_success": "Pozvánkový odkaz bol obnovený.",
+          "role_updated": "Predvolená rola bola aktualizovaná."
+        },
         "details": {
           "full_name": "Celé meno",
           "display_name": "Zobrazované meno",
@@ -63,7 +78,15 @@
             "required": "Vyžaduje sa e-mailová adresa.",
             "invalid": "E-mail je neplatný"
           }
-        }
+        },
+        "leave_title": "Opustiť workspace?",
+        "remove_title": "Odstrániť {name}?",
+        "remove_confirmation": "Naozaj chcete odstrániť {name}? Člen bude pozastavený a stratí prístup k tomuto workspace. Neskôr ho môžete natrvalo odstrániť alebo znova pozvať a obnoviť prístup.",
+        "delete_title": "Natrvalo odstrániť {name}?",
+        "delete_confirmation": "Naozaj chcete natrvalo odstrániť {name} z tohto workspace? Člen bude odstránený zo zoznamu. V prípade potreby ho môžete neskôr znova pozvať.",
+        "cancel_invite_title": "Odstrániť {name}?",
+        "cancel_invite_confirmation": "Naozaj chcete odstrániť pozvánku pre {name}? Túto akciu nie je možné vrátiť späť.",
+        "delete_member": "Odstrániť"
       },
       "billing_and_plans": {
         "heading": "Fakturácia a plány",

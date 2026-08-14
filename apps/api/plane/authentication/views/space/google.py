@@ -20,12 +20,14 @@ from plane.authentication.adapter.error import (
     AUTHENTICATION_ERROR_CODES,
 )
 from plane.utils.path_validator import get_safe_redirect_url, validate_next_path, get_allowed_hosts
+from plane.authentication.utils.invite_session import store_user_timezone_session
 
 
 class GoogleOauthInitiateSpaceEndpoint(View):
     def get(self, request):
         request.session["host"] = base_host(request=request, is_space=True)
         next_path = request.GET.get("next_path")
+        store_user_timezone_session(request)
 
         # Check instance configuration
         instance = Instance.objects.first()

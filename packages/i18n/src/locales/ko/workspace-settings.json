@@ -45,6 +45,21 @@
         "pending_invites": "보류 중인 초대",
         "invitations_sent_successfully": "초대가 성공적으로 전송되었습니다",
         "leave_confirmation": "작업 공간을 떠나시겠습니까? 더 이상 이 작업 공간에 접근할 수 없습니다. 이 작업은 되돌릴 수 없습니다.",
+        "invite_link": {
+          "title": "초대 링크",
+          "description": "이 링크를 공유하면 사람들이 이 워크스페이스에 참여할 수 있습니다. 링크가 있는 누구나 가입하여 멤버가 될 수 있습니다.",
+          "enable": "초대 링크 사용",
+          "disable": "링크 비활성화",
+          "copy": "링크 복사",
+          "copied": "초대 링크가 클립보드에 복사되었습니다.",
+          "regenerate": "다시 생성",
+          "regenerate_confirmation": "다시 생성하면 현재 링크가 무효화됩니다. 계속할까요?",
+          "role": "기본 역할",
+          "enabled_success": "초대 링크가 활성화되었습니다.",
+          "disabled_success": "초대 링크가 비활성화되었습니다.",
+          "regenerated_success": "초대 링크가 다시 생성되었습니다.",
+          "role_updated": "기본 역할이 업데이트되었습니다."
+        },
         "details": {
           "full_name": "전체 이름",
           "display_name": "표시 이름",
@@ -63,7 +78,15 @@
             "required": "초대하려면 이메일 주소가 필요합니다.",
             "invalid": "이메일이 유효하지 않습니다"
           }
-        }
+        },
+        "leave_title": "워크스페이스를 나가시겠습니까?",
+        "remove_title": "{name}님을 제거할까요?",
+        "remove_confirmation": "{name}님을 정말 제거할까요? 해당 멤버는 정지되며 이 워크스페이스에 대한 접근 권한을 잃습니다. 나중에 영구 삭제하거나 다시 초대하여 접근 권한을 복구할 수 있습니다.",
+        "delete_title": "{name}님을 삭제할까요?",
+        "delete_confirmation": "{name}님을 이 워크스페이스에서 영구 삭제할까요? 멤버 목록에서 제거됩니다. 필요하면 나중에 다시 초대할 수 있습니다.",
+        "cancel_invite_title": "{name}을(를) 제거할까요?",
+        "cancel_invite_confirmation": "{name}에 대한 초대를 정말 제거할까요? 이 작업은 되돌릴 수 없습니다.",
+        "delete_member": "삭제"
       },
       "billing_and_plans": {
         "heading": "청구 및 플랜",

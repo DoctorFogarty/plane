@@ -45,6 +45,21 @@
         "pending_invites": "Invitations en attente",
         "invitations_sent_successfully": "Invitations envoyées avec succès",
         "leave_confirmation": "Êtes-vous sûr de vouloir quitter l’espace de travail ? Vous n’aurez plus accès à cet espace de travail. Cette action ne peut pas être annulée.",
+        "invite_link": {
+          "title": "Lien d'invitation",
+          "description": "Partagez ce lien pour permettre aux personnes de rejoindre cet espace de travail. Quiconque dispose du lien peut s'inscrire et devenir membre.",
+          "enable": "Activer le lien d'invitation",
+          "disable": "Désactiver le lien",
+          "copy": "Copier le lien",
+          "copied": "Lien d'invitation copié dans le presse-papiers.",
+          "regenerate": "Régénérer",
+          "regenerate_confirmation": "La régénération invalidera le lien actuel. Continuer ?",
+          "role": "Rôle par défaut",
+          "enabled_success": "Lien d'invitation activé.",
+          "disabled_success": "Lien d'invitation désactivé.",
+          "regenerated_success": "Lien d'invitation régénéré.",
+          "role_updated": "Rôle par défaut mis à jour."
+        },
         "details": {
           "full_name": "Nom complet",
           "display_name": "Nom d’affichage",
@@ -63,7 +78,15 @@
             "required": "Nous avons besoin d’une adresse e-mail pour les inviter.",
             "invalid": "L’e-mail est invalide"
           }
-        }
+        },
+        "leave_title": "Quitter le workspace ?",
+        "remove_title": "Retirer {name} ?",
+        "remove_confirmation": "Voulez-vous vraiment retirer {name} ? Cette personne sera suspendue et perdra l’accès à ce workspace. Vous pourrez la supprimer définitivement plus tard, ou la réinviter pour rétablir l’accès.",
+        "delete_title": "Supprimer {name} ?",
+        "delete_confirmation": "Voulez-vous vraiment supprimer définitivement {name} de ce workspace ? Cette personne sera retirée de la liste des membres. Vous pourrez la réinviter plus tard si nécessaire.",
+        "cancel_invite_title": "Retirer {name} ?",
+        "cancel_invite_confirmation": "Voulez-vous vraiment retirer l’invitation de {name} ? Cette action est irréversible.",
+        "delete_member": "Supprimer"
       },
       "billing_and_plans": {
         "heading": "Facturation & Plans",

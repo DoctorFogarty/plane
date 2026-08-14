@@ -45,6 +45,21 @@
         "pending_invites": "保留中の招待",
         "invitations_sent_successfully": "招待が正常に送信されました",
         "leave_confirmation": "ワークスペースから退出してもよろしいですか？このワークスペースにアクセスできなくなります。この操作は取り消せません。",
+        "invite_link": {
+          "title": "招待リンク",
+          "description": "このリンクを共有すると、このワークスペースに参加できます。リンクを持っている人は誰でもサインアップしてメンバーになれます。",
+          "enable": "招待リンクを有効にする",
+          "disable": "リンクを無効にする",
+          "copy": "リンクをコピー",
+          "copied": "招待リンクをクリップボードにコピーしました。",
+          "regenerate": "再生成",
+          "regenerate_confirmation": "再生成すると現在のリンクは無効になります。続行しますか？",
+          "role": "デフォルトのロール",
+          "enabled_success": "招待リンクを有効にしました。",
+          "disabled_success": "招待リンクを無効にしました。",
+          "regenerated_success": "招待リンクを再生成しました。",
+          "role_updated": "デフォルトのロールを更新しました。"
+        },
         "details": {
           "full_name": "フルネーム",
           "display_name": "表示名",
@@ -63,7 +78,15 @@
             "required": "招待するにはメールアドレスが必要です。",
             "invalid": "メールアドレスが無効です"
           }
-        }
+        },
+        "leave_title": "ワークスペースを退出しますか？",
+        "remove_title": "{name} を削除しますか？",
+        "remove_confirmation": "{name} を削除してもよろしいですか？このメンバーは停止され、このワークスペースへのアクセスを失います。後から完全に削除することも、再招待してアクセスを復元することもできます。",
+        "delete_title": "{name} を完全に削除しますか？",
+        "delete_confirmation": "{name} をこのワークスペースから完全に削除してもよろしいですか？メンバー一覧から削除されます。必要であれば後から再招待できます。",
+        "cancel_invite_title": "{name} を削除しますか？",
+        "cancel_invite_confirmation": "{name} への招待を削除してもよろしいですか？この操作は元に戻せません。",
+        "delete_member": "削除"
       },
       "billing_and_plans": {
         "heading": "請求とプラン",

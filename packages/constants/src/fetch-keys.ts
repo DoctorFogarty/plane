@@ -72,6 +72,7 @@ export const WORKSPACE_WORKFLOW_STATES = (workspaceSlug: string) =>
   `WORKSPACE_WORKFLOW_STATES_${workspaceSlug.toUpperCase()}`;
 
 export const WORKSPACE_INVITATION = (invitationId: string) => `WORKSPACE_INVITATION_${invitationId}`;
+export const WORKSPACE_INVITE_LINK = (slug: string, code: string) => `WORKSPACE_INVITE_LINK_${slug}_${code}`;
 
 export const WORKSPACE_MEMBER_ME_INFORMATION = (workspaceSlug: string) =>
   `WORKSPACE_MEMBER_ME_INFORMATION_${workspaceSlug.toUpperCase()}`;

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, promise/always-return */
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
@@ -42,6 +43,8 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
   // query params
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next_path");
+  const inviteCode = searchParams.get("invite_code") || undefined;
+  const workspaceSlug = searchParams.get("workspace_slug") || searchParams.get("slug") || undefined;
   // states
   const [isExistingEmail, setIsExistingEmail] = useState(false);
   // hooks
@@ -86,7 +89,13 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
     setErrorInfo(undefined);
     setEmail("");
     setAuthStep(EAuthSteps.EMAIL);
-    router.push(currentAuthMode === EAuthModes.SIGN_IN ? `/` : "/sign-up");
+    const params = new URLSearchParams();
+    if (nextPath) params.set("next_path", nextPath);
+    if (inviteCode) params.set("invite_code", inviteCode);
+    if (workspaceSlug) params.set("workspace_slug", workspaceSlug);
+    const query = params.toString();
+    const basePath = currentAuthMode === EAuthModes.SIGN_IN ? "/" : "/sign-up";
+    router.push(query ? `${basePath}?${query}` : basePath);
   };
 
   // generating the unique code
@@ -115,6 +124,8 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
         handleEmailClear={handleEmailClear}
         generateEmailUniqueCode={generateEmailUniqueCode}
         nextPath={nextPath || undefined}
+        inviteCode={inviteCode}
+        workspaceSlug={workspaceSlug}
       />
     );
   }
@@ -130,6 +141,8 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
           setAuthStep(step);
         }}
         nextPath={nextPath || undefined}
+        inviteCode={inviteCode}
+        workspaceSlug={workspaceSlug}
       />
     );
   }

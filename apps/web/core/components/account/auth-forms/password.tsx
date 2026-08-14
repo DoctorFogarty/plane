@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
@@ -21,6 +22,7 @@ import { ForgotPasswordPopover } from "@/components/account/auth-forms/forgot-pa
 // constants
 // helpers
 import { EAuthModes, EAuthSteps } from "@/helpers/authentication.helper";
+import { stampBrowserTimezoneOnForm } from "@/helpers/browser-timezone";
 // services
 import { AuthService } from "@/services/auth.service";
 
@@ -31,6 +33,8 @@ type Props = {
   handleEmailClear: () => void;
   handleAuthStep: (step: EAuthSteps) => void;
   nextPath: string | undefined;
+  inviteCode?: string;
+  workspaceSlug?: string;
 };
 
 type TPasswordFormValues = {
@@ -47,7 +51,8 @@ const defaultValues: TPasswordFormValues = {
 const authService = new AuthService();
 
 export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props) {
-  const { email, isSMTPConfigured, handleAuthStep, handleEmailClear, mode, nextPath } = props;
+  const { email, isSMTPConfigured, handleAuthStep, handleEmailClear, mode, nextPath, inviteCode, workspaceSlug } =
+    props;
   // plane imports
   const { t } = useTranslation();
   // ref
@@ -158,7 +163,10 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               : true;
           if (isPasswordValid) {
             setIsSubmitting(true);
-            if (formRef.current) formRef.current.submit(); // Manually submit the form if the condition is met
+            if (formRef.current) {
+              stampBrowserTimezoneOnForm(formRef.current);
+              formRef.current.submit();
+            }
           } else {
             setBannerMessage(true);
           }
@@ -168,8 +176,11 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         }}
       >
         <input type="hidden" name="csrfmiddlewaretoken" />
+        <input type="hidden" name="user_timezone" />
         <input type="hidden" value={passwordFormData.email} name="email" />
         {nextPath && <input type="hidden" value={nextPath} name="next_path" />}
+        {inviteCode && <input type="hidden" value={inviteCode} name="invite_code" />}
+        {workspaceSlug && <input type="hidden" value={workspaceSlug} name="workspace_slug" />}
         <div className="space-y-1">
           <label htmlFor="email" className="text-13 font-medium text-tertiary">
             {t("auth.common.email.label")}

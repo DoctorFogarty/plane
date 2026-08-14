@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable unicorn/consistent-function-scoping */
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { EUserPermissions, EUserPermissionsLevel, LOGIN_MEDIUM_LABELS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { renderFormattedDate } from "@plane/utils";
+import type { TConfirmWorkspaceMemberAction } from "@/components/workspace/confirm-workspace-member-remove";
 import { MemberHeaderColumn } from "@/components/project/member-header-column";
 import type { RowData } from "@/components/workspace/settings/member-columns";
 import { AccountTypeColumn, NameColumn } from "@/components/workspace/settings/member-columns";
@@ -16,9 +18,14 @@ import { useMember } from "@/hooks/store/use-member";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import type { IMemberFilters } from "@/store/member/utils";
 
+export type TMemberActionModal = {
+  rowData: RowData;
+  variant: TConfirmWorkspaceMemberAction;
+};
+
 export const useMemberColumns = () => {
   // states
-  const [removeMemberModal, setRemoveMemberModal] = useState<RowData | null>(null);
+  const [memberActionModal, setMemberActionModal] = useState<TMemberActionModal | null>(null);
 
   const { workspaceSlug } = useParams();
 
@@ -41,6 +48,10 @@ export const useMemberColumns = () => {
     updateFilters(filterUpdates);
   };
 
+  const onMemberAction = (rowData: RowData, action: TConfirmWorkspaceMemberAction) => {
+    setMemberActionModal({ rowData, variant: action });
+  };
+
   const columns = [
     {
       key: "Full name",
@@ -59,7 +70,7 @@ export const useMemberColumns = () => {
           workspaceSlug={workspaceSlug}
           isAdmin={isAdmin}
           currentUser={currentUser}
-          setRemoveMemberModal={setRemoveMemberModal}
+          onMemberAction={onMemberAction}
         />
       ),
     },
@@ -132,5 +143,5 @@ export const useMemberColumns = () => {
       ),
     },
   ];
-  return { columns, workspaceSlug, removeMemberModal, setRemoveMemberModal };
+  return { columns, workspaceSlug, memberActionModal, setMemberActionModal };
 };

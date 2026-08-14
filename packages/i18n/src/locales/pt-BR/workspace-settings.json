@@ -45,6 +45,21 @@
         "pending_invites": "Convites pendentes",
         "invitations_sent_successfully": "Convites enviados com sucesso",
         "leave_confirmation": "Tem certeza de que deseja sair do espaço de trabalho? Você não terá mais acesso a este espaço de trabalho. Esta ação não pode ser desfeita.",
+        "invite_link": {
+          "title": "Link de convite",
+          "description": "Compartilhe este link para que as pessoas possam entrar neste espaço de trabalho. Qualquer pessoa com o link pode se cadastrar e se tornar membro.",
+          "enable": "Ativar link de convite",
+          "disable": "Desativar link",
+          "copy": "Copiar link",
+          "copied": "Link de convite copiado para a área de transferência.",
+          "regenerate": "Gerar novamente",
+          "regenerate_confirmation": "Gerar novamente invalidará o link atual. Continuar?",
+          "role": "Função padrão",
+          "enabled_success": "Link de convite ativado.",
+          "disabled_success": "Link de convite desativado.",
+          "regenerated_success": "Link de convite gerado novamente.",
+          "role_updated": "Função padrão atualizada."
+        },
         "details": {
           "full_name": "Nome completo",
           "display_name": "Nome de exibição",
@@ -63,7 +78,15 @@
             "required": "Precisamos de um endereço de e-mail para convidá-los.",
             "invalid": "E-mail inválido"
           }
-        }
+        },
+        "leave_title": "Sair do workspace?",
+        "remove_title": "Remover {name}?",
+        "remove_confirmation": "Tem certeza de que deseja remover {name}? A pessoa será suspensa e perderá o acesso a este workspace. Você poderá excluí-la permanentemente depois ou convidá-la novamente para restaurar o acesso.",
+        "delete_title": "Excluir {name}?",
+        "delete_confirmation": "Tem certeza de que deseja excluir permanentemente {name} deste workspace? A pessoa será removida da lista de membros. Se precisar, você poderá convidá-la novamente depois.",
+        "cancel_invite_title": "Remover {name}?",
+        "cancel_invite_confirmation": "Tem certeza de que deseja remover o convite de {name}? Esta ação não pode ser desfeita.",
+        "delete_member": "Excluir"
       },
       "billing_and_plans": {
         "heading": "Faturamento e planos",

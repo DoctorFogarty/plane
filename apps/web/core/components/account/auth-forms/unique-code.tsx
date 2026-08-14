@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, jsx-a11y/no-autofocus */
 
 import { useEffect, useState } from "react";
 import { CircleCheck, XCircle } from "lucide-react";
@@ -13,6 +14,7 @@ import { Input, Spinner } from "@plane/ui";
 // constants
 // helpers
 import { EAuthModes } from "@/helpers/authentication.helper";
+import { stampBrowserTimezoneOnForm } from "@/helpers/browser-timezone";
 // hooks
 import useTimer from "@/hooks/use-timer";
 // services
@@ -28,6 +30,8 @@ type TAuthUniqueCodeForm = {
   handleEmailClear: () => void;
   generateEmailUniqueCode: (email: string) => Promise<{ code: string } | undefined>;
   nextPath: string | undefined;
+  inviteCode?: string;
+  workspaceSlug?: string;
 };
 
 type TUniqueCodeFormValues = {
@@ -41,7 +45,7 @@ const defaultValues: TUniqueCodeFormValues = {
 };
 
 export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
-  const { mode, email, handleEmailClear, generateEmailUniqueCode, nextPath } = props;
+  const { mode, email, handleEmailClear, generateEmailUniqueCode, nextPath, inviteCode, workspaceSlug } = props;
   // derived values
   const defaultResetTimerValue = 5;
   // states
@@ -84,7 +88,8 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
       className="space-y-4"
       method="POST"
       action={`${API_BASE_URL}/auth/${mode === EAuthModes.SIGN_IN ? "magic-sign-in" : "magic-sign-up"}/`}
-      onSubmit={() => {
+      onSubmit={(event) => {
+        stampBrowserTimezoneOnForm(event.currentTarget);
         setIsSubmitting(true);
       }}
       onError={() => {
@@ -92,8 +97,11 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
       }}
     >
       <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
+      <input type="hidden" name="user_timezone" />
       <input type="hidden" value={uniqueCodeFormData.email} name="email" />
       {nextPath && <input type="hidden" value={nextPath} name="next_path" />}
+      {inviteCode && <input type="hidden" value={inviteCode} name="invite_code" />}
+      {workspaceSlug && <input type="hidden" value={workspaceSlug} name="workspace_slug" />}
       <div className="space-y-1">
         <label htmlFor="email" className="text-13 font-medium text-tertiary">
           {t("auth.common.email.label")}

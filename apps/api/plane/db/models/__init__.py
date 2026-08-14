@@ -80,6 +80,7 @@ from .workspace import (
     WorkspaceBaseModel,
     WorkspaceMember,
     WorkspaceMemberInvite,
+    WorkspaceInviteLink,
     WorkspaceTheme,
     WorkspaceUserProperties,
     WorkspaceUserLink,

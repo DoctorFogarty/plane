@@ -45,6 +45,21 @@
         "pending_invites": "Invitaciones pendientes",
         "invitations_sent_successfully": "Invitaciones enviadas exitosamente",
         "leave_confirmation": "¿Estás seguro de que quieres abandonar el espacio de trabajo? Ya no tendrás acceso a este espacio de trabajo. Esta acción no se puede deshacer.",
+        "invite_link": {
+          "title": "Enlace de invitación",
+          "description": "Comparte este enlace para que otras personas se unan a este espacio de trabajo. Cualquiera con el enlace puede registrarse y convertirse en miembro.",
+          "enable": "Activar enlace de invitación",
+          "disable": "Desactivar enlace",
+          "copy": "Copiar enlace",
+          "copied": "Enlace de invitación copiado al portapapeles.",
+          "regenerate": "Regenerar",
+          "regenerate_confirmation": "Regenerar invalidará el enlace actual. ¿Continuar?",
+          "role": "Rol predeterminado",
+          "enabled_success": "Enlace de invitación activado.",
+          "disabled_success": "Enlace de invitación desactivado.",
+          "regenerated_success": "Enlace de invitación regenerado.",
+          "role_updated": "Rol predeterminado actualizado."
+        },
         "details": {
           "full_name": "Nombre completo",
           "display_name": "Nombre para mostrar",
@@ -63,7 +78,15 @@
             "required": "Necesitamos una dirección de correo electrónico para invitarlos.",
             "invalid": "El correo electrónico no es válido"
           }
-        }
+        },
+        "leave_title": "¿Salir del workspace?",
+        "remove_title": "¿Eliminar a {name}?",
+        "remove_confirmation": "¿Seguro que quieres eliminar a {name}? Quedará suspendido y perderá el acceso a este workspace. Más adelante puedes eliminarlo de forma permanente o volver a invitarlo para restaurar el acceso.",
+        "delete_title": "¿Eliminar permanentemente a {name}?",
+        "delete_confirmation": "¿Seguro que quieres eliminar permanentemente a {name} de este workspace? Se quitará de la lista de miembros. Podrás volver a invitarlo más adelante si lo necesitas.",
+        "cancel_invite_title": "¿Eliminar a {name}?",
+        "cancel_invite_confirmation": "¿Seguro que quieres eliminar la invitación de {name}? Esta acción no se puede deshacer.",
+        "delete_member": "Eliminar"
       },
       "billing_and_plans": {
         "heading": "Facturación y Planes",

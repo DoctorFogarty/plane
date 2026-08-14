@@ -45,6 +45,21 @@
         "pending_invites": "Ausstehende Einladungen",
         "invitations_sent_successfully": "Einladungen erfolgreich versendet",
         "leave_confirmation": "Möchten Sie diesen Arbeitsbereich wirklich verlassen? Sie verlieren den Zugriff. Diese Aktion ist nicht umkehrbar.",
+        "invite_link": {
+          "title": "Einladungslink",
+          "description": "Teilen Sie diesen Link, damit Personen diesem Workspace beitreten können. Jeder mit dem Link kann sich registrieren und Mitglied werden.",
+          "enable": "Einladungslink aktivieren",
+          "disable": "Link deaktivieren",
+          "copy": "Link kopieren",
+          "copied": "Einladungslink in die Zwischenablage kopiert.",
+          "regenerate": "Neu generieren",
+          "regenerate_confirmation": "Neu generieren macht den aktuellen Link ungültig. Fortfahren?",
+          "role": "Standardrolle",
+          "enabled_success": "Einladungslink aktiviert.",
+          "disabled_success": "Einladungslink deaktiviert.",
+          "regenerated_success": "Einladungslink neu generiert.",
+          "role_updated": "Standardrolle aktualisiert."
+        },
         "details": {
           "full_name": "Vollständiger Name",
           "display_name": "Anzeigename",
@@ -63,7 +78,15 @@
             "required": "Eine E-Mail-Adresse ist erforderlich.",
             "invalid": "E-Mail ist ungültig"
           }
-        }
+        },
+        "leave_title": "Workspace verlassen?",
+        "remove_title": "{name} entfernen?",
+        "remove_confirmation": "Möchten Sie {name} wirklich entfernen? Die Person wird gesperrt und verliert den Zugriff auf diesen Workspace. Sie können sie später dauerhaft löschen oder erneut einladen, um den Zugriff wiederherzustellen.",
+        "delete_title": "{name} löschen?",
+        "delete_confirmation": "Möchten Sie {name} wirklich dauerhaft aus diesem Workspace löschen? Die Person wird aus der Mitgliederliste entfernt. Bei Bedarf können Sie sie später erneut einladen.",
+        "cancel_invite_title": "{name} entfernen?",
+        "cancel_invite_confirmation": "Möchten Sie die Einladung für {name} wirklich entfernen? Diese Aktion kann nicht rückgängig gemacht werden.",
+        "delete_member": "Löschen"
       },
       "billing_and_plans": {
         "heading": "Abrechnung und Pläne",

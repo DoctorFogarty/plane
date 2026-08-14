@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unsafe-optional-chaining, promise/always-return */
 
-import { set, sortBy } from "lodash-es";
+import { set, sortBy, unset } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // types
@@ -52,6 +53,7 @@ export interface IWorkspaceMemberStore {
   // crud actions
   updateMember: (workspaceSlug: string, userId: string, data: { role: EUserPermissions }) => Promise<void>;
   removeMemberFromWorkspace: (workspaceSlug: string, userId: string) => Promise<void>;
+  deleteMemberFromWorkspace: (workspaceSlug: string, userId: string) => Promise<void>;
   // invite actions
   inviteMembersToWorkspace: (workspaceSlug: string, data: IWorkspaceBulkInviteFormData) => Promise<void>;
   updateMemberInvitation: (
@@ -91,6 +93,7 @@ export class WorkspaceMemberStore implements IWorkspaceMemberStore {
       fetchWorkspaceMembers: action,
       updateMember: action,
       removeMemberFromWorkspace: action,
+      deleteMemberFromWorkspace: action,
       fetchWorkspaceMemberInvitations: action,
       updateMemberInvitation: action,
       deleteMemberInvitation: action,
@@ -285,6 +288,21 @@ export class WorkspaceMemberStore implements IWorkspaceMemberStore {
     await this.workspaceService.deleteWorkspaceMember(workspaceSlug, memberDetails?.id).then(() => {
       runInAction(() => {
         set(this.workspaceMemberMap, [workspaceSlug, userId, "is_active"], false);
+      });
+    });
+  };
+
+  /**
+   * @description permanently delete a member from workspace (removes from list)
+   * @param workspaceSlug
+   * @param userId
+   */
+  deleteMemberFromWorkspace = async (workspaceSlug: string, userId: string) => {
+    const memberDetails = this.getWorkspaceMemberDetails(userId);
+    if (!memberDetails) throw new Error("Member not found");
+    await this.workspaceService.permanentDeleteWorkspaceMember(workspaceSlug, memberDetails.id).then(() => {
+      runInAction(() => {
+        unset(this.workspaceMemberMap, [workspaceSlug, userId]);
       });
     });
   };

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/tabindex-no-positive */
 
 import { useState } from "react";
 import { observer } from "mobx-react";
@@ -11,8 +12,8 @@ import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-// hooks
-import { useUser } from "@/hooks/store/user";
+
+export type TConfirmWorkspaceMemberAction = "remove" | "delete" | "leave" | "cancel_invite";
 
 export type Props = {
   isOpen: boolean;
@@ -22,28 +23,58 @@ export type Props = {
     id: string;
     display_name: string;
   };
+  variant: TConfirmWorkspaceMemberAction;
 };
 
 export const ConfirmWorkspaceMemberRemove = observer(function ConfirmWorkspaceMemberRemove(props: Props) {
-  const { isOpen, onClose, onSubmit, userDetails } = props;
+  const { isOpen, onClose, onSubmit, userDetails, variant } = props;
   // states
-  const [isRemoving, setIsRemoving] = useState(false);
-  // store hooks
-  const { data: currentUser } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useTranslation();
 
   const handleClose = () => {
     onClose();
-    setIsRemoving(false);
+    setIsSubmitting(false);
   };
 
   const handleDeletion = async () => {
-    setIsRemoving(true);
+    setIsSubmitting(true);
 
     await onSubmit();
 
     handleClose();
   };
+
+  const title =
+    variant === "leave"
+      ? t("workspace_settings.settings.members.leave_title")
+      : variant === "delete"
+        ? t("workspace_settings.settings.members.delete_title", { name: userDetails.display_name })
+        : variant === "cancel_invite"
+          ? t("workspace_settings.settings.members.cancel_invite_title", { name: userDetails.display_name })
+          : t("workspace_settings.settings.members.remove_title", { name: userDetails.display_name });
+
+  const description =
+    variant === "leave"
+      ? t("workspace_settings.settings.members.leave_confirmation")
+      : variant === "delete"
+        ? t("workspace_settings.settings.members.delete_confirmation", { name: userDetails.display_name })
+        : variant === "cancel_invite"
+          ? t("workspace_settings.settings.members.cancel_invite_confirmation", { name: userDetails.display_name })
+          : t("workspace_settings.settings.members.remove_confirmation", { name: userDetails.display_name });
+
+  const confirmLabel =
+    variant === "leave"
+      ? isSubmitting
+        ? t("leaving")
+        : t("leave")
+      : variant === "delete"
+        ? isSubmitting
+          ? t("deleting")
+          : t("delete")
+        : isSubmitting
+          ? t("removing")
+          : t("remove");
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
@@ -53,21 +84,9 @@ export const ConfirmWorkspaceMemberRemove = observer(function ConfirmWorkspaceMe
             <AlertTriangle className="h-6 w-6 text-danger-primary" aria-hidden="true" />
           </div>
           <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-            <h3 className="text-h5-medium leading-6 text-primary">
-              {currentUser?.id === userDetails.id ? "Leave workspace?" : `Remove ${userDetails?.display_name}?`}
-            </h3>
+            <h3 className="text-h5-medium leading-6 text-primary">{title}</h3>
             <div className="mt-2">
-              {currentUser?.id === userDetails.id ? (
-                <p className="text-body-xs-regular text-secondary">
-                  {t("workspace_settings.settings.members.leave_confirmation")}
-                </p>
-              ) : (
-                <p className="text-body-xs-regular text-secondary">
-                  {/* TODO: Add translation here */}
-                  Are you sure you want to remove member- <span className="font-bold">{userDetails?.display_name}</span>
-                  ? They will no longer have access to this workspace. This action cannot be undone.
-                </p>
-              )}
+              <p className="text-body-xs-regular text-secondary">{description}</p>
             </div>
           </div>
         </div>
@@ -76,14 +95,8 @@ export const ConfirmWorkspaceMemberRemove = observer(function ConfirmWorkspaceMe
         <Button variant="secondary" size="lg" onClick={handleClose}>
           {t("cancel")}
         </Button>
-        <Button variant="error-fill" size="lg" tabIndex={1} onClick={handleDeletion} loading={isRemoving}>
-          {currentUser?.id === userDetails.id
-            ? isRemoving
-              ? t("leaving")
-              : t("leave")
-            : isRemoving
-              ? t("removing")
-              : t("remove")}
+        <Button variant="error-fill" size="lg" tabIndex={1} onClick={handleDeletion} loading={isSubmitting}>
+          {confirmLabel}
         </Button>
       </div>
     </ModalCore>

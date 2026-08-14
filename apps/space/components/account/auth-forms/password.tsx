@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
@@ -13,6 +14,7 @@ import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
 import { Input, Spinner, PasswordStrengthIndicator } from "@plane/ui";
 import { getPasswordStrength } from "@plane/utils";
+import { stampBrowserTimezoneOnForm } from "@/helpers/browser-timezone";
 // types
 import { EAuthModes, EAuthSteps } from "@/types/auth";
 
@@ -112,6 +114,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         event.preventDefault();
         await handleCSRFToken();
         if (formRef.current) {
+          stampBrowserTimezoneOnForm(formRef.current);
           formRef.current.submit();
         }
         setIsSubmitting(true);
@@ -119,6 +122,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
       onError={() => setIsSubmitting(false)}
     >
       <input type="hidden" name="csrfmiddlewaretoken" />
+      <input type="hidden" name="user_timezone" />
       <input type="hidden" value={passwordFormData.email} name="email" />
       <input type="hidden" value={nextPath} name="next_path" />
       <div className="space-y-1">

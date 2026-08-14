@@ -83,6 +83,21 @@ export class WorkspaceMemberService extends APIService {
   }
 
   /**
+   * Permanently removes a member from a workspace (soft-deletes the membership record)
+   * @param {string} workspaceSlug - The unique slug identifier for the workspace
+   * @param {string} memberId - The unique identifier for the workspace member row to delete
+   * @returns {Promise<any>} Promise resolving to the deletion response
+   * @throws {Error} If the API request fails
+   */
+  async permanentDestroy(workspaceSlug: string, memberId: string): Promise<any> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/members/${memberId}/permanent/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
    * Retrieves the current user's project roles within a workspace
    * @param {string} workspaceSlug - The unique slug identifier for the workspace
    * @returns {Promise<IUserProjectsRole>} Promise resolving to user's project roles
