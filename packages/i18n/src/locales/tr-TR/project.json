@@ -414,5 +414,15 @@
         }
       }
     }
+  },
+  "project_duplicate": {
+    "title": "Projeyi çoğalt",
+    "description": "Aynı kurulumla yeni bir proje oluşturun. İş öğeleri kopyalanmaz.",
+    "action": "Çoğalt",
+    "duplicating": "Çoğaltılıyor",
+    "toast": {
+      "success": "Proje başarıyla çoğaltıldı.",
+      "error": "Proje çoğaltılamadı. Lütfen tekrar deneyin."
+    }
   }
 }

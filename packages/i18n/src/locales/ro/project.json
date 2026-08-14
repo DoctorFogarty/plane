@@ -414,5 +414,15 @@
         }
       }
     }
+  },
+  "project_duplicate": {
+    "title": "Duplică proiectul",
+    "description": "Creează un proiect nou cu aceeași configurare. Elementele de lucru nu sunt copiate.",
+    "action": "Duplică",
+    "duplicating": "Se duplică",
+    "toast": {
+      "success": "Proiect duplicat cu succes.",
+      "error": "Proiectul nu a putut fi duplicat. Încearcă din nou."
+    }
   }
 }

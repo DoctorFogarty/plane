@@ -414,5 +414,15 @@
         }
       }
     }
+  },
+  "project_duplicate": {
+    "title": "复制项目",
+    "description": "使用相同设置创建新项目。不会复制工作项。",
+    "action": "复制",
+    "duplicating": "正在复制",
+    "toast": {
+      "success": "项目复制成功。",
+      "error": "无法复制项目，请重试。"
+    }
   }
 }

@@ -414,5 +414,15 @@
         }
       }
     }
+  },
+  "project_duplicate": {
+    "title": "Duplicar projeto",
+    "description": "Crie um novo projeto com a mesma configuração. Os itens de trabalho não são copiados.",
+    "action": "Duplicar",
+    "duplicating": "Duplicando",
+    "toast": {
+      "success": "Projeto duplicado com sucesso.",
+      "error": "Não foi possível duplicar o projeto. Tente novamente."
+    }
   }
 }

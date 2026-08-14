@@ -414,5 +414,15 @@
         }
       }
     }
+  },
+  "project_duplicate": {
+    "title": "Duplikasi proyek",
+    "description": "Buat proyek baru dengan pengaturan yang sama. Item pekerjaan tidak disalin.",
+    "action": "Duplikasi",
+    "duplicating": "Menduplikasi",
+    "toast": {
+      "success": "Proyek berhasil diduplikasi.",
+      "error": "Tidak dapat menduplikasi proyek. Silakan coba lagi."
+    }
   }
 }

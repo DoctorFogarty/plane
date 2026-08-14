@@ -1,4 +1,14 @@
 {
+  "project_duplicate": {
+    "title": "Duplicate project",
+    "description": "Create a new project with the same setup. Work items are not copied.",
+    "action": "Duplicate",
+    "duplicating": "Duplicating",
+    "toast": {
+      "success": "Project duplicated successfully.",
+      "error": "Couldn't duplicate the project. Please try again."
+    }
+  },
   "project_view": {
     "sort_by": {
       "created_at": "Created at",

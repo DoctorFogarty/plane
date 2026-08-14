@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
-import { LogOut, MoreHorizontal, Settings, Share2, ArchiveIcon } from "lucide-react";
+import { Copy, LogOut, MoreHorizontal, Settings, Share2, ArchiveIcon } from "lucide-react";
 // plane imports
 import { MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -23,6 +24,7 @@ type Props = {
   onCopyText: () => void;
   onLeaveProject: () => void;
   onPublishModal: () => void;
+  onDuplicateProject?: () => void;
 };
 
 export function ProjectActionsMenu({
@@ -33,6 +35,7 @@ export function ProjectActionsMenu({
   onCopyText,
   onLeaveProject,
   onPublishModal,
+  onDuplicateProject,
 }: Props) {
   // states
   const [isMenuActive, setIsMenuActive] = useState(false);
@@ -70,6 +73,14 @@ export function ProjectActionsMenu({
               <Share2 className="h-3.5 w-3.5 stroke-[1.5]" />
             </div>
             <div>{t("publish_project")}</div>
+          </div>
+        </CustomMenu.MenuItem>
+      )}
+      {isAdmin && onDuplicateProject && (
+        <CustomMenu.MenuItem onClick={onDuplicateProject}>
+          <div className="flex cursor-pointer items-center justify-start gap-2">
+            <Copy className="h-3.5 w-3.5 stroke-[1.5]" />
+            <span>{t("project_duplicate.action")}</span>
           </div>
         </CustomMenu.MenuItem>
       )}

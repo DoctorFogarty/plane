@@ -259,3 +259,32 @@ class ProjectPublicMemberSerializer(BaseSerializer):
         model = ProjectPublicMember
         fields = "__all__"
         read_only_fields = ["workspace", "project", "member"]
+
+
+class ProjectDuplicateSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255)
+    identifier = serializers.CharField(max_length=12)
+
+    def validate_name(self, name):
+        workspace_id = self.context["workspace_id"]
+
+        if re.match(Project.FORBIDDEN_IDENTIFIER_CHARS_PATTERN, name):
+            raise serializers.ValidationError(detail="PROJECT_NAME_CANNOT_CONTAIN_SPECIAL_CHARACTERS")
+
+        if Project.objects.filter(name=name, workspace_id=workspace_id).exists():
+            raise serializers.ValidationError(detail="PROJECT_NAME_ALREADY_EXIST")
+
+        return name
+
+    def validate_identifier(self, identifier):
+        workspace_id = self.context["workspace_id"]
+
+        if re.match(Project.FORBIDDEN_IDENTIFIER_CHARS_PATTERN, identifier):
+            raise serializers.ValidationError(detail="PROJECT_IDENTIFIER_CANNOT_CONTAIN_SPECIAL_CHARACTERS")
+
+        identifier = identifier.strip().upper()
+
+        if Project.objects.filter(identifier=identifier, workspace_id=workspace_id).exists():
+            raise serializers.ValidationError(detail="PROJECT_IDENTIFIER_ALREADY_EXIST")
+
+        return identifier

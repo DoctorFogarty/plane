@@ -18,6 +18,7 @@ import { useProject } from "@/hooks/store/use-project";
 // local imports
 import { ArchiveRestoreProjectModal } from "../archive-restore-modal";
 import { DeleteProjectModal } from "../delete-project-modal";
+import { DuplicateProjectModal } from "../duplicate-project-modal";
 
 type Props = {
   projectId: string;
@@ -30,6 +31,7 @@ export const GeneralProjectSettingsControlSection = observer(function GeneralPro
   // states
   const [selectProject, setSelectedProject] = useState<string | null>(null);
   const [archiveProject, setArchiveProject] = useState<boolean>(false);
+  const [duplicateProject, setDuplicateProject] = useState<boolean>(false);
   // params
   const { workspaceSlug } = useParams();
   // store hooks
@@ -50,15 +52,33 @@ export const GeneralProjectSettingsControlSection = observer(function GeneralPro
           archive
         />
       )}
+      {workspaceSlug && (
+        <DuplicateProjectModal
+          isOpen={duplicateProject}
+          project={currentProjectDetails}
+          workspaceSlug={workspaceSlug.toString()}
+          onClose={() => setDuplicateProject(false)}
+        />
+      )}
       <DeleteProjectModal
         project={currentProjectDetails}
         isOpen={Boolean(selectProject)}
         onClose={() => setSelectedProject(null)}
       />
       <div className="rounded-lg border border-subtle bg-layer-2">
-        {/* Project Selector */}
         <SettingsBoxedControlItem
           className="rounded-b-none border-0 border-b"
+          title={t("project_duplicate.title")}
+          description={t("project_duplicate.description")}
+          control={
+            <Button variant="secondary" onClick={() => setDuplicateProject(true)}>
+              {t("project_duplicate.action")}
+            </Button>
+          }
+        />
+        {/* Project Selector */}
+        <SettingsBoxedControlItem
+          className="rounded-none border-0 border-b"
           title={t("archive")}
           description="Archiving a project will unlist your project from your side navigation although you will still be able to access it from your projects page. You can restore the project or delete it whenever you want."
           control={

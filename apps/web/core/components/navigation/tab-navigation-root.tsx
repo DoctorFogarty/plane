@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable unicorn/no-array-sort */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, useLocation, Link, useNavigate } from "react-router";
 import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
@@ -18,6 +19,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 // plane web imports
 import { useNavigationItems } from "@/plane-web/components/navigations";
 // local imports
+import { DuplicateProjectModal } from "../project/duplicate-project-modal";
 import { LeaveProjectModal } from "../project/leave-project-modal";
 import { PublishProjectModal } from "../project/publish-project/modal";
 import { ProjectActionsMenu } from "./project-actions-menu";
@@ -48,6 +50,7 @@ type TTabNavigationRootProps = {
 };
 
 export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTabNavigationRootProps) {
+  const [duplicateProjectModalOpen, setDuplicateProjectModalOpen] = useState(false);
   const { workspaceSlug, projectId } = props;
   const { workItem: workItemIdentifierFromRoute } = useParams();
   const location = useLocation();
@@ -168,6 +171,14 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
         isOpen={leaveProjectModalOpen}
         onClose={() => handleLeaveProjectModal(false)}
       />
+      {project && (
+        <DuplicateProjectModal
+          isOpen={duplicateProjectModalOpen}
+          project={project}
+          workspaceSlug={workspaceSlug}
+          onClose={() => setDuplicateProjectModalOpen(false)}
+        />
+      )}
 
       {/* container for the tab navigation */}
       <div className="flex size-full items-center gap-3 overflow-hidden">
@@ -182,6 +193,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
               onCopyText={handleCopyText}
               onLeaveProject={handleLeaveProject}
               onPublishModal={() => handlePublishModal(true)}
+              onDuplicateProject={() => setDuplicateProjectModalOpen(true)}
             />
           </div>
         </div>

@@ -414,5 +414,15 @@
         }
       }
     }
+  },
+  "project_duplicate": {
+    "title": "複製專案",
+    "description": "以相同設定建立新專案。不會複製工作項目。",
+    "action": "複製",
+    "duplicating": "正在複製",
+    "toast": {
+      "success": "專案複製成功。",
+      "error": "無法複製專案，請再試一次。"
+    }
   }
 }

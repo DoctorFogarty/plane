@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable promise/always-return */
 
 import { sortBy, cloneDeep, update, set } from "lodash-es";
 import { observable, action, computed, makeObservable, runInAction } from "mobx";
@@ -69,6 +70,11 @@ export interface IProjectStore {
   updateProjectView: (workspaceSlug: string, projectId: string, viewProps: any) => Promise<any>;
   // CRUD actions
   createProject: (workspaceSlug: string, data: Partial<TProject>) => Promise<TProject>;
+  duplicateProject: (
+    workspaceSlug: string,
+    projectId: string,
+    data: { name: string; identifier: string }
+  ) => Promise<TProject>;
   updateProject: (workspaceSlug: string, projectId: string, data: Partial<TProject>) => Promise<TProject>;
   deleteProject: (workspaceSlug: string, projectId: string) => Promise<void>;
   // archive actions
@@ -129,6 +135,7 @@ export class ProjectStore implements IProjectStore {
       updateProjectView: action,
       // CRUD actions
       createProject: action,
+      duplicateProject: action,
       updateProject: action,
       // collapsible actions
       setOpenCollapsibleSection: action,
@@ -539,6 +546,20 @@ export class ProjectStore implements IProjectStore {
       return response;
     } catch (error) {
       console.log("Failed to create project from project store");
+      throw error;
+    }
+  };
+
+  /**
+   * Duplicates project setup into a new project and adds it to the store
+   */
+  duplicateProject = async (workspaceSlug: string, projectId: string, data: { name: string; identifier: string }) => {
+    try {
+      const response = await this.projectService.duplicateProject(workspaceSlug, projectId, data);
+      this.processProjectAfterCreation(workspaceSlug, response);
+      return response;
+    } catch (error) {
+      console.log("Failed to duplicate project from project store");
       throw error;
     }
   };

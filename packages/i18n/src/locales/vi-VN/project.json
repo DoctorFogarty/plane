@@ -414,5 +414,15 @@
         }
       }
     }
+  },
+  "project_duplicate": {
+    "title": "Nhân bản dự án",
+    "description": "Tạo dự án mới với cùng thiết lập. Các mục công việc không được sao chép.",
+    "action": "Nhân bản",
+    "duplicating": "Đang nhân bản",
+    "toast": {
+      "success": "Đã nhân bản dự án thành công.",
+      "error": "Không thể nhân bản dự án. Vui lòng thử lại."
+    }
   }
 }

@@ -17,6 +17,7 @@ from plane.app.views import (
     UserProjectInvitationsViewset,
     UserProjectRolesEndpoint,
     ProjectArchiveUnarchiveEndpoint,
+    ProjectDuplicateEndpoint,
     ProjectMemberPreferenceEndpoint,
 )
 
@@ -123,6 +124,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/archive/",
         ProjectArchiveUnarchiveEndpoint.as_view(),
         name="project-archive-unarchive",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/duplicate/",
+        ProjectDuplicateEndpoint.as_view(),
+        name="project-duplicate",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/preferences/member/<uuid:member_id>/",

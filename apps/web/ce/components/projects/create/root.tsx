@@ -94,12 +94,17 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
 
     return createProject(workspaceSlug.toString(), formData)
       .then(async (res) => {
-        if (uploadedAssetUrl) {
-          await updateCoverImageStatus(res.id, uploadedAssetUrl);
-          await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: uploadedAssetUrl });
-        } else if (coverImage && coverImage.startsWith("http")) {
-          await updateCoverImageStatus(res.id, coverImage);
-          await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: coverImage });
+        // Cover attach runs after create; failures must not surface as create errors.
+        try {
+          if (uploadedAssetUrl) {
+            await updateCoverImageStatus(res.id, uploadedAssetUrl);
+            await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: uploadedAssetUrl });
+          } else if (coverImage && coverImage.startsWith("http")) {
+            await updateCoverImageStatus(res.id, coverImage);
+            await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: coverImage });
+          }
+        } catch (coverError) {
+          console.error("Failed to attach project cover after create:", coverError);
         }
         setToast({
           type: TOAST_TYPE.SUCCESS,

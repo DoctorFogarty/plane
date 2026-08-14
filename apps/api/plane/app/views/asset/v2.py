@@ -7,9 +7,10 @@ import uuid
 
 # Django imports
 from django.conf import settings
+from django.db import IntegrityError
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.utils import timezone
-from django.db import IntegrityError
 
 # Third party imports
 from rest_framework import status
@@ -207,31 +208,31 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
         if entity_type == FileAsset.EntityTypeContext.WORKSPACE_LOGO:
             return {"workspace_id": entity_id}
 
-        # Project Cover
+        # Project Cover — leave unassigned when uploaded before the project exists
         if entity_type == FileAsset.EntityTypeContext.PROJECT_COVER:
-            return {"project_id": entity_id}
+            return {"project_id": entity_id} if entity_id else {}
 
         # User Avatar and Cover
         if entity_type in [
             FileAsset.EntityTypeContext.USER_AVATAR,
             FileAsset.EntityTypeContext.USER_COVER,
         ]:
-            return {"user_id": entity_id}
+            return {"user_id": entity_id} if entity_id else {}
 
         # Issue Attachment and Description
         if entity_type in [
             FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
             FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
         ]:
-            return {"issue_id": entity_id}
+            return {"issue_id": entity_id} if entity_id else {}
 
         # Page Description
         if entity_type == FileAsset.EntityTypeContext.PAGE_DESCRIPTION:
-            return {"page_id": entity_id}
+            return {"page_id": entity_id} if entity_id else {}
 
         # Comment Description
         if entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
-            return {"comment_id": entity_id}
+            return {"comment_id": entity_id} if entity_id else {}
         return {}
 
     def asset_delete(self, asset_id):
@@ -501,28 +502,28 @@ class ProjectAssetEndpoint(BaseAPIView):
             return {"workspace_id": entity_id}
 
         if entity_type == FileAsset.EntityTypeContext.PROJECT_COVER:
-            return {"project_id": entity_id}
+            return {"project_id": entity_id} if entity_id else {}
 
         if entity_type in [
             FileAsset.EntityTypeContext.USER_AVATAR,
             FileAsset.EntityTypeContext.USER_COVER,
         ]:
-            return {"user_id": entity_id}
+            return {"user_id": entity_id} if entity_id else {}
 
         if entity_type in [
             FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
             FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
         ]:
-            return {"issue_id": entity_id}
+            return {"issue_id": entity_id} if entity_id else {}
 
         if entity_type == FileAsset.EntityTypeContext.PAGE_DESCRIPTION:
-            return {"page_id": entity_id}
+            return {"page_id": entity_id} if entity_id else {}
 
         if entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
-            return {"comment_id": entity_id}
+            return {"comment_id": entity_id} if entity_id else {}
 
         if entity_type == FileAsset.EntityTypeContext.DRAFT_ISSUE_DESCRIPTION:
-            return {"draft_issue_id": entity_id}
+            return {"draft_issue_id": entity_id} if entity_id else {}
         return {}
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
@@ -657,8 +658,16 @@ class ProjectBulkAssetEndpoint(BaseAPIView):
         if not asset_ids:
             return Response({"error": "No asset ids provided."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # get the asset id — scope to the project to prevent cross-project IDOR
-        assets = FileAsset.objects.filter(id__in=asset_ids, workspace__slug=slug, project_id=project_id)
+        # Scope to this project to prevent cross-project IDOR, but still allow
+        # unassigned PROJECT_COVER assets (uploaded before the project exists
+        # during create flow — entity_identifier is empty at upload time).
+        assets = FileAsset.objects.filter(id__in=asset_ids, workspace__slug=slug).filter(
+            Q(project_id=project_id)
+            | Q(
+                project_id__isnull=True,
+                entity_type=FileAsset.EntityTypeContext.PROJECT_COVER,
+            )
+        )
 
         # Get the first asset
         asset = assets.first()

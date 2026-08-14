@@ -3,15 +3,17 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArchiveRestoreIcon, Settings, UserPlus } from "lucide-react";
+import { ArchiveRestoreIcon, Copy, Settings, UserPlus } from "lucide-react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { LinkIcon, LockIcon, NewTabIcon, TrashIcon, CheckIcon } from "@plane/propel/icons";
@@ -31,6 +33,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { CoverImage } from "@/components/common/cover-image";
 import { DeleteProjectModal } from "./delete-project-modal";
+import { DuplicateProjectModal } from "./duplicate-project-modal";
 import { JoinProjectModal } from "./join-project-modal";
 import { ArchiveRestoreProjectModal } from "./archive-restore-modal";
 
@@ -44,6 +47,8 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
   const [deleteProjectModalOpen, setDeleteProjectModal] = useState(false);
   const [joinProjectModalOpen, setJoinProjectModal] = useState(false);
   const [restoreProject, setRestoreProject] = useState(false);
+  const [duplicateProjectModalOpen, setDuplicateProjectModalOpen] = useState(false);
+  const { t } = useTranslation();
   // refs
   const projectCardRef = useRef(null);
   // router
@@ -131,6 +136,13 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
       shouldRender: !isArchived && (hasAdminRole || hasMemberRole),
     },
     {
+      key: "duplicate",
+      action: () => setDuplicateProjectModalOpen(true),
+      title: t("project_duplicate.action"),
+      icon: Copy,
+      shouldRender: !isArchived && hasAdminRole,
+    },
+    {
       key: "join",
       action: () => setJoinProjectModal(true),
       title: "Join",
@@ -182,6 +194,15 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
           project={project}
           isOpen={joinProjectModalOpen}
           handleClose={() => setJoinProjectModal(false)}
+        />
+      )}
+      {/* Duplicate project modal */}
+      {workspaceSlug && project && (
+        <DuplicateProjectModal
+          isOpen={duplicateProjectModalOpen}
+          project={project}
+          workspaceSlug={workspaceSlug.toString()}
+          onClose={() => setDuplicateProjectModalOpen(false)}
         />
       )}
       {/* Restore project modal */}

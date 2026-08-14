@@ -34,6 +34,18 @@ export class ProjectService extends APIService {
       });
   }
 
+  async duplicateProject(
+    workspaceSlug: string,
+    projectId: string,
+    data: { name: string; identifier: string }
+  ): Promise<TProject> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/duplicate/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
+
   async checkProjectIdentifierAvailability(workspaceSlug: string, data: string): Promise<any> {
     return this.get(`/api/workspaces/${workspaceSlug}/project-identifiers`, {
       params: {

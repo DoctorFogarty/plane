@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from plane.app.permissions import ROLE, ProjectMemberPermission, allow_permission
 from plane.app.serializers import (
     DeployBoardSerializer,
+    ProjectDuplicateSerializer,
     ProjectListSerializer,
     ProjectSerializer,
 )
@@ -43,6 +44,7 @@ from plane.db.models import (
 from plane.db.models.intake import IntakeIssueStatus
 from plane.utils.host import base_host
 from plane.utils.order_queryset import PROJECT_ORDER_BY_ALLOWLIST, sanitize_order_by
+from plane.utils.project_duplicate import duplicate_project_setup
 
 
 class ProjectViewSet(BaseViewSet):
@@ -426,6 +428,62 @@ class ProjectViewSet(BaseViewSet):
                 {"error": "You don't have the required permissions."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+
+class ProjectDuplicateEndpoint(BaseAPIView):
+    @allow_permission([ROLE.ADMIN])
+    def post(self, request, slug, project_id):
+        workspace = Workspace.objects.get(slug=slug)
+        source = Project.objects.filter(pk=project_id, workspace=workspace).first()
+        if source is None:
+            return Response({"error": "Project does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        if source.archived_at:
+            return Response(
+                {"error": "Archived projects cannot be duplicated"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = ProjectDuplicateSerializer(
+            data=request.data,
+            context={"workspace_id": workspace.id},
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        new_project = duplicate_project_setup(
+            source_project_id=source.id,
+            workspace_slug=slug,
+            name=serializer.validated_data["name"],
+            identifier=serializer.validated_data["identifier"],
+            actor_id=request.user.id,
+        )
+
+        model_activity.delay(
+            model_name="project",
+            model_id=str(new_project.id),
+            requested_data={
+                **serializer.validated_data,
+                "duplicated_from": str(source.id),
+            },
+            current_instance=None,
+            actor_id=request.user.id,
+            slug=slug,
+            origin=base_host(request=request, is_app=True),
+        )
+
+        project = (
+            Project.objects.filter(pk=new_project.id)
+            .annotate(
+                member_role=ProjectMember.objects.filter(
+                    project_id=new_project.id,
+                    member_id=request.user.id,
+                    is_active=True,
+                ).values("role")
+            )
+            .first()
+        )
+        return Response(ProjectListSerializer(project).data, status=status.HTTP_201_CREATED)
 
 
 class ProjectArchiveUnarchiveEndpoint(BaseAPIView):

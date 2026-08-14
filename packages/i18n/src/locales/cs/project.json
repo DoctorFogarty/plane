@@ -414,5 +414,15 @@
         }
       }
     }
+  },
+  "project_duplicate": {
+    "title": "Duplikovat projekt",
+    "description": "Vytvořte nový projekt se stejným nastavením. Pracovní položky se nekopírují.",
+    "action": "Duplikovat",
+    "duplicating": "Duplikování",
+    "toast": {
+      "success": "Projekt byl úspěšně duplikován.",
+      "error": "Projekt se nepodařilo duplikovat. Zkuste to znovu."
+    }
   }
 }
