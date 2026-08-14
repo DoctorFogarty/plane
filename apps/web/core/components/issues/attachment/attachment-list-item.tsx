@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+import { useState } from "react";
+import type { MouseEvent } from "react";
 import { observer } from "mobx-react";
 
 import { useTranslation } from "@plane/i18n";
@@ -13,11 +15,19 @@ import type { TIssueServiceType } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // ui
 import { CustomMenu } from "@plane/ui";
-import { convertBytesToSize, getFileExtension, getFileName, getFileURL, renderFormattedDate } from "@plane/utils";
+import {
+  convertBytesToSize,
+  getFileExtension,
+  getFileName,
+  getFileURL,
+  isPreviewableImage,
+  renderFormattedDate,
+} from "@plane/utils";
 // components
+import { AttachmentPreviewModal } from "@/components/issues/attachment/attachment-preview-modal";
+import { AttachmentThumbnail } from "@/components/issues/attachment/attachment-thumbnail";
 //
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
-import { getFileIcon } from "@/components/icons";
 // helpers
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -40,31 +50,52 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
     attachment: { getAttachmentById },
     toggleDeleteAttachmentModal,
   } = useIssueDetail(issueServiceType);
+  // state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   // derived values
   const attachment = attachmentId ? getAttachmentById(attachmentId) : undefined;
-  const fileName = getFileName(attachment?.attributes.name ?? "");
-  const fileExtension = getFileExtension(attachment?.attributes.name ?? "");
-  const fileIcon = getFileIcon(fileExtension, 18);
+  const fullFileName = attachment?.attributes.name ?? "";
+  const fileName = getFileName(fullFileName);
+  const fileExtension = getFileExtension(fullFileName);
+  const displayName = `${fileName}.${fileExtension}`;
   const fileURL = getFileURL(attachment?.asset_url ?? "");
+  const canPreview = isPreviewableImage(fullFileName);
   // hooks
   const { isMobile } = usePlatformOS();
 
   if (!attachment) return <></>;
 
+  const handleAttachmentClick = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (canPreview) {
+      setIsPreviewOpen(true);
+      return;
+    }
+    window.open(fileURL, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <>
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          window.open(fileURL, "_blank");
-        }}
-      >
+      {canPreview && (
+        <AttachmentPreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          fileName={displayName}
+          fileURL={fileURL ?? ""}
+        />
+      )}
+      <button type="button" onClick={handleAttachmentClick}>
         <div className="group flex h-11 items-center justify-between gap-3 pr-2 pl-9 hover:bg-surface-2">
           <div className="flex items-center gap-3 truncate text-13">
-            <div className="flex items-center gap-3">{fileIcon}</div>
-            <Tooltip tooltipContent={`${fileName}.${fileExtension}`} isMobile={isMobile}>
-              <p className="truncate font-medium text-secondary">{`${fileName}.${fileExtension}`}</p>
+            <AttachmentThumbnail
+              fileURL={fileURL ?? ""}
+              fileExtension={fileExtension}
+              size={24}
+              canPreview={canPreview}
+            />
+            <Tooltip tooltipContent={displayName} isMobile={isMobile}>
+              <p className="truncate font-medium text-secondary">{displayName}</p>
             </Tooltip>
             <span className="flex size-1.5 rounded-full bg-layer-1" />
             <span className="flex-shrink-0 text-placeholder">{convertBytesToSize(attachment.attributes.size)}</span>

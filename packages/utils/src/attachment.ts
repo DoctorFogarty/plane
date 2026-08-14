@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+export const PREVIEWABLE_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff", "tif"]);
+
 export const generateFileName = (fileName: string) => {
   const date = new Date();
   const timestamp = date.getTime();
@@ -23,6 +25,20 @@ export const getFileName = (fileName: string) => {
   const nameWithoutExtension = fileName.substring(0, dotIndex);
 
   return nameWithoutExtension;
+};
+
+/**
+ * Returns true when the given filename or extension can be previewed as an image in the browser.
+ */
+export const isPreviewableImage = (filenameOrExtension: string): boolean => {
+  const normalized = filenameOrExtension.trim().toLowerCase();
+  if (!normalized) return false;
+
+  const extension = normalized.includes(".")
+    ? getFileExtension(normalized).toLowerCase()
+    : normalized.replace(/^\./, "");
+
+  return PREVIEWABLE_IMAGE_EXTENSIONS.has(extension);
 };
 
 export const convertBytesToSize = (bytes: number) => {
