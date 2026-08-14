@@ -4,33 +4,34 @@
  * See the LICENSE file for details.
  */
 
-// components
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
+import useSWR from "swr";
+import { useTranslation } from "@plane/i18n";
+import { HomeIcon, InboxIcon } from "@plane/propel/icons";
+import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 import { TopNavPowerK } from "@/components/navigation";
+import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { HelpMenuRoot } from "@/components/workspace/sidebar/help-section/root";
 import { UserMenuRoot } from "@/components/workspace/sidebar/user-menu-root";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
-import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
-import { Tooltip } from "@plane/propel/tooltip";
-import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
-import { InboxIcon } from "@plane/propel/icons";
-import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
-// local imports
-import { StarUsOnGitHubLink } from "@/app/(all)/[workspaceSlug]/(projects)/star-us-link";
+import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   // store hooks
   const { unreadNotificationsCount, getUnreadNotificationsCount } = useWorkspaceNotifications();
   const { preferences } = useAppRailPreferences();
 
+  const slug = workspaceSlug?.toString();
   const showLabel = preferences.displayMode === "icon_with_label";
+  const isHomeActive = pathname === `/${slug}` || pathname === `/${slug}/`;
 
   // Fetch notification count
   useSWR(
@@ -50,8 +51,18 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         "px-2": !showLabel,
       })}
     >
-      {/* Workspace Menu */}
-      <div className="flex-1 shrink-0">
+      {/* Home + Workspace Menu */}
+      <div className="flex flex-1 shrink-0 items-center gap-1">
+        <Tooltip tooltipContent={t("home.title")} position="bottom">
+          <AppSidebarItem
+            variant="link"
+            item={{
+              href: `/${slug}/`,
+              icon: <HomeIcon className="size-5" />,
+              isActive: isHomeActive,
+            }}
+          />
+        </Tooltip>
         <WorkspaceMenuRoot variant="top-navigation" />
       </div>
       {/* Power K Search */}
@@ -64,7 +75,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
           <AppSidebarItem
             variant="link"
             item={{
-              href: `/${workspaceSlug?.toString()}/notifications/`,
+              href: `/${slug}/notifications/`,
               icon: (
                 <div className="relative">
                   <InboxIcon className="size-5" />
@@ -78,7 +89,6 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
           />
         </Tooltip>
         <HelpMenuRoot />
-        <StarUsOnGitHubLink />
         <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
           <UserMenuRoot />
         </div>

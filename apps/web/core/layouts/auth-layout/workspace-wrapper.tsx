@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
@@ -138,7 +139,8 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
   };
 
   // if list of workspaces are not there then we have to render the spinner
-  if (isParentLoading || allWorkspaces === undefined || loader) {
+  const isWorkspaceInfoLoading = loader && !currentWorkspaceInfo;
+  if (isParentLoading || allWorkspaces === undefined || isWorkspaceInfoLoading) {
     return (
       <div className="grid h-full place-items-center rounded-lg border border-subtle p-4">
         <div className="flex flex-col items-center gap-3 text-center">

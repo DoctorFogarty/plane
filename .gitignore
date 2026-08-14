@@ -115,6 +115,9 @@ scripts/
 # i18n auto-generated types (regenerated on every build)
 packages/i18n/src/types/keys.generated.ts
 
+# Local docs (not for version control)
+/docs/
+
 # Local security notes (not for version control)
 /security/
 HostingDetails

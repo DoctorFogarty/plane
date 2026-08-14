@@ -235,8 +235,9 @@ export abstract class BaseUserPermissionStore implements IBaseUserPermissionStor
    * @returns { Promise<IWorkspaceMemberMe | undefined> }
    */
   fetchUserWorkspaceInfo = async (workspaceSlug: string): Promise<IWorkspaceMemberMe> => {
+    const cached = this.workspaceUserInfo[workspaceSlug];
     try {
-      this.loader = true;
+      if (!cached) this.loader = true;
       const response = await workspaceService.workspaceMemberMe(workspaceSlug);
       if (response) {
         runInAction(() => {

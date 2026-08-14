@@ -1,4 +1,4 @@
-/* eslint-disable no-shadow, no-unused-expressions, promise/always-return */
+/* eslint-disable no-shadow, no-unused-expressions, promise/always-return, unicorn/no-array-sort */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -149,7 +149,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
     };
 
     // sort navigation items by sortOrder
-    const sortedNavigationItems = [...navigationItems(workspaceSlug, projectId)].toSorted(
+    const sortedNavigationItems = [...navigationItems(workspaceSlug, projectId)].sort(
       (a: TNavigationItem, b: TNavigationItem) => (a.sortOrder || 0) - (b.sortOrder || 0)
     );
 

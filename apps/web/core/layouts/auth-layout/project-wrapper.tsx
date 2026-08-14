@@ -13,6 +13,7 @@ import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { GANTT_TIMELINE_TYPE } from "@plane/types";
 // components
 import { ProjectAccessRestriction } from "@/components/auth-screens/project/project-access-restriction";
+import { LogoSpinner } from "@/components/common/logo-spinner";
 import {
   PROJECT_DETAILS,
   PROJECT_ME_INFORMATION,
@@ -37,6 +38,7 @@ import { useProjectState } from "@/hooks/store/use-project-state";
 import { useProjectView } from "@/hooks/store/use-project-view";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { useTimeLineChart } from "@/hooks/use-timeline-chart";
+import { runIdleTask } from "@/lib/idle-task";
 
 interface IProjectAuthWrapper {
   workspaceSlug: string;
@@ -49,9 +51,10 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   const { workspaceSlug, projectId, children, isLoading: isParentLoading = false } = props;
   // states
   const [isJoiningProject, setIsJoiningProject] = useState(false);
+  const [loadDeferredMeta, setLoadDeferredMeta] = useState(false);
   // store hooks
   const { fetchUserProjectInfo, allowPermissions, getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
-  const { fetchProjectDetails } = useProject();
+  const { fetchProjectDetails, getProjectById } = useProject();
   const { joinProject } = useUserPermissions();
   const { fetchAllCycles } = useCycle();
   const { fetchModulesSlim, fetchModules } = useModule();
@@ -72,6 +75,8 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
     projectId
   );
   const currentProjectRole = getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId);
+  const hasResolvedProjectRole = currentProjectRole !== undefined && currentProjectRole !== null;
+  const cachedProjectDetails = getProjectById(projectId);
   const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE, workspaceSlug);
   // Initialize module timeline chart
   useEffect(() => {
@@ -79,62 +84,81 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const task = runIdleTask(() => setLoadDeferredMeta(true));
+    return () => task.cancel();
+  }, [projectId]);
+
+  const swrImmutable = { revalidateIfStale: false, revalidateOnFocus: false };
+
   // fetching project details
   const { isLoading: isProjectDetailsLoading, error: projectDetailsError } = useSWR(
     PROJECT_DETAILS(workspaceSlug, projectId),
-    () => fetchProjectDetails(workspaceSlug, projectId)
+    () => fetchProjectDetails(workspaceSlug, projectId),
+    swrImmutable
   );
   // fetching user project member information
-  useSWR(PROJECT_ME_INFORMATION(workspaceSlug, projectId), () => fetchUserProjectInfo(workspaceSlug, projectId));
+  useSWR(
+    PROJECT_ME_INFORMATION(workspaceSlug, projectId),
+    () => fetchUserProjectInfo(workspaceSlug, projectId),
+    swrImmutable
+  );
   // fetching project member preferences
   useSWR(
     currentUserData?.id ? PROJECT_MEMBER_PREFERENCES(projectId, currentProjectRole) : null,
     currentUserData?.id ? () => fetchProjectUserProperties(workspaceSlug, projectId) : null,
-    { revalidateIfStale: false, revalidateOnFocus: false }
+    swrImmutable
   );
   // fetching project labels
-  useSWR(PROJECT_LABELS(projectId, currentProjectRole), () => fetchProjectLabels(workspaceSlug, projectId), {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-  });
+  useSWR(
+    hasResolvedProjectRole ? PROJECT_LABELS(projectId, currentProjectRole) : null,
+    () => fetchProjectLabels(workspaceSlug, projectId),
+    swrImmutable
+  );
   // fetching project members
-  useSWR(PROJECT_MEMBERS(projectId, currentProjectRole), () => fetchProjectMembers(workspaceSlug, projectId), {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-  });
+  useSWR(
+    hasResolvedProjectRole ? PROJECT_MEMBERS(projectId, currentProjectRole) : null,
+    () => fetchProjectMembers(workspaceSlug, projectId),
+    swrImmutable
+  );
   // fetching project states
-  useSWR(PROJECT_STATES(projectId, currentProjectRole), () => fetchProjectStates(workspaceSlug, projectId), {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-  });
+  useSWR(
+    hasResolvedProjectRole ? PROJECT_STATES(projectId, currentProjectRole) : null,
+    () => fetchProjectStates(workspaceSlug, projectId),
+    swrImmutable
+  );
   // fetching project intake state
-  useSWR(PROJECT_INTAKE_STATE(projectId, currentProjectRole), () => fetchProjectIntakeState(workspaceSlug, projectId), {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-  });
+  useSWR(
+    loadDeferredMeta && hasResolvedProjectRole ? PROJECT_INTAKE_STATE(projectId, currentProjectRole) : null,
+    () => fetchProjectIntakeState(workspaceSlug, projectId),
+    swrImmutable
+  );
   // fetching project estimates
-  useSWR(PROJECT_ESTIMATES(projectId, currentProjectRole), () => getProjectEstimates(workspaceSlug, projectId), {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-  });
+  useSWR(
+    loadDeferredMeta && hasResolvedProjectRole ? PROJECT_ESTIMATES(projectId, currentProjectRole) : null,
+    () => getProjectEstimates(workspaceSlug, projectId),
+    swrImmutable
+  );
   // fetching project cycles
-  useSWR(PROJECT_ALL_CYCLES(projectId, currentProjectRole), () => fetchAllCycles(workspaceSlug, projectId), {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-  });
+  useSWR(
+    loadDeferredMeta && hasResolvedProjectRole ? PROJECT_ALL_CYCLES(projectId, currentProjectRole) : null,
+    () => fetchAllCycles(workspaceSlug, projectId),
+    swrImmutable
+  );
   // fetching project modules
   useSWR(
-    PROJECT_MODULES(projectId, currentProjectRole),
+    loadDeferredMeta && hasResolvedProjectRole ? PROJECT_MODULES(projectId, currentProjectRole) : null,
     async () => {
       await Promise.all([fetchModulesSlim(workspaceSlug, projectId), fetchModules(workspaceSlug, projectId)]);
     },
-    { revalidateIfStale: false, revalidateOnFocus: false }
+    swrImmutable
   );
   // fetching project views
-  useSWR(PROJECT_VIEWS(projectId, currentProjectRole), () => fetchViews(workspaceSlug, projectId), {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-  });
+  useSWR(
+    loadDeferredMeta && hasResolvedProjectRole ? PROJECT_VIEWS(projectId, currentProjectRole) : null,
+    () => fetchViews(workspaceSlug, projectId),
+    swrImmutable
+  );
 
   // handle join project
   const handleJoinProject = () => {
@@ -142,11 +166,20 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
     joinProject(workspaceSlug, projectId).finally(() => setIsJoiningProject(false));
   };
 
-  const isProjectLoading = (isParentLoading || isProjectDetailsLoading) && !projectDetailsError;
+  const isPermissionDenied = hasResolvedProjectRole && hasPermissionToCurrentProject === false;
+  const isProjectLoading =
+    (isParentLoading || (!cachedProjectDetails && !hasResolvedProjectRole && isProjectDetailsLoading)) &&
+    !projectDetailsError;
 
-  if (isProjectLoading) return null;
+  if (isProjectLoading) {
+    return (
+      <div className="grid h-full place-items-center">
+        <LogoSpinner />
+      </div>
+    );
+  }
 
-  if (!isProjectLoading && hasPermissionToCurrentProject === false) {
+  if (isPermissionDenied) {
     return (
       <ProjectAccessRestriction
         errorStatusCode={projectDetailsError?.status}
