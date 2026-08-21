@@ -6,7 +6,7 @@
 import os
 
 # Third party imports
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle, UserRateThrottle
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -47,6 +47,18 @@ def authentication_throttle_allows(request):
     # SimpleRateThrottle.allow_request only reads request.META and
     # request.user, both available on a plain Django HttpRequest.
     return throttle.allow_request(request, None)
+
+
+class IntakeFormSubmitThrottle(SimpleRateThrottle):
+    """Limit public intake form submissions per IP and form."""
+
+    rate = os.environ.get("INTAKE_FORM_RATE_LIMIT", "10/minute")
+    scope = "intake_form_submit"
+
+    def get_cache_key(self, request, view):
+        ident = self.get_ident(request)
+        anchor = getattr(view, "kwargs", {}).get("anchor") or "unknown"
+        return self.cache_format % {"scope": self.scope, "ident": f"{ident}:{anchor}"}
 
 
 class EmailVerificationThrottle(UserRateThrottle):

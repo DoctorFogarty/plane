@@ -402,8 +402,30 @@
             "success_create": "Formulár príjmu bol úspešne vytvorený",
             "success_update": "Formulár príjmu bol úspešne aktualizovaný",
             "error_create": "Vytvorenie formulára príjmu zlyhalo",
-            "error_update": "Aktualizácia formulára príjmu zlyhala"
-          }
+            "error_update": "Aktualizácia formulára príjmu zlyhala",
+            "copied": "Odkaz na formulár skopírovaný",
+            "success_delete": "Formulár Intake odstránený",
+            "error_delete": "Formulár Intake sa nepodarilo odstrániť",
+            "success_regenerate": "Odkaz na formulár bol znova vygenerovaný",
+            "error_regenerate": "Odkaz na formulár sa nepodarilo znova vygenerovať"
+          },
+          "access": "Prístup",
+          "access_public": "Verejný",
+          "access_authenticated": "Prihlásení používatelia Plane",
+          "success_message": "Správa o úspechu",
+          "copy_link": "Kopírovať odkaz",
+          "regenerate_link": "Vygenerovať nový odkaz",
+          "enabled": "Zapnuté",
+          "empty": "Zatiaľ žiadne formuláre. Vytvorte formulár a zbierajte pracovné položky od ľudí, ktorí nie sú členmi projektu.",
+          "submitter_email": "E-mail odosielateľa",
+          "submitter_name": "Meno odosielateľa",
+          "sign_in_to_submit": "Na odoslanie tohto formulára sa prihláste",
+          "submitted_title": "Žiadosť odoslaná",
+          "native_fields": "Natívne polia",
+          "no_properties": "Tento typ pracovnej položky nemá vlastnosti použiteľné vo formulári.",
+          "delete_form": "Odstrániť formulár",
+          "allowed_labels": "Povolené štítky",
+          "submit_error": "Formulár sa nepodarilo odoslať. Skúste to znova."
         },
         "toasts": {
           "set": {

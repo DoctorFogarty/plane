@@ -402,8 +402,30 @@
             "success_create": "Formulario de ingreso creado correctamente",
             "success_update": "Formulario de ingreso actualizado correctamente",
             "error_create": "Error al crear el formulario de ingreso",
-            "error_update": "Error al actualizar el formulario de ingreso"
-          }
+            "error_update": "Error al actualizar el formulario de ingreso",
+            "copied": "Enlace del formulario copiado",
+            "success_delete": "Formulario de Intake eliminado",
+            "error_delete": "No se pudo eliminar el formulario de Intake",
+            "success_regenerate": "Enlace del formulario regenerado",
+            "error_regenerate": "No se pudo regenerar el enlace del formulario"
+          },
+          "access": "Acceso",
+          "access_public": "Público",
+          "access_authenticated": "Usuarios de Plane con sesión iniciada",
+          "success_message": "Mensaje de éxito",
+          "copy_link": "Copiar enlace",
+          "regenerate_link": "Regenerar enlace",
+          "enabled": "Activado",
+          "empty": "Aún no hay formularios. Crea un formulario para recoger elementos de trabajo de personas que no son miembros del proyecto.",
+          "submitter_email": "Correo del remitente",
+          "submitter_name": "Nombre del remitente",
+          "sign_in_to_submit": "Inicia sesión para enviar este formulario",
+          "submitted_title": "Solicitud enviada",
+          "native_fields": "Campos nativos",
+          "no_properties": "Este tipo de elemento de trabajo no tiene propiedades aptas para el formulario.",
+          "delete_form": "Eliminar formulario",
+          "allowed_labels": "Etiquetas permitidas",
+          "submit_error": "No se pudo enviar este formulario. Inténtalo de nuevo."
         },
         "toasts": {
           "set": {

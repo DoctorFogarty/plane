@@ -402,8 +402,30 @@
             "success_create": "Formulaire d'ingestion créé avec succès",
             "success_update": "Formulaire d'ingestion mis à jour avec succès",
             "error_create": "Échec de la création du formulaire d'ingestion",
-            "error_update": "Échec de la mise à jour du formulaire d'ingestion"
-          }
+            "error_update": "Échec de la mise à jour du formulaire d'ingestion",
+            "copied": "Lien du formulaire copié",
+            "success_delete": "Formulaire Intake supprimé",
+            "error_delete": "Échec de la suppression du formulaire Intake",
+            "success_regenerate": "Lien du formulaire régénéré",
+            "error_regenerate": "Échec de la régénération du lien du formulaire"
+          },
+          "access": "Accès",
+          "access_public": "Public",
+          "access_authenticated": "Utilisateurs Plane connectés",
+          "success_message": "Message de confirmation",
+          "copy_link": "Copier le lien",
+          "regenerate_link": "Régénérer le lien",
+          "enabled": "Activé",
+          "empty": "Aucun formulaire pour le moment. Créez un formulaire pour collecter des éléments de travail auprès de personnes qui ne sont pas membres du projet.",
+          "submitter_email": "E-mail de l’expéditeur",
+          "submitter_name": "Nom de l’expéditeur",
+          "sign_in_to_submit": "Connectez-vous pour envoyer ce formulaire",
+          "submitted_title": "Demande envoyée",
+          "native_fields": "Champs natifs",
+          "no_properties": "Ce type d’élément de travail n’a aucune propriété utilisable dans un formulaire.",
+          "delete_form": "Supprimer le formulaire",
+          "allowed_labels": "Labels autorisés",
+          "submit_error": "Impossible d’envoyer ce formulaire. Veuillez réessayer."
         },
         "toasts": {
           "set": {

@@ -50,7 +50,8 @@
       "move": "Presunúť {value} do pracovných položiek projektu"
     },
     "source": {
-      "in-app": "v aplikácii"
+      "in-app": "v aplikácii",
+      "form": "Formulár"
     },
     "order_by": {
       "created_at": "Vytvorené dňa",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "Vyberte pracovnú položku pre zobrazenie detailov."
       }
-    }
+    },
+    "submitter": "Odosielateľ"
   }
 }

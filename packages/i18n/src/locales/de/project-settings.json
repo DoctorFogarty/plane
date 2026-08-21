@@ -402,8 +402,30 @@
             "success_create": "Intake-Formular erfolgreich erstellt",
             "success_update": "Intake-Formular erfolgreich aktualisiert",
             "error_create": "Intake-Formular konnte nicht erstellt werden",
-            "error_update": "Intake-Formular konnte nicht aktualisiert werden"
-          }
+            "error_update": "Intake-Formular konnte nicht aktualisiert werden",
+            "copied": "Formularlink kopiert",
+            "success_delete": "Intake-Formular gelöscht",
+            "error_delete": "Intake-Formular konnte nicht gelöscht werden",
+            "success_regenerate": "Formularlink neu erzeugt",
+            "error_regenerate": "Formularlink konnte nicht neu erzeugt werden"
+          },
+          "access": "Zugriff",
+          "access_public": "Öffentlich",
+          "access_authenticated": "Angemeldete Plane-Benutzer",
+          "success_message": "Erfolgsmeldung",
+          "copy_link": "Link kopieren",
+          "regenerate_link": "Link neu erzeugen",
+          "enabled": "Aktiviert",
+          "empty": "Noch keine Formulare. Erstellen Sie ein Formular, um Arbeitselemente von Personen zu sammeln, die keine Projektmitglieder sind.",
+          "submitter_email": "E-Mail des Absenders",
+          "submitter_name": "Name des Absenders",
+          "sign_in_to_submit": "Melden Sie sich an, um dieses Formular zu senden",
+          "submitted_title": "Anfrage gesendet",
+          "native_fields": "Standardfelder",
+          "no_properties": "Dieser Arbeitselementtyp hat keine formulargeeigneten Eigenschaften.",
+          "delete_form": "Formular löschen",
+          "allowed_labels": "Zugelassene Labels",
+          "submit_error": "Das Formular konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
         },
         "toasts": {
           "set": {

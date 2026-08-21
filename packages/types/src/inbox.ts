@@ -26,6 +26,7 @@ export enum EInboxIssueStatus {
 
 export enum EInboxIssueSource {
   IN_APP = "IN_APP",
+  FORM = "FORM",
   FORMS = "FORMS",
   EMAIL = "EMAIL",
 }
@@ -37,6 +38,11 @@ export type TInboxIssue = {
   snoozed_till: Date | null;
   duplicate_to: string | undefined;
   source: EInboxIssueSource | undefined;
+  source_email?: string | null;
+  extra?: {
+    form_id?: string;
+    submitter_name?: string | null;
+  };
   issue: TIssue;
   created_by: string;
   duplicate_issue_detail: TInboxDuplicateIssueDetails | undefined;

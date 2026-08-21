@@ -50,7 +50,8 @@
       "move": "{value} in die Arbeitselemente des Projekts verschieben"
     },
     "source": {
-      "in-app": "in der App"
+      "in-app": "in der App",
+      "form": "Formular"
     },
     "order_by": {
       "created_at": "Erstellt am",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "Wählen Sie ein Arbeitselement, um Details anzuzeigen."
       }
-    }
+    },
+    "submitter": "Absender"
   }
 }

@@ -50,7 +50,8 @@
       "move": "Sposta {value} negli elementi di lavoro del progetto"
     },
     "source": {
-      "in-app": "nell'app"
+      "in-app": "nell'app",
+      "form": "Modulo"
     },
     "order_by": {
       "created_at": "Creato il",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "Seleziona un elemento di lavoro per visualizzarne i dettagli."
       }
-    }
+    },
+    "submitter": "Mittente"
   }
 }

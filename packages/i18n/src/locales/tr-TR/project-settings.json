@@ -402,8 +402,30 @@
             "success_create": "Alım formu başarıyla oluşturuldu",
             "success_update": "Alım formu başarıyla güncellendi",
             "error_create": "Alım formu oluşturulamadı",
-            "error_update": "Alım formu güncellenemedi"
-          }
+            "error_update": "Alım formu güncellenemedi",
+            "copied": "Form bağlantısı kopyalandı",
+            "success_delete": "Intake formu silindi",
+            "error_delete": "Intake formu silinemedi",
+            "success_regenerate": "Form bağlantısı yenilendi",
+            "error_regenerate": "Form bağlantısı yenilenemedi"
+          },
+          "access": "Erişim",
+          "access_public": "Herkese açık",
+          "access_authenticated": "Oturum açmış Plane kullanıcıları",
+          "success_message": "Başarı mesajı",
+          "copy_link": "Bağlantıyı kopyala",
+          "regenerate_link": "Bağlantıyı yenile",
+          "enabled": "Etkin",
+          "empty": "Henüz form yok. Proje üyesi olmayan kişilerden iş öğeleri toplamak için bir form oluşturun.",
+          "submitter_email": "Gönderen e-postası",
+          "submitter_name": "Gönderen adı",
+          "sign_in_to_submit": "Bu formu göndermek için oturum açın",
+          "submitted_title": "İstek gönderildi",
+          "native_fields": "Yerel alanlar",
+          "no_properties": "Bu iş öğesi türünün formda kullanılabilecek özelliği yok.",
+          "delete_form": "Formu sil",
+          "allowed_labels": "İzin verilen etiketler",
+          "submit_error": "Bu form gönderilemedi. Lütfen tekrar deneyin."
         },
         "toasts": {
           "set": {

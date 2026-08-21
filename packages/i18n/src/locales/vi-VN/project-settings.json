@@ -402,8 +402,30 @@
             "success_create": "Đã tạo biểu mẫu tiếp nhận thành công",
             "success_update": "Đã cập nhật biểu mẫu tiếp nhận thành công",
             "error_create": "Không thể tạo biểu mẫu tiếp nhận",
-            "error_update": "Không thể cập nhật biểu mẫu tiếp nhận"
-          }
+            "error_update": "Không thể cập nhật biểu mẫu tiếp nhận",
+            "copied": "Đã sao chép liên kết biểu mẫu",
+            "success_delete": "Đã xóa biểu mẫu Intake",
+            "error_delete": "Không xóa được biểu mẫu Intake",
+            "success_regenerate": "Đã tạo lại liên kết biểu mẫu",
+            "error_regenerate": "Không tạo lại được liên kết biểu mẫu"
+          },
+          "access": "Quyền truy cập",
+          "access_public": "Công khai",
+          "access_authenticated": "Người dùng Plane đã đăng nhập",
+          "success_message": "Thông báo thành công",
+          "copy_link": "Sao chép liên kết",
+          "regenerate_link": "Tạo lại liên kết",
+          "enabled": "Đã bật",
+          "empty": "Chưa có biểu mẫu. Tạo biểu mẫu để thu thập mục công việc từ những người không phải thành viên dự án.",
+          "submitter_email": "Email người gửi",
+          "submitter_name": "Tên người gửi",
+          "sign_in_to_submit": "Đăng nhập để gửi biểu mẫu này",
+          "submitted_title": "Đã gửi yêu cầu",
+          "native_fields": "Trường mặc định",
+          "no_properties": "Loại mục công việc này không có thuộc tính phù hợp cho biểu mẫu.",
+          "delete_form": "Xóa biểu mẫu",
+          "allowed_labels": "Nhãn được phép",
+          "submit_error": "Không thể gửi biểu mẫu này. Vui lòng thử lại."
         },
         "toasts": {
           "set": {

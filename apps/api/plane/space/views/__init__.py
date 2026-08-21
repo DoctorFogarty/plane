@@ -19,6 +19,7 @@ from .issue import (
 )
 
 from .intake import IntakeIssuePublicViewSet
+from .form import IntakeFormPublicEndpoint, IntakeFormSubmitEndpoint
 
 from .cycle import ProjectCyclesEndpoint
 

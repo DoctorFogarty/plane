@@ -402,8 +402,30 @@
             "success_create": "Formulário de recebimento criado com sucesso",
             "success_update": "Formulário de recebimento atualizado com sucesso",
             "error_create": "Falha ao criar formulário de recebimento",
-            "error_update": "Falha ao atualizar formulário de recebimento"
-          }
+            "error_update": "Falha ao atualizar formulário de recebimento",
+            "copied": "Link do formulário copiado",
+            "success_delete": "Formulário Intake excluído",
+            "error_delete": "Falha ao excluir o formulário Intake",
+            "success_regenerate": "Link do formulário gerado novamente",
+            "error_regenerate": "Falha ao gerar novamente o link do formulário"
+          },
+          "access": "Acesso",
+          "access_public": "Público",
+          "access_authenticated": "Usuários Plane conectados",
+          "success_message": "Mensagem de sucesso",
+          "copy_link": "Copiar link",
+          "regenerate_link": "Gerar novo link",
+          "enabled": "Ativado",
+          "empty": "Ainda não há formulários. Crie um formulário para coletar itens de trabalho de pessoas que não são membros do projeto.",
+          "submitter_email": "E-mail do remetente",
+          "submitter_name": "Nome do remetente",
+          "sign_in_to_submit": "Entre para enviar este formulário",
+          "submitted_title": "Solicitação enviada",
+          "native_fields": "Campos nativos",
+          "no_properties": "Este tipo de item de trabalho não tem propriedades adequadas para o formulário.",
+          "delete_form": "Excluir formulário",
+          "allowed_labels": "Labels permitidas",
+          "submit_error": "Não foi possível enviar este formulário. Tente novamente."
         },
         "toasts": {
           "set": {

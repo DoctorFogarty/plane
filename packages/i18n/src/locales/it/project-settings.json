@@ -402,8 +402,30 @@
             "success_create": "Modulo di accettazione creato con successo",
             "success_update": "Modulo di accettazione aggiornato con successo",
             "error_create": "Impossibile creare il modulo di accettazione",
-            "error_update": "Impossibile aggiornare il modulo di accettazione"
-          }
+            "error_update": "Impossibile aggiornare il modulo di accettazione",
+            "copied": "Link del modulo copiato",
+            "success_delete": "Modulo Intake eliminato",
+            "error_delete": "Impossibile eliminare il modulo Intake",
+            "success_regenerate": "Link del modulo rigenerato",
+            "error_regenerate": "Impossibile rigenerare il link del modulo"
+          },
+          "access": "Accesso",
+          "access_public": "Pubblico",
+          "access_authenticated": "Utenti Plane con accesso effettuato",
+          "success_message": "Messaggio di conferma",
+          "copy_link": "Copia link",
+          "regenerate_link": "Rigenera link",
+          "enabled": "Abilitato",
+          "empty": "Nessun modulo ancora. Crea un modulo per raccogliere elementi di lavoro da persone che non sono membri del progetto.",
+          "submitter_email": "Email del mittente",
+          "submitter_name": "Nome del mittente",
+          "sign_in_to_submit": "Accedi per inviare questo modulo",
+          "submitted_title": "Richiesta inviata",
+          "native_fields": "Campi nativi",
+          "no_properties": "Questo tipo di elemento di lavoro non ha proprietà utilizzabili nel modulo.",
+          "delete_form": "Elimina modulo",
+          "allowed_labels": "Etichette consentite",
+          "submit_error": "Impossibile inviare questo modulo. Riprova."
         },
         "toasts": {
           "set": {

@@ -402,8 +402,30 @@
             "success_create": "Formularz przyjęcia utworzony pomyślnie",
             "success_update": "Formularz przyjęcia zaktualizowany pomyślnie",
             "error_create": "Nie udało się utworzyć formularza przyjęcia",
-            "error_update": "Nie udało się zaktualizować formularza przyjęcia"
-          }
+            "error_update": "Nie udało się zaktualizować formularza przyjęcia",
+            "copied": "Skopiowano link do formularza",
+            "success_delete": "Usunięto formularz Intake",
+            "error_delete": "Nie udało się usunąć formularza Intake",
+            "success_regenerate": "Wygenerowano nowy link do formularza",
+            "error_regenerate": "Nie udało się wygenerować nowego linku do formularza"
+          },
+          "access": "Dostęp",
+          "access_public": "Publiczny",
+          "access_authenticated": "Zalogowani użytkownicy Plane",
+          "success_message": "Komunikat o sukcesie",
+          "copy_link": "Kopiuj link",
+          "regenerate_link": "Wygeneruj nowy link",
+          "enabled": "Włączone",
+          "empty": "Nie ma jeszcze formularzy. Utwórz formularz, aby zbierać elementy pracy od osób, które nie są członkami projektu.",
+          "submitter_email": "E-mail zgłaszającego",
+          "submitter_name": "Imię zgłaszającego",
+          "sign_in_to_submit": "Zaloguj się, aby wysłać ten formularz",
+          "submitted_title": "Zgłoszenie wysłane",
+          "native_fields": "Pola standardowe",
+          "no_properties": "Ten typ elementu pracy nie ma właściwości do użycia w formularzu.",
+          "delete_form": "Usuń formularz",
+          "allowed_labels": "Dozwolone etykiety",
+          "submit_error": "Nie udało się wysłać formularza. Spróbuj ponownie."
         },
         "toasts": {
           "set": {

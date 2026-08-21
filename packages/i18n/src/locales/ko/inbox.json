@@ -50,7 +50,8 @@
       "move": "{value}을(를) 프로젝트 작업 항목으로 이동"
     },
     "source": {
-      "in-app": "앱 내"
+      "in-app": "앱 내",
+      "form": "양식"
     },
     "order_by": {
       "created_at": "생성일",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "작업 항목의 세부 정보를 보려면 선택하세요."
       }
-    }
+    },
+    "submitter": "제출자"
   }
 }

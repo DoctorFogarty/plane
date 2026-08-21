@@ -402,8 +402,30 @@
             "success_create": "Formulář příjmu byl úspěšně vytvořen",
             "success_update": "Formulář příjmu byl úspěšně aktualizován",
             "error_create": "Nepodařilo se vytvořit formulář příjmu",
-            "error_update": "Nepodařilo se aktualizovat formulář příjmu"
-          }
+            "error_update": "Nepodařilo se aktualizovat formulář příjmu",
+            "copied": "Odkaz na formulář zkopírován",
+            "success_delete": "Formulář Intake smazán",
+            "error_delete": "Formulář Intake se nepodařilo smazat",
+            "success_regenerate": "Odkaz na formulář byl znovu vygenerován",
+            "error_regenerate": "Odkaz na formulář se nepodařilo znovu vygenerovat"
+          },
+          "access": "Přístup",
+          "access_public": "Veřejný",
+          "access_authenticated": "Přihlášení uživatelé Plane",
+          "success_message": "Zpráva o úspěchu",
+          "copy_link": "Kopírovat odkaz",
+          "regenerate_link": "Vygenerovat nový odkaz",
+          "enabled": "Zapnuto",
+          "empty": "Zatím žádné formuláře. Vytvořte formulář a sbírejte pracovní položky od lidí, kteří nejsou členy projektu.",
+          "submitter_email": "E-mail odesílatele",
+          "submitter_name": "Jméno odesílatele",
+          "sign_in_to_submit": "Pro odeslání tohoto formuláře se přihlaste",
+          "submitted_title": "Požadavek odeslán",
+          "native_fields": "Nativní pole",
+          "no_properties": "Tento typ pracovní položky nemá vlastnosti použitelné ve formuláři.",
+          "delete_form": "Smazat formulář",
+          "allowed_labels": "Povolené štítky",
+          "submit_error": "Formulář se nepodařilo odeslat. Zkuste to znovu."
         },
         "toasts": {
           "set": {

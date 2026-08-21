@@ -11,7 +11,7 @@ from .issue import IssueIntakeSerializer, LabelLiteSerializer, IssueDetailSerial
 from .project import ProjectLiteSerializer
 from .state import StateLiteSerializer
 from .user import UserLiteSerializer
-from plane.db.models import Intake, IntakeIssue, Issue, StateGroup, State
+from plane.db.models import Intake, IntakeIssue, IntakeForm, Issue, StateGroup, State
 
 
 class IntakeSerializer(BaseSerializer):
@@ -35,6 +35,8 @@ class IntakeIssueSerializer(BaseSerializer):
             "duplicate_to",
             "snoozed_till",
             "source",
+            "source_email",
+            "extra",
             "issue",
             "created_by",
         ]
@@ -103,6 +105,8 @@ class IntakeIssueDetailSerializer(BaseSerializer):
             "snoozed_till",
             "duplicate_issue_detail",
             "source",
+            "source_email",
+            "extra",
             "issue",
         ]
         read_only_fields = ["project", "workspace"]
@@ -135,3 +139,33 @@ class IssueStateIntakeSerializer(BaseSerializer):
     class Meta:
         model = Issue
         fields = "__all__"
+
+
+class IntakeFormSerializer(BaseSerializer):
+    issue_type_id = serializers.UUIDField(required=False, allow_null=True)
+
+    class Meta:
+        model = IntakeForm
+        fields = [
+            "id",
+            "name",
+            "description",
+            "anchor",
+            "is_enabled",
+            "access",
+            "issue_type_id",
+            "fields",
+            "success_message",
+            "logo_props",
+            "project_id",
+            "workspace_id",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["anchor", "project", "workspace", "project_id", "workspace_id"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["issue_type_id"] = str(instance.issue_type_id) if instance.issue_type_id else None
+        return data
+

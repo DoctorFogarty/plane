@@ -50,7 +50,8 @@
       "move": "Mută {value} în activitățile proiectului"
     },
     "source": {
-      "in-app": "în aplicație"
+      "in-app": "în aplicație",
+      "form": "Formular"
     },
     "order_by": {
       "created_at": "Creată la",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "Selectează o cerere pentru a-i vedea detaliile."
       }
-    }
+    },
+    "submitter": "Expeditor"
   }
 }

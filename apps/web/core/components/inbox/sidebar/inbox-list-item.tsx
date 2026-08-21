@@ -80,6 +80,9 @@ export const InboxIssueListItem = observer(function InboxIssueListItem(props: In
               </div>
             </div>
             <h3 className="w-full truncate text-13">{issue.name}</h3>
+            {inboxIssue.source_email ? (
+              <p className="truncate text-11 text-tertiary">{inboxIssue.source_email}</p>
+            ) : null}
           </div>
 
           <div className="flex items-center justify-between">

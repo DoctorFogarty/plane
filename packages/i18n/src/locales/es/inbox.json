@@ -50,7 +50,8 @@
       "move": "Mover {value} a elementos de trabajo del proyecto"
     },
     "source": {
-      "in-app": "en-app"
+      "in-app": "en-app",
+      "form": "Formulario"
     },
     "order_by": {
       "created_at": "Creado el",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "Selecciona un elemento de trabajo para ver sus detalles."
       }
-    }
+    },
+    "submitter": "Remitente"
   }
 }

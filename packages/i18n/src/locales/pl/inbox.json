@@ -50,7 +50,8 @@
       "move": "Przenieś {value} do elementów pracy projektu"
     },
     "source": {
-      "in-app": "w aplikacji"
+      "in-app": "w aplikacji",
+      "form": "Formularz"
     },
     "order_by": {
       "created_at": "Utworzono dnia",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "Wybierz element pracy, aby zobaczyć szczegóły."
       }
-    }
+    },
+    "submitter": "Zgłaszający"
   }
 }

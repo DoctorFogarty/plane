@@ -27,6 +27,7 @@ export * from "./file";
 export * from "./home";
 export * from "./importer";
 export * from "./inbox";
+export * from "./intake-form";
 export * from "./instance";
 export * from "./integration";
 export * from "./issues";

@@ -50,7 +50,8 @@
       "move": "{value} proje iş öğelerine taşı"
     },
     "source": {
-      "in-app": "uygulama içi"
+      "in-app": "uygulama içi",
+      "form": "Form"
     },
     "order_by": {
       "created_at": "Oluşturulma tarihi",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "Detaylarını görüntülemek için bir iş öğesi seçin."
       }
-    }
+    },
+    "submitter": "Gönderen"
   }
 }

@@ -50,7 +50,8 @@
       "move": "將 {value} 移至專案工作事項"
     },
     "source": {
-      "in-app": "應用程式內"
+      "in-app": "應用程式內",
+      "form": "表單"
     },
     "order_by": {
       "created_at": "建立時間",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "選擇工作事項以檢視其詳細資訊。"
       }
-    }
+    },
+    "submitter": "提交者"
   }
 }

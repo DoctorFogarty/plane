@@ -402,8 +402,30 @@
             "success_create": "受付フォームが正常に作成されました",
             "success_update": "受付フォームが正常に更新されました",
             "error_create": "受付フォームの作成に失敗しました",
-            "error_update": "受付フォームの更新に失敗しました"
-          }
+            "error_update": "受付フォームの更新に失敗しました",
+            "copied": "フォームのリンクをコピーしました",
+            "success_delete": "Intake フォームを削除しました",
+            "error_delete": "Intake フォームを削除できませんでした",
+            "success_regenerate": "フォームのリンクを再生成しました",
+            "error_regenerate": "フォームのリンクを再生成できませんでした"
+          },
+          "access": "アクセス",
+          "access_public": "公開",
+          "access_authenticated": "サインインした Plane ユーザー",
+          "success_message": "完了メッセージ",
+          "copy_link": "リンクをコピー",
+          "regenerate_link": "リンクを再生成",
+          "enabled": "有効",
+          "empty": "フォームはまだありません。プロジェクトメンバー以外の人から作業項目を受け取るフォームを作成してください。",
+          "submitter_email": "送信者のメール",
+          "submitter_name": "送信者名",
+          "sign_in_to_submit": "このフォームを送信するにはサインインしてください",
+          "submitted_title": "リクエストを送信しました",
+          "native_fields": "標準フィールド",
+          "no_properties": "この作業項目タイプにはフォームで使えるプロパティーがありません。",
+          "delete_form": "フォームを削除",
+          "allowed_labels": "許可するラベル",
+          "submit_error": "フォームを送信できませんでした。もう一度お試しください。"
         },
         "toasts": {
           "set": {

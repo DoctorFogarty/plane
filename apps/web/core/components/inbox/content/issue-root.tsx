@@ -11,7 +11,7 @@ import { observer } from "mobx-react";
 import type { EditorRefApi } from "@plane/editor";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue, TNameDescriptionLoader } from "@plane/types";
-import { EFileAssetType, EInboxIssueSource, EInboxIssueStatus } from "@plane/types";
+import { EFileAssetType, EInboxIssueStatus } from "@plane/types";
 import { getTextContent } from "@plane/utils";
 // components
 import { DescriptionVersionsRoot } from "@/components/core/description-versions";
@@ -31,6 +31,7 @@ import { useUser } from "@/hooks/store/user";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 // store types
 import { DeDupeIssuePopoverRoot } from "@/plane-web/components/de-dupe/duplicate-popover";
+import { isIntakeFormSource } from "@/plane-web/components/inbox/source-pill";
 import { useDebouncedDuplicateIssues } from "@/hooks/use-debounced-duplicate-issues";
 // services
 import { IntakeWorkItemVersionService } from "@/services/inbox";
@@ -125,7 +126,7 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
           });
         }
       },
-      archive: async (workspaceSlug: string, projectId: string, issueId: string) => {
+      archive: async (_workspaceSlug: string, _projectId: string, issueId: string) => {
         try {
           await archiveIssue(workspaceSlug, projectId, issueId);
         } catch (error) {
@@ -133,7 +134,7 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
         }
       },
     }),
-    [inboxIssue]
+    [archiveIssue, inboxIssue, projectId, removeIssue, workspaceSlug]
   );
 
   if (!issue) return <></>;
@@ -164,6 +165,12 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
           value={issue.name}
           containerClassName="-ml-3"
         />
+        {(inboxIssue.source_email || inboxIssue.extra?.submitter_name) && (
+          <p className="text-13 text-secondary">
+            {inboxIssue.extra?.submitter_name ? `${inboxIssue.extra.submitter_name} · ` : ""}
+            {inboxIssue.source_email}
+          </p>
+        )}
 
         {loader === "issue-loading" || issue.description_html === undefined ? (
           <DescriptionInputLoader />
@@ -204,10 +211,9 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
               className="flex-shrink-0"
               entityInformation={{
                 createdAt: issue.created_at ? new Date(issue.created_at) : new Date(),
-                createdByDisplayName:
-                  inboxIssue.source === EInboxIssueSource.FORMS
-                    ? "Intake Form user"
-                    : (getUserDetails(issue.created_by ?? "")?.display_name ?? ""),
+                createdByDisplayName: isIntakeFormSource(inboxIssue.source)
+                  ? inboxIssue.extra?.submitter_name || inboxIssue.source_email || "Intake Form user"
+                  : (getUserDetails(issue.created_by ?? "")?.display_name ?? ""),
                 id: issue.id,
                 isRestoreDisabled: !isEditable,
               }}

@@ -50,7 +50,8 @@
       "move": "Di chuyển {value} đến mục công việc dự án"
     },
     "source": {
-      "in-app": "Trong ứng dụng"
+      "in-app": "Trong ứng dụng",
+      "form": "Biểu mẫu"
     },
     "order_by": {
       "created_at": "Thời gian tạo",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "Chọn một mục công việc để xem chi tiết."
       }
-    }
+    },
+    "submitter": "Người gửi"
   }
 }

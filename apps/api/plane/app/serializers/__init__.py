@@ -121,6 +121,7 @@ from .intake import (
     IssueStateIntakeSerializer,
     IntakeIssueLiteSerializer,
     IntakeIssueDetailSerializer,
+    IntakeFormSerializer,
 )
 
 from .analytic import AnalyticViewSerializer

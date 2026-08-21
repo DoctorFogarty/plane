@@ -50,7 +50,8 @@
       "move": "将 {value} 移至项目工作项"
     },
     "source": {
-      "in-app": "应用内"
+      "in-app": "应用内",
+      "form": "表单"
     },
     "order_by": {
       "created_at": "创建时间",
@@ -82,6 +83,7 @@
       "detail": {
         "title": "选择一个工作项以查看其详细信息。"
       }
-    }
+    },
+    "submitter": "提交者"
   }
 }

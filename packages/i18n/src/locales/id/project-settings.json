@@ -402,8 +402,30 @@
             "success_create": "Formulir penerimaan berhasil dibuat",
             "success_update": "Formulir penerimaan berhasil diperbarui",
             "error_create": "Gagal membuat formulir penerimaan",
-            "error_update": "Gagal memperbarui formulir penerimaan"
-          }
+            "error_update": "Gagal memperbarui formulir penerimaan",
+            "copied": "Tautan formulir disalin",
+            "success_delete": "Formulir Intake dihapus",
+            "error_delete": "Gagal menghapus formulir Intake",
+            "success_regenerate": "Tautan formulir dibuat ulang",
+            "error_regenerate": "Gagal membuat ulang tautan formulir"
+          },
+          "access": "Akses",
+          "access_public": "Publik",
+          "access_authenticated": "Pengguna Plane yang masuk",
+          "success_message": "Pesan sukses",
+          "copy_link": "Salin tautan",
+          "regenerate_link": "Buat ulang tautan",
+          "enabled": "Aktif",
+          "empty": "Belum ada formulir. Buat formulir untuk mengumpulkan item kerja dari orang yang bukan anggota proyek.",
+          "submitter_email": "Email pengirim",
+          "submitter_name": "Nama pengirim",
+          "sign_in_to_submit": "Masuk untuk mengirim formulir ini",
+          "submitted_title": "Permintaan terkirim",
+          "native_fields": "Bidang bawaan",
+          "no_properties": "Jenis item kerja ini tidak memiliki properti yang siap untuk formulir.",
+          "delete_form": "Hapus formulir",
+          "allowed_labels": "Label yang diizinkan",
+          "submit_error": "Formulir ini tidak dapat dikirim. Silakan coba lagi."
         },
         "toasts": {
           "set": {

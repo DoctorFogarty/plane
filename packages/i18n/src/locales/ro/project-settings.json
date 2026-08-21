@@ -402,8 +402,30 @@
             "success_create": "Formularul de primire a fost creat cu succes",
             "success_update": "Formularul de primire a fost actualizat cu succes",
             "error_create": "Crearea formularului de primire a eșuat",
-            "error_update": "Actualizarea formularului de primire a eșuat"
-          }
+            "error_update": "Actualizarea formularului de primire a eșuat",
+            "copied": "Linkul formularului a fost copiat",
+            "success_delete": "Formularul Intake a fost șters",
+            "error_delete": "Nu s-a putut șterge formularul Intake",
+            "success_regenerate": "Linkul formularului a fost regenerat",
+            "error_regenerate": "Nu s-a putut regenera linkul formularului"
+          },
+          "access": "Acces",
+          "access_public": "Public",
+          "access_authenticated": "Utilizatori Plane autentificați",
+          "success_message": "Mesaj de succes",
+          "copy_link": "Copiază linkul",
+          "regenerate_link": "Regenerează linkul",
+          "enabled": "Activat",
+          "empty": "Nu există încă formulare. Creează un formular pentru a colecta elemente de lucru de la persoane care nu sunt membri ai proiectului.",
+          "submitter_email": "E-mailul expeditorului",
+          "submitter_name": "Numele expeditorului",
+          "sign_in_to_submit": "Autentifică-te pentru a trimite acest formular",
+          "submitted_title": "Cerere trimisă",
+          "native_fields": "Câmpuri native",
+          "no_properties": "Acest tip de element de lucru nu are proprietăți potrivite pentru formular.",
+          "delete_form": "Șterge formularul",
+          "allowed_labels": "Etichete permise",
+          "submit_error": "Nu am putut trimite acest formular. Încearcă din nou."
         },
         "toasts": {
           "set": {

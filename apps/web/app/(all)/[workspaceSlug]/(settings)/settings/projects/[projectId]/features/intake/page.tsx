@@ -14,6 +14,7 @@ import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
 import { ProjectSettingsFeatureControlItem } from "@/components/settings/project/content/feature-control-item";
+import { IntakeFormsRoot } from "@/plane-web/components/intake-forms/root";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -56,6 +57,13 @@ function FeaturesIntakeSettingsPage({ params }: Route.ComponentProps) {
             workspaceSlug={workspaceSlug}
           />
         </div>
+        {canPerformProjectAdminActions ? (
+          <IntakeFormsRoot
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            isAdmin={canPerformProjectAdminActions}
+          />
+        ) : null}
       </section>
     </SettingsContentWrapper>
   );

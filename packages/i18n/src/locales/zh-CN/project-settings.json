@@ -402,8 +402,30 @@
             "success_create": "接收表单已成功创建",
             "success_update": "接收表单已成功更新",
             "error_create": "无法创建接收表单",
-            "error_update": "无法更新接收表单"
-          }
+            "error_update": "无法更新接收表单",
+            "copied": "已复制表单链接",
+            "success_delete": "已删除 Intake 表单",
+            "error_delete": "删除 Intake 表单失败",
+            "success_regenerate": "已重新生成表单链接",
+            "error_regenerate": "重新生成表单链接失败"
+          },
+          "access": "访问权限",
+          "access_public": "公开",
+          "access_authenticated": "已登录的 Plane 用户",
+          "success_message": "成功提示",
+          "copy_link": "复制链接",
+          "regenerate_link": "重新生成链接",
+          "enabled": "已启用",
+          "empty": "还没有表单。创建一个表单，向非项目成员收集工作项。",
+          "submitter_email": "提交者邮箱",
+          "submitter_name": "提交者姓名",
+          "sign_in_to_submit": "请登录后提交此表单",
+          "submitted_title": "请求已提交",
+          "native_fields": "系统字段",
+          "no_properties": "此工作项类型没有可用于表单的属性。",
+          "delete_form": "删除表单",
+          "allowed_labels": "允许的标签",
+          "submit_error": "无法提交此表单，请重试。"
         },
         "toasts": {
           "set": {

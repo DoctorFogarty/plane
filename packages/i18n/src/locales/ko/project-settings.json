@@ -402,8 +402,30 @@
             "success_create": "인테이크 양식이 성공적으로 생성되었습니다",
             "success_update": "인테이크 양식이 성공적으로 업데이트되었습니다",
             "error_create": "인테이크 양식 생성에 실패했습니다",
-            "error_update": "인테이크 양식 업데이트에 실패했습니다"
-          }
+            "error_update": "인테이크 양식 업데이트에 실패했습니다",
+            "copied": "양식 링크가 복사되었습니다",
+            "success_delete": "Intake 양식이 삭제되었습니다",
+            "error_delete": "Intake 양식을 삭제하지 못했습니다",
+            "success_regenerate": "양식 링크가 재생성되었습니다",
+            "error_regenerate": "양식 링크를 재생성하지 못했습니다"
+          },
+          "access": "접근 권한",
+          "access_public": "공개",
+          "access_authenticated": "로그인한 Plane 사용자",
+          "success_message": "성공 메시지",
+          "copy_link": "링크 복사",
+          "regenerate_link": "링크 재생성",
+          "enabled": "사용",
+          "empty": "아직 양식이 없습니다. 프로젝트 멤버가 아닌 사람에게서 작업 항목을 받을 양식을 만드세요.",
+          "submitter_email": "제출자 이메일",
+          "submitter_name": "제출자 이름",
+          "sign_in_to_submit": "이 양식을 제출하려면 로그인하세요",
+          "submitted_title": "요청이 제출되었습니다",
+          "native_fields": "기본 필드",
+          "no_properties": "이 작업 항목 유형에는 양식에서 사용할 수 있는 속성이 없습니다.",
+          "delete_form": "양식 삭제",
+          "allowed_labels": "허용된 레이블",
+          "submit_error": "양식을 제출할 수 없습니다. 다시 시도해 주세요."
         },
         "toasts": {
           "set": {

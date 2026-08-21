@@ -50,8 +50,10 @@
       "move": "Move {value} to project work items"
     },
     "source": {
-      "in-app": "in-app"
+      "in-app": "in-app",
+      "form": "Form"
     },
+    "submitter": "Submitter",
     "order_by": {
       "created_at": "Created at",
       "updated_at": "Updated at",
