@@ -49,6 +49,7 @@ from plane.utils.slack.handlers import (
     handle_event,
     handle_message_action,
     open_create_modal,
+    open_manage_modal,
     should_open_create_modal,
     view_submission_response,
 )
@@ -58,6 +59,7 @@ from plane.utils.slack.oauth import exchange_oauth_code, slack_authorize_url
 from plane.utils.slack.oauth_state import sign_oauth_state, unsign_oauth_state
 from plane.utils.slack.runtime import mapped_user, workspace_connection_for_team
 from plane.utils.slack.signing import verify_slack_signature
+from plane.utils.slack.slash import parse_slash_create_args, should_open_manage_modal, workspace_type_names
 from plane.utils.slack.tokens import redact_tokens
 from plane.utils.slack.urls import public_origin
 
@@ -158,7 +160,11 @@ class SlackInteractiveEndpoint(BaseAPIView):
         connection = workspace_connection_for_team(team_id)
         ptype = payload.get("type")
         callback = (payload.get("view") or {}).get("callback_id")
-        if connection and ptype == "view_submission" and callback == "project_selection":
+        if connection and ptype == "view_submission" and callback in {
+            "project_selection",
+            "link_thread",
+            "channel_manage",
+        }:
             result = view_submission_response(connection, payload)
             if result:
                 return Response(result, status=status.HTTP_200_OK)
@@ -187,11 +193,27 @@ class SlackCommandsEndpoint(BaseAPIView):
             parsed = parse_qs(request.body.decode())
             payload = {k: (v[0] if v else "") for k, v in parsed.items()}
         connection = workspace_connection_for_team(payload.get("team_id"))
-        if connection and should_open_create_modal(payload.get("text") or ""):
+        text = payload.get("text") or ""
+        if connection and payload.get("trigger_id"):
             user = mapped_user(connection, payload.get("user_id"))
-            if user and payload.get("trigger_id"):
-                open_create_modal(connection, user, payload.get("trigger_id"), payload.get("channel_id"))
-                return _slack_ack()
+            if user:
+                try:
+                    if should_open_manage_modal(text):
+                        open_manage_modal(connection, user, payload.get("trigger_id"), payload.get("channel_id"))
+                        return _slack_ack()
+                    if should_open_create_modal(text):
+                        type_hint, summary = parse_slash_create_args(text, workspace_type_names(connection))
+                        open_create_modal(
+                            connection,
+                            user,
+                            payload.get("trigger_id"),
+                            payload.get("channel_id"),
+                            prefill=summary,
+                            type_hint=type_hint,
+                        )
+                        return _slack_ack()
+                except Exception:
+                    log_exception()
         process_slack_command.delay(payload)
         return _slack_ack()
 

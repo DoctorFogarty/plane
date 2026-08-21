@@ -10,24 +10,25 @@ import re
 from uuid import UUID
 
 from django.utils import timezone
-from django.utils.html import strip_tags
 from slack_sdk.errors import SlackApiError
 
+from plane.app.permissions import ROLE
 from plane.db.models import (
     Cycle,
     IntakeIssue,
     Issue,
     IssueAssignee,
-    IssueComment,
     IssueLabel,
     IssueProperty,
     IssuePropertyOption,
     IssuePropertyValue,
     IssueSubscriber,
+    IssueType,
     Label,
     Module,
     Page,
     Project,
+    ProjectMember,
     SlackAuditLog,
     SlackChannelSubscription,
     SlackEventIdempotency,
@@ -45,12 +46,14 @@ from plane.utils.slack.blocks import (
     connect_gate_blocks,
     create_issue_modal,
     issue_card_blocks,
+    link_thread_modal,
+    manage_channel_modal,
     project_select_modal,
     slack_option,
     truncate_option,
 )
-from plane.utils.slack.channels import post_link_unfurls
-from plane.utils.slack.filters import subscription_matches_issue
+from plane.utils.slack.channels import post_link_unfurls, resolve_slack_channel
+from plane.utils.slack.filters import DEFAULT_CHANNEL_EVENTS
 from plane.utils.slack.runtime import (
     add_comment,
     can_get_issue,
@@ -63,12 +66,14 @@ from plane.utils.slack.runtime import (
     post_ephemeral,
     workspace_connection_for_team,
 )
+from plane.utils.slack.slash import parse_slash_create_args, should_open_create_modal, workspace_type_names
 from plane.utils.slack.tokens import bot_client, redact_tokens
 from plane.utils.slack.urls import extract_uppercase_identifiers, parse_plane_url, public_origin, work_item_url
 
 logger = logging.getLogger("plane.slack")
 
-CREATE_COMMANDS = {"", "create"}
+LINK_THREAD_CALLBACKS = {"link_work_item", "link_thread"}
+INTAKE_CALLBACKS = {"create_intake_issue", "intake_shortcut"}
 
 
 def claim_event(event_id: str | None) -> bool:
@@ -132,7 +137,32 @@ def required_property_blocks(project) -> list[dict]:
     return blocks
 
 
-def open_create_modal(connection, user, trigger_id, channel_id, *, prefill: str = "", intake: bool = False):
+def _project_role(user, project_id) -> int:
+    membership = ProjectMember.objects.filter(project_id=project_id, member=user, is_active=True).first()
+    return membership.role if membership else 0
+
+
+def project_issue_types(project):
+    return list(
+        IssueType.objects.filter(
+            workspace=project.workspace,
+            is_active=True,
+            is_epic=False,
+            project_issue_types__project=project,
+        ).distinct()[:100]
+    )
+
+
+def match_issue_type(types: list, hint: str):
+    if not hint:
+        return None
+    lowered = hint.lower()
+    return next((item for item in types if (item.name or "").lower() == lowered), None)
+
+
+def open_create_modal(
+    connection, user, trigger_id, channel_id, *, prefill: str = "", intake: bool = False, type_hint: str = ""
+):
     projects = list(member_projects(connection, user)[:100])
     if not projects:
         return False
@@ -143,16 +173,129 @@ def open_create_modal(connection, user, trigger_id, channel_id, *, prefill: str 
             "user_id": str(user.id),
             "prefill": prefill[:200],
             "intake": intake,
+            "type_hint": type_hint[:80],
         }
     )
     bot_client(connection).views_open(trigger_id=trigger_id, view=project_select_modal(options, metadata))
     return True
 
 
-def should_open_create_modal(text: str) -> bool:
-    command = (text or "").strip().split()[:1]
-    token = (command[0] if command else "").lower()
-    return token in CREATE_COMMANDS
+def open_link_thread_modal(connection, user, trigger_id, channel_id, thread_ts, *, initial_key: str = ""):
+    metadata = json.dumps(
+        {
+            "channel_id": channel_id,
+            "thread_ts": thread_ts,
+            "user_id": str(user.id),
+        }
+    )
+    bot_client(connection).views_open(
+        trigger_id=trigger_id, view=link_thread_modal(metadata, initial_key=initial_key)
+    )
+    return True
+
+
+def _manage_modal_blocks(connection, user, channel_id) -> tuple[list[dict], bool]:
+    subs = list(
+        SlackChannelSubscription.objects.filter(workspace_connection=connection, channel_id=channel_id).select_related(
+            "project"
+        )
+    )
+    blocks: list[dict] = []
+    if not subs:
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "No project subscriptions in this channel yet.",
+                },
+            }
+        )
+    for sub in subs[:10]:
+        role = _project_role(user, sub.project_id)
+        status = "paused" if sub.is_paused else "active"
+        section: dict = {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f"*{sub.project.identifier}* {sub.project.name} · {status}"},
+        }
+        options = []
+        if role >= ROLE.MEMBER.value:
+            options.append(
+                {
+                    "text": {"type": "plain_text", "text": "Resume" if sub.is_paused else "Pause"},
+                    "value": f"{'resume' if sub.is_paused else 'pause'}:{sub.id}",
+                }
+            )
+        if role >= ROLE.ADMIN.value:
+            options.append({"text": {"type": "plain_text", "text": "Disconnect"}, "value": f"disconnect:{sub.id}"})
+        if options:
+            section["accessory"] = {"type": "overflow", "action_id": "manage_subscription", "options": options}
+        blocks.append(section)
+
+    subscribed_ids = {sub.project_id for sub in subs}
+    addable = [
+        project
+        for project in member_projects(connection, user)
+        if project.id not in subscribed_ids and _project_role(user, project.id) >= ROLE.ADMIN.value
+    ]
+    can_add = bool(addable)
+    if can_add:
+        blocks.append(
+            {
+                "type": "input",
+                "optional": True,
+                "block_id": "project",
+                "label": {"type": "plain_text", "text": "Add a project"},
+                "element": {
+                    "type": "static_select",
+                    "action_id": "project",
+                    "options": [slack_option(str(p.id), f"{p.identifier} {p.name}") for p in addable[:100]],
+                },
+            }
+        )
+        blocks.append(
+            {
+                "type": "input",
+                "optional": True,
+                "block_id": "public_ack",
+                "label": {"type": "plain_text", "text": "Secret projects"},
+                "element": {
+                    "type": "checkboxes",
+                    "action_id": "public_ack",
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Allow posting a secret project to this public channel",
+                            },
+                            "value": "1",
+                        }
+                    ],
+                },
+            }
+        )
+    return blocks, can_add
+
+
+def open_manage_modal(connection, user, trigger_id, channel_id) -> bool:
+    blocks, can_add = _manage_modal_blocks(connection, user, channel_id)
+    metadata = json.dumps({"channel_id": channel_id, "user_id": str(user.id)})
+    bot_client(connection).views_open(
+        trigger_id=trigger_id,
+        view=manage_channel_modal(blocks, metadata, submit="Add" if can_add else "Done"),
+    )
+    return True
+
+
+def _refresh_manage_modal(connection, user, view_id, channel_id) -> None:
+    if not view_id:
+        return
+    blocks, can_add = _manage_modal_blocks(connection, user, channel_id)
+    metadata = json.dumps({"channel_id": channel_id, "user_id": str(user.id)})
+    bot_client(connection).views_update(
+        view_id=view_id,
+        view=manage_channel_modal(blocks, metadata, submit="Add" if can_add else "Done"),
+    )
 
 
 def issue_for_identifier(connection, project_identifier: str, sequence_id: int):
@@ -189,7 +332,7 @@ def handle_slash(connection, payload: dict) -> None:
             connection,
             channel_id,
             user_id,
-            "Commands: /plane help | create | connect | manage | notify | KEY | invite | logout | unsubscribe",
+            "Commands: /plane help | create [type] [summary] | connect | manage | notify | KEY | invite | logout | unsubscribe",
         )
         return
     if command == "notify":
@@ -215,36 +358,45 @@ def handle_slash(connection, payload: dict) -> None:
         post_ephemeral(connection, channel_id, user_id, "Paused channel subscriptions in this channel.")
         return
     if command in {"manage", "connect"}:
-        _slash_manage(connection, user, channel_id, user_id)
+        if trigger_id:
+            open_manage_modal(connection, user, trigger_id, channel_id)
+        else:
+            _slash_manage_fallback(connection, user, channel_id, user_id)
         return
     if command == "invite":
         _slash_invite(connection, user, channel_id, user_id)
         return
     keys = extract_uppercase_identifiers(text)
-    if keys:
+    if keys and command != "create":
         _ephemeral_key_lookup(connection, user, channel_id, user_id, keys[0])
         return
     if trigger_id:
-        open_create_modal(connection, user, trigger_id, channel_id)
+        type_hint, summary = parse_slash_create_args(text, workspace_type_names(connection))
+        open_create_modal(connection, user, trigger_id, channel_id, prefill=summary, type_hint=type_hint)
         return
     post_ephemeral(connection, channel_id, user_id, "Use /plane create to open the work item modal.")
 
 
-def _slash_manage(connection, user, channel_id, user_id):
+def _slash_manage_fallback(connection, user, channel_id, user_id):
     subs = SlackChannelSubscription.objects.filter(workspace_connection=connection, channel_id=channel_id)
     if not subs.exists():
         post_ephemeral(
             connection,
             channel_id,
             user_id,
-            "No project subscriptions in this channel. Add a channel in Plane project integrations.",
+            "No project subscriptions in this channel. Use /plane manage to add a project.",
         )
         return
     lines = []
     for sub in subs.select_related("project"):
         paused = "paused" if sub.is_paused else "active"
         lines.append(f"• {sub.project.identifier} ({paused})")
-    post_ephemeral(connection, channel_id, user_id, "Subscriptions:\n" + "\n".join(lines))
+    post_ephemeral(
+        connection,
+        channel_id,
+        user_id,
+        "Subscriptions:\n" + "\n".join(lines) + "\nUse /plane manage to pause, disconnect, or add.",
+    )
 
 
 def _slash_invite(connection, user, channel_id, user_id):
@@ -299,11 +451,15 @@ def view_submission_response(connection, payload: dict) -> dict | None:
             return None
         states = State.objects.filter(project=project).exclude(is_triage=True)[:100]
         labels = Label.objects.filter(project=project)[:100]
+        types = project_issue_types(project)
+        selected_type = match_issue_type(types, metadata.get("type_hint") or "")
         meta = {**metadata, "project_id": str(project.id)}
         view_body = create_issue_modal(
             json.dumps(meta),
             [slack_option(str(s.id), s.name) for s in states],
             [slack_option(str(lb.id), lb.name) for lb in labels],
+            [slack_option(str(t.id), t.name) for t in types],
+            str(selected_type.id) if selected_type else None,
         )
         extra = required_property_blocks(project)
         if extra:
@@ -315,7 +471,120 @@ def view_submission_response(connection, payload: dict) -> dict | None:
         if metadata.get("intake"):
             view_body["title"] = {"type": "plain_text", "text": "New intake item"}
         return {"response_action": "update", "view": view_body}
+    if callback == "link_thread":
+        return _link_thread_submission(connection, user, metadata, values)
+    if callback == "channel_manage":
+        return _channel_manage_submission(connection, user, metadata, values)
     return None
+
+
+def _link_thread_submission(connection, user, metadata: dict, values: dict) -> dict:
+    raw_key = (values.get("issue_key", {}).get("issue_key", {}).get("value") or "").strip()
+    keys = extract_uppercase_identifiers(raw_key)
+    if not keys:
+        return {"response_action": "errors", "errors": {"issue_key": "Enter a work item key like PROJ-123."}}
+    project_identifier, sequence_id = keys[0].split("-", 1)
+    issue = issue_for_identifier(connection, project_identifier, int(sequence_id))
+    if not issue or not can_get_issue(user, issue):
+        return {"response_action": "errors", "errors": {"issue_key": "No access to that work item."}}
+    channel_id = metadata.get("channel_id")
+    thread_ts = metadata.get("thread_ts")
+    if not channel_id or not thread_ts:
+        return {"response_action": "errors", "errors": {"issue_key": "Missing Slack thread context."}}
+    existing = SlackThreadLink.objects.filter(channel_id=channel_id, thread_ts=thread_ts).first()
+    if existing and existing.issue_id != issue.id:
+        return {
+            "response_action": "errors",
+            "errors": {"issue_key": "This thread is already linked to another work item."},
+        }
+    if existing:
+        existing.sync_enabled = True
+        existing.issue = issue
+        existing.save(update_fields=["sync_enabled", "issue", "updated_at"])
+        link = existing
+        created = False
+    else:
+        link = SlackThreadLink.objects.create(
+            workspace_connection=connection,
+            issue=issue,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            sync_enabled=True,
+            created_from="link",
+        )
+        created = True
+    if created:
+        backfill_thread(connection, link)
+    bot_client(connection).chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_ts,
+        text=f"Linked {issue.project.identifier}-{issue.sequence_id}",
+        blocks=issue_card_blocks(issue, connection.workspace.slug, issue_url(issue)),
+    )
+    SlackAuditLog.objects.create(
+        workspace=connection.workspace,
+        actor=user,
+        action="slack.thread.linked",
+        metadata={"issue_id": str(issue.id), "channel_id": channel_id},
+    )
+    return {"response_action": "clear"}
+
+
+def _channel_manage_submission(connection, user, metadata: dict, values: dict) -> dict:
+    channel_id = metadata.get("channel_id")
+    project_id = (values.get("project", {}).get("project", {}).get("selected_option") or {}).get("value")
+    if not channel_id or not project_id:
+        return {"response_action": "clear"}
+    if _project_role(user, project_id) < ROLE.ADMIN.value:
+        return {"response_action": "errors", "errors": {"project": "Project admins can add subscriptions."}}
+    project = Project.objects.filter(pk=project_id, workspace=connection.workspace).first()
+    if not project:
+        return {"response_action": "errors", "errors": {"project": "Project not found."}}
+    resolved = resolve_slack_channel(connection, channel_id)
+    if not resolved:
+        return {
+            "response_action": "errors",
+            "errors": {"project": "Invite the Plane bot to this channel, then try again."},
+        }
+    is_private = bool(resolved.get("is_private"))
+    public_ack = bool(values.get("public_ack", {}).get("public_ack", {}).get("selected_options"))
+    if project.network == 0 and not is_private and not public_ack:
+        return {
+            "response_action": "errors",
+            "errors": {"public_ack": "Secret projects require acknowledgement to post in a public channel."},
+        }
+    existing = SlackChannelSubscription.objects.filter(
+        workspace_connection=connection, channel_id=resolved["id"], project=project, filter_hash=""
+    ).first()
+    if existing:
+        existing.is_paused = False
+        existing.public_channel_ack = existing.public_channel_ack or public_ack
+        existing.save(update_fields=["is_paused", "public_channel_ack", "updated_at"])
+    else:
+        sub = SlackChannelSubscription(
+            workspace_connection=connection,
+            project=project,
+            workspace=project.workspace,
+            channel_id=resolved["id"],
+            channel_name=resolved.get("name") or "",
+            is_private_channel=is_private,
+            events=list(DEFAULT_CHANNEL_EVENTS),
+            public_channel_ack=public_ack,
+            created_by=user,
+        )
+        sub.save()
+        SlackAuditLog.objects.create(
+            workspace=connection.workspace,
+            actor=user,
+            action="slack.subscription.created",
+            metadata={"channel_id": resolved["id"], "project_id": str(project.id)},
+        )
+    blocks, can_add = _manage_modal_blocks(connection, user, resolved["id"])
+    metadata_out = json.dumps({"channel_id": resolved["id"], "user_id": str(user.id)})
+    return {
+        "response_action": "update",
+        "view": manage_channel_modal(blocks, metadata_out, submit="Add" if can_add else "Done"),
+    }
 
 
 def handle_issue_submission(connection, payload: dict) -> None:
@@ -345,8 +614,15 @@ def handle_issue_submission(connection, payload: dict) -> None:
     if metadata.get("intake"):
         issue = create_intake_issue_from_slack(project=project, user=user, title=title, description=description)
     else:
+        type_id = (values.get("type", {}).get("type", {}).get("selected_option") or {}).get("value")
         issue = create_issue_from_slack(
-            project=project, user=user, title=title, description=description, priority=priority, state_id=state_id
+            project=project,
+            user=user,
+            title=title,
+            description=description,
+            priority=priority,
+            state_id=state_id,
+            type_id=type_id,
         )
     for opt in values.get("labels", {}).get("labels", {}).get("selected_options") or []:
         IssueLabel.objects.get_or_create(
@@ -427,7 +703,9 @@ def _handle_block_actions(connection, payload: dict, *, allow_trigger: bool = Tr
     action_id = action.get("action_id")
     if action.get("url") and not action.get("value"):
         return
-    channel_id = (payload.get("channel") or {}).get("id")
+    view = payload.get("view") or {}
+    metadata = json.loads(view.get("private_metadata") or "{}") if view else {}
+    channel_id = (payload.get("channel") or {}).get("id") or metadata.get("channel_id")
     trigger_id = payload.get("trigger_id")
     if not user:
         if channel_id:
@@ -438,6 +716,9 @@ def _handle_block_actions(connection, payload: dict, *, allow_trigger: bool = Tr
                 "Connect your Plane account to continue.",
                 connect_gate_blocks(connect_url(connection.workspace.slug)),
             )
+        return
+    if action_id == "manage_subscription":
+        _handle_manage_subscription(connection, user, payload, action, channel_id)
         return
     if action_id == "issue_overflow":
         selected = (action.get("selected_option") or {}).get("value") or ""
@@ -450,6 +731,9 @@ def _handle_block_actions(connection, payload: dict, *, allow_trigger: bool = Tr
             return
         if kind == "unwatch":
             IssueSubscriber.objects.filter(issue=issue, subscriber=user).delete()
+            return
+        if kind == "unsync":
+            _unsync_issue_thread(connection, user, issue, payload, channel_id)
             return
         if not allow_trigger or not trigger_id:
             return
@@ -526,6 +810,64 @@ def _handle_block_actions(connection, payload: dict, *, allow_trigger: bool = Tr
         IssueSubscriber.objects.filter(issue=issue, subscriber=user).delete()
 
 
+def _unsync_issue_thread(connection, user, issue, payload: dict, channel_id: str | None) -> None:
+    if not channel_id:
+        return
+    message = payload.get("message") or {}
+    thread_ts = message.get("thread_ts") or message.get("ts")
+    links = SlackThreadLink.objects.filter(issue=issue, channel_id=channel_id, sync_enabled=True)
+    if thread_ts:
+        links = links.filter(thread_ts=thread_ts)
+    updated = links.update(sync_enabled=False)
+    user_id = (payload.get("user") or {}).get("id")
+    if updated:
+        SlackAuditLog.objects.create(
+            workspace=connection.workspace,
+            actor=user,
+            action="slack.thread.unsynced",
+            metadata={"issue_id": str(issue.id), "channel_id": channel_id},
+        )
+        if user_id:
+            post_ephemeral(connection, channel_id, user_id, "Stopped syncing this thread with Plane comments.")
+        return
+    if user_id:
+        post_ephemeral(connection, channel_id, user_id, "No synced thread in this channel.")
+
+
+def _handle_manage_subscription(connection, user, payload: dict, action: dict, channel_id: str | None) -> None:
+    selected = (action.get("selected_option") or {}).get("value") or ""
+    kind, _, raw_id = selected.partition(":")
+    sub_id = _issue_id(raw_id)
+    if not sub_id:
+        return
+    sub = SlackChannelSubscription.objects.filter(pk=sub_id, workspace_connection=connection).select_related("project").first()
+    if not sub:
+        return
+    role = _project_role(user, sub.project_id)
+    refresh_channel = channel_id or sub.channel_id
+    if kind in {"pause", "resume"} and role >= ROLE.MEMBER.value:
+        sub.is_paused = kind == "pause"
+        sub.save(update_fields=["is_paused", "updated_at"])
+        SlackAuditLog.objects.create(
+            workspace=connection.workspace,
+            actor=user,
+            action="slack.subscription.paused" if sub.is_paused else "slack.subscription.resumed",
+            metadata={"id": str(sub.id), "channel_id": sub.channel_id},
+        )
+    elif kind == "disconnect" and role >= ROLE.ADMIN.value:
+        SlackAuditLog.objects.create(
+            workspace=connection.workspace,
+            actor=user,
+            action="slack.subscription.deleted",
+            metadata={"id": str(sub.id), "channel_id": sub.channel_id},
+        )
+        sub.delete()
+    else:
+        return
+    view_id = (payload.get("view") or {}).get("id")
+    _refresh_manage_modal(connection, user, view_id, refresh_channel)
+
+
 def handle_select_property_submission(connection, payload: dict) -> None:
     view = payload.get("view") or {}
     callback = view.get("callback_id")
@@ -591,7 +933,14 @@ def handle_message_action(connection, payload: dict) -> None:
         return
     if not trigger_id:
         return
-    intake = callback in {"create_intake_issue", "intake_shortcut"}
+    if callback in LINK_THREAD_CALLBACKS:
+        thread_ts = message.get("thread_ts") or message.get("ts")
+        keys = extract_uppercase_identifiers(text)
+        open_link_thread_modal(
+            connection, user, trigger_id, channel_id, thread_ts, initial_key=keys[0] if keys else ""
+        )
+        return
+    intake = callback in INTAKE_CALLBACKS
     open_create_modal(connection, user, trigger_id, channel_id, prefill=text, intake=intake)
 
 

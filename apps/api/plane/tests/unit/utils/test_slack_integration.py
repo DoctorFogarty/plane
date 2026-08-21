@@ -42,6 +42,7 @@ from plane.db.models import (
     Label,
     Notification,
     Project,
+    ProjectIssueType,
     ProjectMember,
     SlackChannelSubscription,
     SlackEventIdempotency,
@@ -64,9 +65,17 @@ from plane.utils.slack.filters import (
     events_allowed,
     subscription_matches_issue,
 )
-from plane.utils.slack.handlers import claim_event, handle_block_actions, handle_link_shared, handle_slash
+from plane.utils.slack.handlers import (
+    claim_event,
+    handle_block_actions,
+    handle_link_shared,
+    handle_message_action,
+    handle_slash,
+    view_submission_response,
+)
 from plane.utils.slack.runtime import add_comment, create_issue_from_slack, ingest_slack_thread_reply
 from plane.utils.slack.signing import verify_slack_signature
+from plane.utils.slack.slash import parse_slash_create_args, should_open_create_modal, should_open_manage_modal
 from plane.utils.slack.tokens import redact_tokens, refresh_bot_token
 from plane.utils.slack.transitions import format_slack_headline, format_thread_comment_for_slack
 from plane.utils.slack.urls import extract_uppercase_identifiers, parse_plane_url, public_origin, work_item_url
@@ -1287,4 +1296,268 @@ def test_channel_custom_only_skips_state_and_unmatched_filter(slack_context):
         sub.save()
         deliver_slack_channel.run(str(sub.id), str(issue.id), ["custom_property"], "custom", [prop_id])
         client.assert_called()
+
+
+@pytest.mark.unit
+def test_parse_slash_create_type_and_summary():
+    assert parse_slash_create_args("") == ("", "")
+    assert parse_slash_create_args("create") == ("", "")
+    assert parse_slash_create_args("create Fix login") == ("", "Fix login")
+    assert parse_slash_create_args("create Bug Fix login", {"Bug"}) == ("Bug", "Fix login")
+    assert parse_slash_create_args("bug Fix login", {"Bug"}) == ("Bug", "Fix login")
+    assert should_open_create_modal("")
+    assert should_open_create_modal("create Bug title")
+    assert should_open_create_modal("Fix the login")
+    assert not should_open_create_modal("help")
+    assert not should_open_create_modal("manage")
+    assert not should_open_create_modal("SLK-12")
+    assert should_open_manage_modal("manage")
+    assert should_open_manage_modal("connect")
+    assert not should_open_manage_modal("create")
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_slash_create_prefills_type_and_summary(slack_context):
+    IssueType.objects.create(
+        workspace=slack_context["workspace"],
+        name="Bug",
+        is_epic=False,
+        is_default=False,
+        is_active=True,
+    )
+    with patch("plane.utils.slack.handlers.bot_client") as bot:
+        client = MagicMock()
+        bot.return_value = client
+        handle_slash(
+            slack_context["connection"],
+            {"user_id": "U123", "channel_id": "C1", "text": "create Bug Fix login", "trigger_id": "trig"},
+        )
+        view = client.views_open.call_args.kwargs["view"]
+        metadata = json.loads(view["private_metadata"])
+        assert metadata["prefill"] == "Fix login"
+        assert metadata["type_hint"] == "Bug"
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_create_modal_applies_type_hint_and_prefill(slack_context):
+    project = slack_context["project"]
+    issue_type = IssueType.objects.create(
+        workspace=slack_context["workspace"],
+        name="Bug",
+        is_epic=False,
+        is_default=False,
+        is_active=True,
+    )
+    ProjectIssueType.objects.create(
+        project=project, issue_type=issue_type, workspace=slack_context["workspace"], is_default=False
+    )
+    result = view_submission_response(
+        slack_context["connection"],
+        {
+            "user": {"id": "U123"},
+            "view": {
+                "callback_id": "project_selection",
+                "private_metadata": json.dumps({"channel_id": "C1", "prefill": "Fix login", "type_hint": "Bug"}),
+                "state": {
+                    "values": {"project": {"project": {"selected_option": {"value": str(project.id)}}}}
+                },
+            },
+        },
+    )
+    assert result["response_action"] == "update"
+    type_block = next(block for block in result["view"]["blocks"] if block.get("block_id") == "type")
+    assert type_block["element"]["initial_option"]["value"] == str(issue_type.id)
+    title_block = next(block for block in result["view"]["blocks"] if block.get("block_id") == "title")
+    assert title_block["element"]["initial_value"] == "Fix login"
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_create_issue_from_slack_sets_type(slack_context):
+    issue_type = IssueType.objects.create(
+        workspace=slack_context["workspace"],
+        name="Bug",
+        is_epic=False,
+        is_default=False,
+        is_active=True,
+    )
+    issue = create_issue_from_slack(
+        project=slack_context["project"],
+        user=slack_context["user"],
+        title="Typed",
+        type_id=issue_type.id,
+    )
+    assert issue.type_id == issue_type.id
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_link_thread_shortcut_and_unsync(slack_context):
+    issue = slack_context["issue"]
+    key = f"{issue.project.identifier}-{issue.sequence_id}"
+    connection = slack_context["connection"]
+    with patch("plane.utils.slack.handlers.bot_client") as bot:
+        client = MagicMock()
+        bot.return_value = client
+        handle_message_action(
+            connection,
+            {
+                "callback_id": "link_work_item",
+                "user": {"id": "U123"},
+                "channel": {"id": "C9"},
+                "trigger_id": "trig",
+                "message": {"ts": "10.1", "text": f"see {key}"},
+            },
+        )
+        opened = client.views_open.call_args.kwargs["view"]
+        assert opened["callback_id"] == "link_thread"
+        result = view_submission_response(
+            connection,
+            {
+                "user": {"id": "U123"},
+                "view": {
+                    "callback_id": "link_thread",
+                    "private_metadata": json.dumps({"channel_id": "C9", "thread_ts": "10.1"}),
+                    "state": {"values": {"issue_key": {"issue_key": {"value": key}}}},
+                },
+            },
+        )
+        assert result["response_action"] == "clear"
+        link = SlackThreadLink.objects.get(channel_id="C9", thread_ts="10.1")
+        assert link.issue_id == issue.id
+        assert link.sync_enabled is True
+        handle_block_actions(
+            connection,
+            {
+                "user": {"id": "U123"},
+                "channel": {"id": "C9"},
+                "message": {"ts": "10.1"},
+                "actions": [
+                    {
+                        "action_id": "issue_overflow",
+                        "selected_option": {"value": f"unsync:{issue.id}"},
+                    }
+                ],
+            },
+        )
+        link.refresh_from_db()
+        assert link.sync_enabled is False
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_issue_card_includes_unsync_overflow(slack_context):
+    blocks = issue_card_blocks(slack_context["issue"], "slack-ws", "https://plane.example/issue")
+    overflow = next(el for el in blocks[-1]["elements"] if el.get("action_id") == "issue_overflow")
+    values = [opt["value"] for opt in overflow["options"]]
+    assert any(value.startswith("unsync:") for value in values)
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_manage_subscription_pause_and_disconnect(slack_context):
+    sub = SlackChannelSubscription.objects.create(
+        workspace_connection=slack_context["connection"],
+        project=slack_context["project"],
+        workspace=slack_context["workspace"],
+        channel_id="C-manage",
+        events=["create", "state", "assignee", "comment"],
+        public_channel_ack=True,
+    )
+    with patch("plane.utils.slack.handlers.bot_client") as bot:
+        client = MagicMock()
+        bot.return_value = client
+        handle_block_actions(
+            slack_context["connection"],
+            {
+                "user": {"id": "U123"},
+                "view": {"id": "V1", "private_metadata": json.dumps({"channel_id": "C-manage"})},
+                "actions": [
+                    {
+                        "action_id": "manage_subscription",
+                        "selected_option": {"value": f"pause:{sub.id}"},
+                    }
+                ],
+            },
+        )
+        sub.refresh_from_db()
+        assert sub.is_paused is True
+        handle_block_actions(
+            slack_context["connection"],
+            {
+                "user": {"id": "U123"},
+                "view": {"id": "V1", "private_metadata": json.dumps({"channel_id": "C-manage"})},
+                "actions": [
+                    {
+                        "action_id": "manage_subscription",
+                        "selected_option": {"value": f"disconnect:{sub.id}"},
+                    }
+                ],
+            },
+        )
+        assert not SlackChannelSubscription.objects.filter(pk=sub.id).exists()
+        client.views_update.assert_called()
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_manage_add_subscription_from_modal(slack_context):
+    with patch("plane.utils.slack.handlers.resolve_slack_channel", return_value={"id": "C-add", "name": "alerts", "is_private": False}):
+        result = view_submission_response(
+            slack_context["connection"],
+            {
+                "user": {"id": "U123"},
+                "view": {
+                    "callback_id": "channel_manage",
+                    "private_metadata": json.dumps({"channel_id": "C-add"}),
+                    "state": {
+                        "values": {
+                            "project": {
+                                "project": {"selected_option": {"value": str(slack_context["project"].id)}}
+                            },
+                            "public_ack": {"public_ack": {"selected_options": []}},
+                        }
+                    },
+                },
+            },
+        )
+    assert result["response_action"] == "update"
+    assert SlackChannelSubscription.objects.filter(
+        channel_id="C-add", project=slack_context["project"]
+    ).exists()
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_channel_coalesces_burst_into_digest(slack_context):
+    from plane.bgtasks.slack_task import deliver_slack_channel, flush_slack_channel_digest
+
+    cache.clear()
+    issue = slack_context["issue"]
+    sub = SlackChannelSubscription.objects.create(
+        workspace_connection=slack_context["connection"],
+        project=slack_context["project"],
+        workspace=slack_context["workspace"],
+        channel_id="C-digest",
+        events=["create", "state", "assignee", "comment"],
+        public_channel_ack=True,
+    )
+    with patch("plane.bgtasks.slack_task.bot_client") as bot, patch(
+        "plane.bgtasks.slack_task.flush_slack_channel_digest.apply_async"
+    ) as apply_async:
+        client = MagicMock()
+        bot.return_value = client
+        deliver_slack_channel.run(str(sub.id), str(issue.id), "create", "first")
+        assert client.chat_postMessage.call_count == 1
+        deliver_slack_channel.run(str(sub.id), str(issue.id), "state", "second")
+        assert client.chat_postMessage.call_count == 1
+        apply_async.assert_called()
+    with patch("plane.bgtasks.slack_task.bot_client") as bot:
+        client = MagicMock()
+        bot.return_value = client
+        flush_slack_channel_digest.run(str(sub.id))
+        client.chat_postMessage.assert_called_once()
+        assert "second" in client.chat_postMessage.call_args.kwargs["text"]
 

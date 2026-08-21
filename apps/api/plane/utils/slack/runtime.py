@@ -88,7 +88,16 @@ def emit_issue_updated(issue, actor_id, requested_data: dict, current_instance: 
     )
 
 
-def create_issue_from_slack(*, project, user, title: str, description: str = "", priority: str = "none", state_id=None):
+def create_issue_from_slack(
+    *,
+    project,
+    user,
+    title: str,
+    description: str = "",
+    priority: str = "none",
+    state_id=None,
+    type_id=None,
+):
     issue = Issue.objects.create(
         name=title[:255] or "Untitled",
         description_html=f"<p>{escape(description)}</p>" if description else "<p></p>",
@@ -96,6 +105,7 @@ def create_issue_from_slack(*, project, user, title: str, description: str = "",
         workspace=project.workspace,
         priority=priority or "none",
         state_id=state_id,
+        type_id=type_id,
         created_by=user,
     )
     IssueAssignee.objects.get_or_create(issue=issue, assignee=user, project=project, workspace=project.workspace)

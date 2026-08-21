@@ -101,6 +101,7 @@ def issue_card_blocks(
                     {"text": {"type": "plain_text", "text": "Change state"}, "value": f"state:{issue.id}"},
                     {"text": {"type": "plain_text", "text": "Change priority"}, "value": f"priority:{issue.id}"},
                     {"text": {"type": "plain_text", "text": "Unwatch"}, "value": f"unwatch:{issue.id}"},
+                    {"text": {"type": "plain_text", "text": "Unsync thread"}, "value": f"unsync:{issue.id}"},
                 ],
             },
         ]
@@ -146,7 +147,13 @@ def project_select_modal(options: list[dict], metadata: str) -> dict:
     }
 
 
-def create_issue_modal(metadata: str, state_options: list[dict], label_options: list[dict]) -> dict:
+def create_issue_modal(
+    metadata: str,
+    state_options: list[dict],
+    label_options: list[dict],
+    type_options: list[dict] | None = None,
+    selected_type_id: str | None = None,
+) -> dict:
     priority_options = [
         {"text": {"type": "plain_text", "text": p.title()}, "value": p}
         for p in ("urgent", "high", "medium", "low", "none")
@@ -165,6 +172,23 @@ def create_issue_modal(metadata: str, state_options: list[dict], label_options: 
             "label": {"type": "plain_text", "text": "Description"},
             "element": {"type": "plain_text_input", "action_id": "description", "multiline": True},
         },
+    ]
+    if type_options:
+        type_element: dict = {"type": "static_select", "action_id": "type", "options": type_options[:100]}
+        if selected_type_id:
+            selected = next((opt for opt in type_options if opt.get("value") == str(selected_type_id)), None)
+            if selected:
+                type_element["initial_option"] = selected
+        blocks.append(
+            {
+                "type": "input",
+                "block_id": "type",
+                "optional": True,
+                "label": {"type": "plain_text", "text": "Type"},
+                "element": type_element,
+            }
+        )
+    blocks.append(
         {
             "type": "input",
             "block_id": "priority",
@@ -175,8 +199,8 @@ def create_issue_modal(metadata: str, state_options: list[dict], label_options: 
                 "action_id": "priority",
                 "options": priority_options,
             },
-        },
-    ]
+        }
+    )
     if state_options:
         blocks.append(
             {
@@ -223,3 +247,37 @@ def create_issue_modal(metadata: str, state_options: list[dict], label_options: 
 
 def slack_option(id_: str, name: str) -> dict:
     return {"text": {"type": "plain_text", "text": truncate_option(name)}, "value": str(id_)}
+
+
+def link_thread_modal(metadata: str, *, initial_key: str = "") -> dict:
+    element: dict = {"type": "plain_text_input", "action_id": "issue_key", "placeholder": {"type": "plain_text", "text": "PROJ-123"}}
+    if initial_key:
+        element["initial_value"] = initial_key[:75]
+    return {
+        "type": "modal",
+        "callback_id": "link_thread",
+        "private_metadata": metadata,
+        "title": {"type": "plain_text", "text": "Link thread"},
+        "submit": {"type": "plain_text", "text": "Link"},
+        "close": {"type": "plain_text", "text": "Cancel"},
+        "blocks": [
+            {
+                "type": "input",
+                "block_id": "issue_key",
+                "label": {"type": "plain_text", "text": "Work item key"},
+                "element": element,
+            }
+        ],
+    }
+
+
+def manage_channel_modal(blocks: list[dict], metadata: str, *, submit: str = "Add") -> dict:
+    return {
+        "type": "modal",
+        "callback_id": "channel_manage",
+        "private_metadata": metadata,
+        "title": {"type": "plain_text", "text": "Channel subscriptions"},
+        "submit": {"type": "plain_text", "text": submit[:24]},
+        "close": {"type": "plain_text", "text": "Close"},
+        "blocks": blocks[:50],
+    }
