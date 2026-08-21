@@ -12,7 +12,7 @@ import { EIssueFilterType, ISSUE_STORE_TO_FILTERS_MAP } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
-import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
+import { EIssuesStoreType } from "@plane/types";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 // plane web imports
@@ -20,12 +20,7 @@ import type { TProject } from "@plane/types";
 // local imports
 import { WorkItemsModal } from "../analytics/work-items/modal";
 import { WorkItemFiltersToggle } from "../work-item-filters/filters-toggle";
-import {
-  DisplayFiltersSelection,
-  FiltersDropdown,
-  LayoutSelection,
-  MobileLayoutSelection,
-} from "./issue-layouts/filters";
+import { DisplayFiltersSelection, FiltersDropdown } from "./issue-layouts/filters";
 
 type Props = {
   currentProjectDetails: TProject | undefined;
@@ -34,13 +29,6 @@ type Props = {
   canUserCreateIssue: boolean | undefined;
   storeType?: EIssuesStoreType.PROJECT | EIssuesStoreType.EPIC;
 };
-const LAYOUTS = [
-  EIssueLayoutTypes.LIST,
-  EIssueLayoutTypes.KANBAN,
-  EIssueLayoutTypes.CALENDAR,
-  EIssueLayoutTypes.SPREADSHEET,
-  EIssueLayoutTypes.GANTT,
-];
 
 export const HeaderFilters = observer(function HeaderFilters(props: Props) {
   const {
@@ -50,28 +38,15 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
     canUserCreateIssue,
     storeType = EIssuesStoreType.PROJECT,
   } = props;
-  // i18n
   const { t } = useTranslation();
-  // states
   const [analyticsModal, setAnalyticsModal] = useState(false);
-  // store hooks
   const {
     issuesFilter,
     issuesFilter: { updateFilters },
   } = useIssues(storeType);
-  // Always resolve filters for the focused project from props/URL — never router-lagged issueFilters
   const issueFilters = issuesFilter.getIssueFilters(projectId);
-  // derived values
   const activeLayout = issueFilters?.displayFilters?.layout;
   const layoutDisplayFiltersOptions = ISSUE_STORE_TO_FILTERS_MAP[storeType]?.layoutOptions[activeLayout];
-
-  const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
-      if (!workspaceSlug || !projectId) return;
-      updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout: layout });
-    },
-    [workspaceSlug, projectId, updateFilters]
-  );
 
   const handleDisplayFilters = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {
@@ -97,20 +72,6 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
         projectDetails={currentProjectDetails ?? undefined}
         isEpic={storeType === EIssuesStoreType.EPIC}
       />
-      <div className="hidden @4xl:flex">
-        <LayoutSelection
-          layouts={LAYOUTS}
-          onChange={(layout) => handleLayoutChange(layout)}
-          selectedLayout={activeLayout}
-        />
-      </div>
-      <div className="flex @4xl:hidden">
-        <MobileLayoutSelection
-          layouts={LAYOUTS}
-          onChange={(layout) => handleLayoutChange(layout)}
-          activeLayout={activeLayout}
-        />
-      </div>
       <WorkItemFiltersToggle entityType={storeType} entityId={projectId} />
       <FiltersDropdown
         miniIcon={<SlidersHorizontal className="size-3.5" />}
@@ -136,9 +97,7 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
             <ChartNoAxesColumn className="size-3.5" />
           </div>
         </Button>
-      ) : (
-        <></>
-      )}
+      ) : null}
     </>
   );
 });

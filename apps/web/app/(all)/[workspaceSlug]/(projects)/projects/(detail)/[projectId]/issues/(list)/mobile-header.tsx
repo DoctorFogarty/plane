@@ -7,31 +7,21 @@
 import { useCallback, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-// plane imports
 import { EIssueFilterType, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { ChevronDownIcon } from "@plane/propel/icons";
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
-import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
-// components
+import { EIssuesStoreType } from "@plane/types";
 import { WorkItemsModal } from "@/components/analytics/work-items/modal";
-import {
-  DisplayFiltersSelection,
-  FiltersDropdown,
-  MobileLayoutSelection,
-} from "@/components/issues/issue-layouts/filters";
-// hooks
+import { DisplayFiltersSelection, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 
 export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHeader() {
-  // i18n
   const { t } = useTranslation();
   const [analyticsModal, setAnalyticsModal] = useState(false);
   const { workspaceSlug, projectId } = useParams();
   const { currentProjectDetails } = useProject();
-
-  // store hooks
   const {
     issuesFilter,
     issuesFilter: { updateFilters },
@@ -39,14 +29,6 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
   const projectIdStr = projectId?.toString();
   const issueFilters = projectIdStr ? issuesFilter.getIssueFilters(projectIdStr) : undefined;
   const activeLayout = issueFilters?.displayFilters?.layout;
-
-  const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
-      if (!workspaceSlug || !projectId) return;
-      updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout: layout });
-    },
-    [workspaceSlug, projectId, updateFilters]
-  );
 
   const handleDisplayFilters = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {
@@ -72,11 +54,7 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
         projectDetails={currentProjectDetails ?? undefined}
       />
       <div className="z-[13] flex justify-evenly border-b border-subtle bg-surface-1 py-2 md:hidden">
-        <MobileLayoutSelection
-          layouts={[EIssueLayoutTypes.LIST, EIssueLayoutTypes.KANBAN, EIssueLayoutTypes.CALENDAR]}
-          onChange={handleLayoutChange}
-        />
-        <div className="flex flex-grow items-center justify-center border-l border-subtle text-13 text-secondary">
+        <div className="flex flex-grow items-center justify-center text-13 text-secondary">
           <FiltersDropdown
             title={t("common.display")}
             placement="bottom-end"
@@ -101,7 +79,6 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
             />
           </FiltersDropdown>
         </div>
-
         <button
           onClick={() => setAnalyticsModal(true)}
           className="flex flex-grow justify-center border-l border-subtle text-13 text-secondary"

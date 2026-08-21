@@ -5,52 +5,46 @@
  */
 
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-// icons
+import { useParams, usePathname } from "next/navigation";
 import { Circle } from "lucide-react";
-// plane imports
 import {
   EUserPermissions,
   EUserPermissionsLevel,
+  ISSUE_LAYOUT_MAP,
   SPACE_BASE_PATH,
   SPACE_BASE_URL,
   WORK_ITEM_TRACKER_ELEMENTS,
+  getIssueLayoutFromPathSlug,
+  getIssueLayoutSlugFromPathname,
+  getProjectIssuesLayoutHref,
 } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { NewTabIcon, WorkItemsIcon } from "@plane/propel/icons";
+import { NewTabIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
-import { EIssuesStoreType } from "@plane/types";
+import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 import { Breadcrumbs, Header } from "@plane/ui";
-// components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { CountChip } from "@/components/common/count-chip";
-// constants
+import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";
 import { HeaderFilters } from "@/components/issues/filters";
-// helpers
-// hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-// plane web imports
 import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
 
 export const IssuesHeader = observer(function IssuesHeader() {
-  // router
   const router = useAppRouter();
   const { workspaceSlug, projectId } = useParams();
-  // store hooks
+  const pathname = usePathname();
   const {
     issues: { getGroupIssueCount },
   } = useIssues(EIssuesStoreType.PROJECT);
-  // i18n
   const { t } = useTranslation();
-
   const { currentProjectDetails, loader } = useProject();
-
   const { toggleCreateIssueModal } = useCommandPalette();
   const { allowPermissions } = useUserPermissions();
   const { isMobile } = usePlatformOS();
@@ -63,19 +57,29 @@ export const IssuesHeader = observer(function IssuesHeader() {
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.PROJECT
   );
+  const workspaceSlugValue = workspaceSlug?.toString();
+  const projectIdValue = projectId?.toString();
+  const layout = getIssueLayoutFromPathSlug(getIssueLayoutSlugFromPathname(pathname)) ?? EIssueLayoutTypes.LIST;
+  const layoutMeta = ISSUE_LAYOUT_MAP[layout];
+  const layoutHref =
+    workspaceSlugValue && projectIdValue
+      ? getProjectIssuesLayoutHref(workspaceSlugValue, projectIdValue, layout)
+      : undefined;
 
   return (
     <Header>
       <Header.LeftItem>
         <div className="flex items-center gap-2.5">
           <Breadcrumbs onBack={() => router.back()} isLoading={loader === "init-loader"} className="flex-grow-0">
-            <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
+            {workspaceSlugValue && projectIdValue ? (
+              <CommonProjectBreadcrumbs workspaceSlug={workspaceSlugValue} projectId={projectIdValue} />
+            ) : null}
             <Breadcrumbs.Item
               component={
                 <BreadcrumbLink
-                  label="Work Items"
-                  href={`/${workspaceSlug}/projects/${projectId}/issues/`}
-                  icon={<WorkItemsIcon className="h-4 w-4 text-tertiary" />}
+                  label={t(layoutMeta.i18n_label)}
+                  href={layoutHref}
+                  icon={<IssueLayoutIcon layout={layout} className="h-4 w-4 text-tertiary" />}
                   isLast
                 />
               }
@@ -110,13 +114,13 @@ export const IssuesHeader = observer(function IssuesHeader() {
       <Header.RightItem>
         <div className="hidden gap-2 md:flex">
           <HeaderFilters
-            projectId={projectId}
+            projectId={projectIdValue ?? ""}
             currentProjectDetails={currentProjectDetails}
-            workspaceSlug={workspaceSlug}
+            workspaceSlug={workspaceSlugValue ?? ""}
             canUserCreateIssue={canUserCreateIssue}
           />
         </div>
-        {canUserCreateIssue && (
+        {canUserCreateIssue ? (
           <Button
             variant="primary"
             size="lg"
@@ -128,7 +132,7 @@ export const IssuesHeader = observer(function IssuesHeader() {
             <div className="block sm:hidden">{t("issue.label", { count: 1 })}</div>
             <div className="hidden sm:block">{t("issue.add.label")}</div>
           </Button>
-        )}
+        ) : null}
       </Header.RightItem>
     </Header>
   );

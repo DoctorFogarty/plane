@@ -41,15 +41,15 @@ export const useTabPreferences = (workspaceSlug: string, projectId: string): TTa
   // Get preferences from store
   const storePreferences = getProjectUserProperties(projectId);
   const defaultTab = storePreferences?.preferences?.navigation?.default_tab || DEFAULT_TAB_KEY;
-  const hideInMoreMenu = storePreferences?.preferences?.navigation?.hide_in_more_menu || [];
+  const hideInMoreMenu = storePreferences?.preferences?.navigation?.hide_in_more_menu;
 
-  // Convert store preferences to component format
-  const tabPreferences: TTabPreferences = useMemo(() => {
-    return {
+  const tabPreferences: TTabPreferences = useMemo(
+    () => ({
       defaultTab,
-      hiddenTabs: hideInMoreMenu,
-    };
-  }, [defaultTab, hideInMoreMenu]);
+      hiddenTabs: hideInMoreMenu ?? [],
+    }),
+    [defaultTab, hideInMoreMenu]
+  );
 
   const isLoading = !storePreferences && memberId !== null;
 
@@ -70,7 +70,7 @@ export const useTabPreferences = (workspaceSlug: string, projectId: string): TTa
 
   /**
    * Toggle default tab setting
-   * If tab is already default, resets to work_items; otherwise sets as default
+   * If tab is already default, resets to list; otherwise sets as default
    */
   const handleToggleDefaultTab = (tabKey: string) => {
     const newDefaultTab = tabKey === tabPreferences.defaultTab ? DEFAULT_TAB_KEY : tabKey;

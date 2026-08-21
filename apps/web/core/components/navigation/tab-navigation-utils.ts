@@ -4,6 +4,9 @@
  * See the LICENSE file for details.
  */
 
+import { isIssueLayoutPathSlug } from "@plane/constants";
+import type { TIssueLayoutPathSlug } from "@plane/constants";
+
 // Tab preferences type
 export type TTabPreferences = {
   defaultTab: string;
@@ -12,7 +15,8 @@ export type TTabPreferences = {
 
 // Constants
 export const TAB_PREFS_KEY = "plane_tab_prefs";
-export const DEFAULT_TAB_KEY = "work_items";
+export const DEFAULT_TAB_KEY: TIssueLayoutPathSlug = "list";
+export const LEGACY_WORK_ITEMS_TAB_KEY = "work_items";
 
 /**
  * Get tab preferences for a specific project from localStorage
@@ -57,6 +61,22 @@ export const saveTabPreferences = (projectId: string, preferences: TTabPreferenc
 };
 
 /**
+ * Resolve a stored default tab against the tabs that currently exist.
+ * Legacy `work_items` is preserved so getTabUrl can alias it to `/issues`.
+ */
+export const resolveDefaultTabKey = (storedDefaultTab: string | undefined, availableTabKeys?: string[]): string => {
+  const tabKey = storedDefaultTab || DEFAULT_TAB_KEY;
+
+  if (availableTabKeys && availableTabKeys.length > 0) {
+    if (availableTabKeys.includes(tabKey)) return tabKey;
+    if (tabKey === LEGACY_WORK_ITEMS_TAB_KEY) return LEGACY_WORK_ITEMS_TAB_KEY;
+    return DEFAULT_TAB_KEY;
+  }
+
+  return tabKey;
+};
+
+/**
  * Map tab keys to their corresponding URLs
  * @param workspaceSlug - The workspace slug
  * @param projectId - The project ID
@@ -65,8 +85,11 @@ export const saveTabPreferences = (projectId: string, preferences: TTabPreferenc
  */
 export const getTabUrl = (workspaceSlug: string, projectId: string, tabKey: string): string => {
   const baseUrl = `/${workspaceSlug}/projects/${projectId}`;
+  if (isIssueLayoutPathSlug(tabKey)) {
+    return `${baseUrl}/issues/${tabKey}`;
+  }
   const tabUrlMap: Record<string, string> = {
-    work_items: `${baseUrl}/issues`,
+    [LEGACY_WORK_ITEMS_TAB_KEY]: `${baseUrl}/issues`,
     cycles: `${baseUrl}/cycles`,
     modules: `${baseUrl}/modules`,
     views: `${baseUrl}/views`,
@@ -75,8 +98,11 @@ export const getTabUrl = (workspaceSlug: string, projectId: string, tabKey: stri
     overview: `${baseUrl}/overview`,
     epics: `${baseUrl}/epics`,
   };
-  return tabUrlMap[tabKey] || `${baseUrl}/issues`; // fallback to issues
+  return tabUrlMap[tabKey] || `${baseUrl}/issues`;
 };
+
+export const isNavHrefActive = (pathname: string, href: string): boolean =>
+  pathname === href || pathname === `${href}/` || pathname.startsWith(`${href}/`);
 
 /**
  * Get the default tab URL for a project
@@ -87,12 +113,9 @@ export const getTabUrl = (workspaceSlug: string, projectId: string, tabKey: stri
  */
 export const getDefaultTabUrl = (workspaceSlug: string, projectId: string, availableTabKeys?: string[]): string => {
   const preferences = getTabPreferences(projectId);
-  let tabKey = preferences.defaultTab;
-
-  // Validate against available tabs if provided
-  if (availableTabKeys && availableTabKeys.length > 0) {
-    tabKey = getValidatedDefaultTab(projectId, availableTabKeys);
-  }
+  const tabKey = availableTabKeys?.length
+    ? getValidatedDefaultTab(projectId, availableTabKeys)
+    : resolveDefaultTabKey(preferences.defaultTab);
 
   return getTabUrl(workspaceSlug, projectId, tabKey);
 };
@@ -105,13 +128,5 @@ export const getDefaultTabUrl = (workspaceSlug: string, projectId: string, avail
  */
 export const getValidatedDefaultTab = (projectId: string, availableTabKeys: string[]): string => {
   const preferences = getTabPreferences(projectId);
-  const defaultTab = preferences.defaultTab;
-
-  // Check if the default tab is in the available tabs
-  if (availableTabKeys.includes(defaultTab)) {
-    return defaultTab;
-  }
-
-  // Fall back to work_items
-  return DEFAULT_TAB_KEY;
+  return resolveDefaultTabKey(preferences.defaultTab, availableTabKeys);
 };

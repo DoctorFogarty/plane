@@ -200,7 +200,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
         }
       }
     }
-    return Array.from(propertyMap.values()).toSorted((a, b) => a.name.localeCompare(b.name));
+    return [...propertyMap.values()].toSorted((a, b) => a.name.localeCompare(b.name));
     // projectTypeRevisionKey tracks atomic project-scoped type/property snapshot replacements.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopedProjectIds, issueTypeStore, areIssueTypesFetched, projectTypeRevisionKey]);

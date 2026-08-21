@@ -6,15 +6,17 @@
 
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-// icons import
 import { OverviewIcon } from "../icons/overview-icon";
 import { CycleIcon } from "../icons/project/cycle-icon";
 import { IntakeIcon } from "../icons/project/intake-icon";
 import { ModuleIcon } from "../icons/project/module-icon";
 import { PageIcon } from "../icons/project/page-icon";
 import { ViewsIcon } from "../icons/project/view-icon";
-import { WorkItemsIcon } from "../icons/project/work-items-icon";
-// tab navigation import
+import { BoardLayoutIcon } from "../icons/layouts/board-icon";
+import { CalendarLayoutIcon } from "../icons/layouts/calendar-icon";
+import { ListLayoutIcon } from "../icons/layouts/list-icon";
+import { SheetLayoutIcon } from "../icons/layouts/sheet-icon";
+import { TimelineLayoutIcon } from "../icons/layouts/timeline-icon";
 import { TabNavigationItem } from "./tab-navigation-item";
 import { TabNavigationList } from "./tab-navigation-list";
 
@@ -38,12 +40,15 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render() {
-    const [activeNavTab, setActiveNavTab] = useState("work_items");
+    const [activeNavTab, setActiveNavTab] = useState("board");
 
-    // Example navigation items (matching actual Plane project navigation)
     const navItems = [
       { key: "overview", name: "Overview", href: "#overview", icon: OverviewIcon },
-      { key: "work_items", name: "Work items", href: "#work_items", icon: WorkItemsIcon },
+      { key: "list", name: "List", href: "#list", icon: ListLayoutIcon },
+      { key: "board", name: "Board", href: "#board", icon: BoardLayoutIcon },
+      { key: "calendar", name: "Calendar", href: "#calendar", icon: CalendarLayoutIcon },
+      { key: "table", name: "Table", href: "#table", icon: SheetLayoutIcon },
+      { key: "timeline", name: "Timeline", href: "#timeline", icon: TimelineLayoutIcon },
       { key: "cycles", name: "Cycles", href: "#cycles", icon: CycleIcon },
       { key: "modules", name: "Modules", href: "#modules", icon: ModuleIcon },
       { key: "views", name: "Views", href: "#views", icon: ViewsIcon },
@@ -53,7 +58,6 @@ export const Default: Story = {
 
     return (
       <div className="space-y-8">
-        {/* Example 1: Navigation with anchor tags (simulating React Router Link) */}
         <div className="space-y-3">
           <div className="text-11 font-medium tracking-wide text-tertiary uppercase">
             With Navigation Links (e.g., React Router)
@@ -82,7 +86,6 @@ export const Default: Story = {
           </div>
         </div>
 
-        {/* Code example */}
         <div className="mt-6 rounded-md bg-layer-1 p-4">
           <div className="mb-2 text-11 font-medium text-secondary">Example Code:</div>
           <pre className="overflow-x-auto text-11 text-tertiary">

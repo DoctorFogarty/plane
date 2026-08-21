@@ -5,25 +5,24 @@
  */
 
 import { observer } from "mobx-react";
-// i18n
+import { useLocation } from "react-router";
+import { ISSUE_LAYOUT_MAP, getIssueLayoutFromPathSlug, getIssueLayoutSlugFromPathname } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-// components
+import { EIssueLayoutTypes } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
 import { ProjectLayoutRoot } from "@/components/issues/issue-layouts/roots/project-layout-root";
-// hooks
 import { useProject } from "@/hooks/store/use-project";
 import type { Route } from "./+types/page";
 
 function ProjectIssuesPage({ params }: Route.ComponentProps) {
   const { projectId } = params;
-  // i18n
+  const { pathname } = useLocation();
   const { t } = useTranslation();
-  // store
   const { getProjectById } = useProject();
 
-  // derived values
   const project = getProjectById(projectId);
-  const pageTitle = project?.name ? `${project?.name} - ${t("issue.label", { count: 2 })}` : undefined; // Count is for pluralization
+  const layout = getIssueLayoutFromPathSlug(getIssueLayoutSlugFromPathname(pathname)) ?? EIssueLayoutTypes.LIST;
+  const pageTitle = project?.name ? `${project.name} - ${t(ISSUE_LAYOUT_MAP[layout].i18n_label)}` : undefined;
 
   return (
     <>

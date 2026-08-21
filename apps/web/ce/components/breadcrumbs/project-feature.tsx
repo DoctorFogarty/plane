@@ -7,7 +7,6 @@
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { EProjectFeatureKey } from "@plane/constants";
 import { Breadcrumbs } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
@@ -20,7 +19,7 @@ import { getProjectFeatureNavigation } from "../projects/navigation/helper";
 type TProjectFeatureBreadcrumbProps = {
   workspaceSlug: string;
   projectId: string;
-  featureKey: EProjectFeatureKey;
+  featureKey: string;
   isLast?: boolean;
   additionalNavigationItems?: TNavigationItem[];
 };

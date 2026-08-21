@@ -4,16 +4,15 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
 import { Link } from "react-router";
 import { MoreHorizontal, Pin } from "lucide-react";
 // plane imports
-import { useTranslation } from "@plane/i18n";
 import { SetAsDefaultIcon } from "@plane/propel/icons";
 import { Menu } from "@plane/propel/menu";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // local imports
+import { TabNavigationItemContent } from "./tab-navigation-item-content";
 import type { TNavigationItem } from "./tab-navigation-root";
 import type { TTabPreferences } from "./tab-navigation-utils";
 
@@ -31,8 +30,6 @@ type Props = {
  * Shows "Eye" icon for user-hidden items, "Set as default" icon for all items
  */
 export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferences, onToggleDefault, onShow }: Props) {
-  const { t } = useTranslation();
-
   return (
     <Menu
       ellipsis
@@ -54,7 +51,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
           <Menu.MenuItem key={`${item.key}-overflow-${itemIsActive ? "active" : "inactive"}`} className="w-full p-0">
             <div className="group/menu-item flex w-full items-center justify-between">
               <Link to={item.href} className="w-full min-w-0 flex-1 p-1">
-                <span className="text-11">{t(item.i18n_key)}</span>
+                <TabNavigationItemContent item={item} />
               </Link>
               <div className="flex items-center">
                 {/* Show Eye icon ONLY for user-hidden items */}

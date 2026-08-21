@@ -135,7 +135,33 @@ export const coreRoutes: RouteConfigEntry[] = [
           layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/layout.tsx", [
             route(
               ":workspaceSlug/projects/:projectId/issues",
-              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx"
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx",
+              { id: "project-issues-index" }
+            ),
+            route(
+              ":workspaceSlug/projects/:projectId/issues/list",
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx",
+              { id: "project-issues-list" }
+            ),
+            route(
+              ":workspaceSlug/projects/:projectId/issues/board",
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx",
+              { id: "project-issues-board" }
+            ),
+            route(
+              ":workspaceSlug/projects/:projectId/issues/calendar",
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx",
+              { id: "project-issues-calendar" }
+            ),
+            route(
+              ":workspaceSlug/projects/:projectId/issues/table",
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx",
+              { id: "project-issues-table" }
+            ),
+            route(
+              ":workspaceSlug/projects/:projectId/issues/timeline",
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx",
+              { id: "project-issues-timeline" }
             ),
           ]),
           // Issue Detail

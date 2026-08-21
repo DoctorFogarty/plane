@@ -8,12 +8,13 @@
 import React, { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, useLocation, Link, useNavigate } from "react-router";
-import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
+import { EUserPermissionsLevel, EUserPermissions, getIssueLayoutPathSlug } from "@plane/constants";
 import { TabNavigationList, TabNavigationItem } from "@plane/propel/tab-navigation";
 import type { EUserProjectRoles } from "@plane/types";
+import { EIssuesStoreType } from "@plane/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 // plane web imports
@@ -24,8 +25,9 @@ import { LeaveProjectModal } from "../project/leave-project-modal";
 import { PublishProjectModal } from "../project/publish-project/modal";
 import { ProjectActionsMenu } from "./project-actions-menu";
 import { ProjectHeader } from "./project-header";
+import { TabNavigationItemContent } from "./tab-navigation-item-content";
 import { TabNavigationOverflowMenu } from "./tab-navigation-overflow-menu";
-import { DEFAULT_TAB_KEY } from "./tab-navigation-utils";
+import { getTabUrl, resolveDefaultTabKey } from "./tab-navigation-utils";
 import { TabNavigationVisibleItem } from "./tab-navigation-visible-item";
 import { useActiveTab } from "./use-active-tab";
 import { useProjectActions } from "./use-project-actions";
@@ -56,7 +58,6 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
   const location = useLocation();
   const pathname = location.pathname;
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   // Store hooks
   const { getPartialProjectById } = useProject();
@@ -64,6 +65,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
   const {
     issue: { getIssueIdByIdentifier, getIssueById },
   } = useIssueDetail();
+  const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
 
   // Tab preferences hook
   const { tabPreferences, handleToggleDefaultTab, handleHideTab, handleShowTab } = useTabPreferences(
@@ -77,6 +79,8 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
     : undefined;
   const workItem = workItemId ? getIssueById(workItemId) : undefined;
   const project = getPartialProjectById(projectId);
+  const storedLayout = projectId ? issuesFilter?.getIssueFilters(projectId)?.displayFilters?.layout : undefined;
+  const workItemLayoutNavKey = getIssueLayoutPathSlug(storedLayout);
 
   // Navigation items hook
   const navigationItems = useNavigationItems({
@@ -93,6 +97,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
     workItemId,
     workItem,
     projectId,
+    workItemLayoutNavKey,
   });
 
   // Project actions hook
@@ -133,15 +138,9 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
     const isProjectRoot = pathname === projectRootPath || pathname === `${projectRootPath}/`;
 
     if (isProjectRoot && allNavigationItems.length > 0) {
-      // Find the default tab in available items
-      const defaultTabItem = allNavigationItems.find((item) => item.key === tabPreferences.defaultTab);
-
-      // If default tab exists and is enabled, use it; otherwise fall back to work_items
-      const targetItem = defaultTabItem || allNavigationItems.find((item) => item.key === DEFAULT_TAB_KEY);
-
-      if (targetItem) {
-        navigate(targetItem.href, { replace: true });
-      }
+      const availableTabKeys = allNavigationItems.map((item) => item.key);
+      const resolvedTabKey = resolveDefaultTabKey(tabPreferences.defaultTab, availableTabKeys);
+      navigate(getTabUrl(workspaceSlug, projectId, resolvedTabKey), { replace: true });
     }
   }, [pathname, workspaceSlug, projectId, tabPreferences.defaultTab, allNavigationItems, navigate]);
 
@@ -223,7 +222,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
             })}
 
             {/* Render overflow menu if needed */}
-            {hasOverflow && (
+            {hasOverflow ? (
               <TabNavigationOverflowMenu
                 overflowItems={overflowItems}
                 isActive={isActive}
@@ -231,10 +230,10 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
                 onToggleDefault={handleToggleDefaultTab}
                 onShow={handleShowTab}
               />
-            )}
+            ) : null}
           </TabNavigationList>
 
-          {hasOverflow && (
+          {hasOverflow ? (
             <div className="pointer-events-none absolute -z-10 opacity-0">
               {visibleNavigationItems.map((item) => {
                 const itemIsActive = isActive(item);
@@ -249,14 +248,14 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
                   >
                     <Link to={item.href}>
                       <TabNavigationItem isActive={itemIsActive}>
-                        <span>{t(item.i18n_key)}</span>
+                        <TabNavigationItemContent item={item} />
                       </TabNavigationItem>
                     </Link>
                   </div>
                 );
               })}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </>

@@ -9,19 +9,27 @@ import React, { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
+import {
+  EUserPermissions,
+  EUserPermissionsLevel,
+  getIssueLayoutPathSlug,
+  isIssueLayoutPathSlug,
+} from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@plane/propel/icons";
 import type { EUserProjectRoles } from "@plane/types";
+import { EIssuesStoreType } from "@plane/types";
 // plane ui
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 import { ProjectNavigationViews } from "@/components/workspace/sidebar/project-navigation-views";
+import { isNavHrefActive } from "@/components/navigation/tab-navigation-utils";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
+import { getProjectFeatureNavigation } from "@/plane-web/components/projects/navigation/helper";
 
 export type TNavigationItem = {
   name: string;
@@ -51,6 +59,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
   const {
     issue: { getIssueIdByIdentifier, getIssueById },
   } = useIssueDetail();
+  const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
   // pathname
   const pathname = usePathname();
   // derived values
@@ -59,6 +68,8 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
     : undefined;
   const workItem = workItemId ? getIssueById(workItemId) : undefined;
   const project = getPartialProjectById(projectId);
+  const storedLayout = projectId ? issuesFilter?.getIssueFilters(projectId)?.displayFilters?.layout : undefined;
+  const workItemLayoutNavKey = getIssueLayoutPathSlug(storedLayout);
   // handlers
   const handleProjectClick = () => {
     if (window.innerWidth < 768) {
@@ -70,111 +81,32 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
     }
   };
 
-  const baseNavigation = useCallback(
-    (workspaceSlug: string, projectId: string): TNavigationItem[] => [
-      {
-        i18n_key: "sidebar.work_items",
-        key: "work_items",
-        name: "Work items",
-        href: `/${workspaceSlug}/projects/${projectId}/issues`,
-        icon: WorkItemsIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-        shouldRender: true,
-        sortOrder: 1,
-      },
-      {
-        i18n_key: "sidebar.cycles",
-        key: "cycles",
-        name: "Cycles",
-        href: `/${workspaceSlug}/projects/${projectId}/cycles`,
-        icon: CycleIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-        shouldRender: project?.cycle_view ?? false,
-        sortOrder: 2,
-      },
-      {
-        i18n_key: "sidebar.modules",
-        key: "modules",
-        name: "Modules",
-        href: `/${workspaceSlug}/projects/${projectId}/modules`,
-        icon: ModuleIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-        shouldRender: project?.module_view ?? false,
-        sortOrder: 3,
-      },
-      {
-        i18n_key: "sidebar.views",
-        key: "views",
-        name: "Views",
-        href: `/${workspaceSlug}/projects/${projectId}/views`,
-        icon: ViewsIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-        shouldRender: project?.issue_views_view ?? false,
-        sortOrder: 4,
-      },
-      {
-        i18n_key: "sidebar.pages",
-        key: "pages",
-        name: "Pages",
-        href: `/${workspaceSlug}/projects/${projectId}/pages`,
-        icon: PageIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-        shouldRender: project?.page_view ?? false,
-        sortOrder: 5,
-      },
-      {
-        i18n_key: "sidebar.intake",
-        key: "intake",
-        name: "Intake",
-        href: `/${workspaceSlug}/projects/${projectId}/intake`,
-        icon: IntakeIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-        shouldRender: project?.inbox_view ?? false,
-        sortOrder: 6,
-      },
-    ],
-    [project]
-  );
-
   // memoized navigation items and adding additional navigation items
   const navigationItemsMemo = useMemo(() => {
-    const navigationItems = (workspaceSlug: string, projectId: string): TNavigationItem[] => {
-      const navItems = baseNavigation(workspaceSlug, projectId);
+    if (!project) return [];
 
-      if (additionalNavigationItems) {
-        navItems.push(...additionalNavigationItems(workspaceSlug, projectId));
-      }
+    const navItems = getProjectFeatureNavigation(workspaceSlug, projectId, project);
 
-      return navItems;
-    };
+    if (additionalNavigationItems) {
+      navItems.push(...additionalNavigationItems(workspaceSlug, projectId));
+    }
 
-    // sort navigation items by sortOrder
-    const sortedNavigationItems = [...navigationItems(workspaceSlug, projectId)].sort(
-      (a: TNavigationItem, b: TNavigationItem) => (a.sortOrder || 0) - (b.sortOrder || 0)
-    );
-
-    return sortedNavigationItems;
-  }, [workspaceSlug, projectId, baseNavigation, additionalNavigationItems]);
+    return [...navItems].sort((a: TNavigationItem, b: TNavigationItem) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  }, [workspaceSlug, projectId, additionalNavigationItems, project]);
 
   const isActive = useCallback(
     (item: TNavigationItem) => {
-      // work item condition
       const workItemCondition = workItemId && workItem && !workItem?.is_epic && workItem?.project_id === projectId;
-      // epic condition
       const epicCondition = workItemId && workItem && workItem?.is_epic && workItem?.project_id === projectId;
-      // is active
-      const isWorkItemActive = item.key === "work_items" && workItemCondition;
+      const isLayoutActiveForWorkItem =
+        !!workItemCondition && isIssueLayoutPathSlug(item.key) && item.key === workItemLayoutNavKey;
       const isEpicActive = item.key === "epics" && epicCondition;
-      // Views list vs detail is handled by ProjectNavigationViews
       if (item.key === "views") {
         return pathname === item.href || pathname === `${item.href}/`;
       }
-      // pathname condition
-      const isPathnameActive = pathname.includes(item.href);
-      // return
-      return isWorkItemActive || isEpicActive || isPathnameActive;
+      return isLayoutActiveForWorkItem || isEpicActive || isNavHrefActive(pathname, item.href);
     },
-    [pathname, workItem, workItemId, projectId]
+    [pathname, workItem, workItemId, projectId, workItemLayoutNavKey]
   );
 
   if (!project) return null;
@@ -210,7 +142,9 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
                   />
                   <span className="text-11 font-medium">{t(item.i18n_key)}</span>
                 </div>
-                {shouldShowCount && <span className="text-11 font-medium text-tertiary">{project.intake_count}</span>}
+                {shouldShowCount ? (
+                  <span className="text-11 font-medium text-tertiary">{project.intake_count}</span>
+                ) : null}
               </div>
             </SidebarNavItem>
           </Link>

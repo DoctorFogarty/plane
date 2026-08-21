@@ -28,7 +28,7 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@plane/ui";
 import { cn } from "@plane/utils";
 // components
-import { DEFAULT_TAB_KEY, getTabUrl } from "@/components/navigation/tab-navigation-utils";
+import { getTabUrl, resolveDefaultTabKey } from "@/components/navigation/tab-navigation-utils";
 import { useTabPreferences } from "@/components/navigation/use-tab-preferences";
 import { LeaveProjectModal } from "@/components/project/leave-project-modal";
 import { PublishProjectModal } from "@/components/project/publish-project/modal";
@@ -109,8 +109,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   // Get preferences from hook
   const { tabPreferences } = useTabPreferences(workspaceSlug.toString(), projectId);
   const defaultTabKey = tabPreferences.defaultTab;
-  // Validate that the default tab is available
-  const validatedDefaultTabKey = availableTabKeys.includes(defaultTabKey) ? defaultTabKey : DEFAULT_TAB_KEY;
+  const validatedDefaultTabKey = resolveDefaultTabKey(defaultTabKey, availableTabKeys);
   const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, validatedDefaultTabKey) : "";
 
   // toggle project list open
