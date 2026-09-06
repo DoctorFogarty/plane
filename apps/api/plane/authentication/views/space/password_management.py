@@ -11,7 +11,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from zxcvbn import zxcvbn
 
 # Django imports
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -28,6 +27,7 @@ from plane.license.models import Instance
 from plane.db.models import User
 from plane.license.utils.instance_value import get_configuration_value
 from plane.authentication.utils.host import base_host
+from plane.utils.password import assess_password, weak_password_payload
 from plane.authentication.adapter.error import (
     AuthenticationException,
     AUTHENTICATION_ERROR_CODES,
@@ -135,12 +135,12 @@ class ResetPasswordSpaceEndpoint(View):
                 url = f"{base_host(request=request, is_space=True)}/accounts/reset-password/?{urlencode(exc.get_error_dict())}"  # noqa: E501
                 return HttpResponseRedirect(url)
 
-            # Check the password complexity
-            results = zxcvbn(password)
-            if results["score"] < 3:
+            assessment = assess_password(password)
+            if not assessment["acceptable"]:
                 exc = AuthenticationException(
                     error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
                     error_message="PASSWORD_TOO_WEAK",
+                    payload=weak_password_payload(assessment),
                 )
                 url = f"{base_host(request=request, is_space=True)}/accounts/reset-password/?{urlencode(exc.get_error_dict())}"  # noqa: E501
                 return HttpResponseRedirect(url)

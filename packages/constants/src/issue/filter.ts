@@ -122,7 +122,7 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
         },
         extra_options: {
           access: true,
-          values: ["show_empty_groups", "sub_issue"],
+          values: ["show_empty_groups"],
         },
       },
       kanban: {
@@ -227,7 +227,7 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
           order_by: ["sort_order", "-created_at", "-updated_at", "start_date", "-priority", "target_date"],
           type: ["active", "backlog"],
         },
-        // Hierarchy layouts nest children under parents; hide flat "show sub-work items" toggle
+        // List is flat: every work item is a root row in its own group (no nest toggle)
         extra_options: {
           access: true,
           values: ["show_empty_groups"],

@@ -14,6 +14,7 @@ export const NATIVE_FORM_FIELDS: { key: string; i18nLabel: string; locked?: bool
   { key: "labels", i18nLabel: "labels" },
   { key: "submitter_email", i18nLabel: "project_settings.features.intake.form.submitter_email" },
   { key: "submitter_name", i18nLabel: "project_settings.features.intake.form.submitter_name" },
+  { key: "attachments", i18nLabel: "attachments" },
 ];
 
 export function defaultFormFields(): TIntakeFormField[] {
@@ -22,6 +23,7 @@ export function defaultFormFields(): TIntakeFormField[] {
     { key: "description", source: "system", required: false },
     { key: "submitter_email", source: "system", required: true },
     { key: "submitter_name", source: "system", required: false },
+    { key: "attachments", source: "system", required: false },
   ];
 }
 

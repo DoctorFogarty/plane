@@ -11,7 +11,9 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { SitesIntakeFormService } from "@plane/services";
 import type { TLogoProps, TPublicIntakeFormSchema } from "@plane/types";
+import { parseIntakeFormAttachments } from "@plane/utils";
 import { ProjectLogo } from "@/components/common/project-logo";
+import { PublicFormAttachmentsField } from "@/components/forms/public-form-attachments";
 import { PublicFormField } from "@/components/forms/public-form-field";
 
 const formService = new SitesIntakeFormService();
@@ -44,6 +46,7 @@ export const PublicIntakeForm = observer(function PublicIntakeForm(props: Props)
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [attachmentsBusy, setAttachmentsBusy] = useState(false);
 
   const fields = useMemo(() => schema.fields || [], [schema.fields]);
   const logo = asLogoProps(schema.project.logo_props);
@@ -53,6 +56,7 @@ export const PublicIntakeForm = observer(function PublicIntakeForm(props: Props)
   };
 
   const handleSubmit = async () => {
+    if (attachmentsBusy) return;
     const nextErrors: Record<string, string> = {};
     for (const field of fields) {
       const key = fieldKey(field);
@@ -86,6 +90,7 @@ export const PublicIntakeForm = observer(function PublicIntakeForm(props: Props)
         submitter_email: typeof values.submitter_email === "string" ? values.submitter_email : "",
         submitter_name: typeof values.submitter_name === "string" ? values.submitter_name : "",
         website: honeypot,
+        attachment_ids: parseIntakeFormAttachments(values.attachments).map((item) => item.id),
       });
       setSubmitted(true);
     } catch {
@@ -138,16 +143,39 @@ export const PublicIntakeForm = observer(function PublicIntakeForm(props: Props)
             onChange={(event) => setHoneypot(event.target.value)}
           />
         </label>
-        {fields.map((field) => (
-          <PublicFormField
-            key={fieldKey(field)}
-            field={field}
-            value={values[fieldKey(field)]}
-            onChange={(value) => setField(fieldKey(field), value)}
-            error={errors[fieldKey(field)]}
-          />
-        ))}
-        <Button type="submit" variant="primary" size="lg" loading={submitting}>
+        {fields.map((field) =>
+          field.source === "system" && field.key === "attachments" ? (
+            <PublicFormAttachmentsField
+              key={fieldKey(field)}
+              anchor={anchor}
+              field={field}
+              value={parseIntakeFormAttachments(values.attachments)}
+              onAdd={(attachments) =>
+                setValues((prev) => ({
+                  ...prev,
+                  attachments: [...parseIntakeFormAttachments(prev.attachments), ...attachments],
+                }))
+              }
+              onRemove={(assetId) =>
+                setValues((prev) => ({
+                  ...prev,
+                  attachments: parseIntakeFormAttachments(prev.attachments).filter((item) => item.id !== assetId),
+                }))
+              }
+              onBusyChange={setAttachmentsBusy}
+              error={errors.attachments}
+            />
+          ) : (
+            <PublicFormField
+              key={fieldKey(field)}
+              field={field}
+              value={values[fieldKey(field)]}
+              onChange={(value) => setField(fieldKey(field), value)}
+              error={errors[fieldKey(field)]}
+            />
+          )
+        )}
+        <Button type="submit" variant="primary" size="lg" loading={submitting} disabled={attachmentsBusy}>
           {t("submit")}
         </Button>
       </form>

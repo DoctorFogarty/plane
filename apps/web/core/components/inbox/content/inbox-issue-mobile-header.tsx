@@ -41,7 +41,8 @@ type Props = {
   isAcceptedOrDeclined: boolean | undefined;
   canMarkAsDuplicate: boolean;
   canDelete: boolean;
-  setAcceptIssueModal: (value: boolean) => void;
+  handleInboxIssueAccept: () => Promise<void>;
+  isAccepting: boolean;
   setDeclineIssueModal: (value: boolean) => void;
   setDeleteIssueModal: (value: boolean) => void;
   handleIssueSnoozeAction: () => Promise<void>;
@@ -66,7 +67,8 @@ export const InboxIssueActionsMobileHeader = observer(function InboxIssueActions
     canMarkAsDuplicate,
     isAcceptedOrDeclined,
     workspaceSlug,
-    setAcceptIssueModal,
+    handleInboxIssueAccept,
+    isAccepting,
     setDeclineIssueModal,
     setDeleteIssueModal,
     handleIssueSnoozeAction,
@@ -189,10 +191,11 @@ export const InboxIssueActionsMobileHeader = observer(function InboxIssueActions
             )}
             {canMarkAsAccepted && (
               <CustomMenu.MenuItem
+                disabled={isAccepting}
                 onClick={() =>
                   handleActionWithPermission(
                     isProjectAdmin,
-                    () => setAcceptIssueModal(true),
+                    handleInboxIssueAccept,
                     "Only project admins can accept work items"
                   )
                 }

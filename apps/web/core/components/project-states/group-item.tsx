@@ -261,8 +261,8 @@ export const GroupItem = observer(function GroupItem(props: TGroupItem) {
 
         {isEditable && createState && (
           <StateCreate
-            groupKey={group.category}
-            groupId={group.id}
+            defaultCategory={group.category}
+            groups={groups}
             handleClose={() => setCreateState(false)}
             createStateCallback={stateOperationsCallbacks.createState}
             shouldTrackEvents={shouldTrackEvents}

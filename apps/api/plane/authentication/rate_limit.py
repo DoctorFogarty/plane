@@ -61,6 +61,18 @@ class IntakeFormSubmitThrottle(SimpleRateThrottle):
         return self.cache_format % {"scope": self.scope, "ident": f"{ident}:{anchor}"}
 
 
+class IntakeFormUploadThrottle(SimpleRateThrottle):
+    """Limit public intake form attachment uploads per IP and form."""
+
+    rate = os.environ.get("INTAKE_FORM_UPLOAD_RATE_LIMIT", "30/minute")
+    scope = "intake_form_upload"
+
+    def get_cache_key(self, request, view):
+        ident = self.get_ident(request)
+        anchor = getattr(view, "kwargs", {}).get("anchor") or "unknown"
+        return self.cache_format % {"scope": self.scope, "ident": f"{ident}:{anchor}"}
+
+
 class EmailVerificationThrottle(UserRateThrottle):
     """
     Throttle for email verification code generation.

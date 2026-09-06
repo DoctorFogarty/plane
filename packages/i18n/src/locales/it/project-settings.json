@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Stati",
-      "description": "Modella il tuo binario di workflow — aggiungi gruppi, riordina le colonne e personalizza come avanza il lavoro.",
+      "description": "Gli elementi di lavoro passano attraverso questi stati, in questo ordine.",
+      "add_status": "Aggiungi uno stato",
+      "default": "Predefinito",
+      "mark_as_default": "Imposta come predefinito",
+      "marking_as_default": "Impostazione come predefinito",
       "describe_this_state_for_your_members": "Descrivi questo stato per i tuoi membri.",
       "empty_state": {
         "title": "Nessuno stato in {groupKey}",
         "description": "Crea un nuovo stato"
+      },
+      "delete": {
+        "title": "Elimina stato",
+        "confirm": "Eliminare lo stato {name}? Gli elementi di lavoro in questo stato verranno spostati nello stato selezionato. Questa azione non può essere annullata.",
+        "move_work_items": "Sposta gli elementi di lavoro in",
+        "button": "Elimina",
+        "deleting": "Eliminazione",
+        "cannot_delete_default": "Impossibile eliminare lo stato predefinito.",
+        "success": "Stato eliminato correttamente.",
+        "failed": "Impossibile eliminare lo stato. Riprovare.",
+        "select_state": "Seleziona uno stato"
       },
       "add_group": "Aggiungi gruppo",
       "group_name_placeholder": "Nome del gruppo",
@@ -425,7 +440,11 @@
           "no_properties": "Questo tipo di elemento di lavoro non ha proprietà utilizzabili nel modulo.",
           "delete_form": "Elimina modulo",
           "allowed_labels": "Etichette consentite",
-          "submit_error": "Impossibile inviare questo modulo. Riprova."
+          "submit_error": "Impossibile inviare questo modulo. Riprova.",
+          "attachments_help": "Aggiungi i file da includere nell’elemento di lavoro. Fino a {count} file.",
+          "attachments_too_many": "Puoi allegare fino a {count} file.",
+          "add_attachments": "Aggiungi file",
+          "attachments_uploading": "Caricamento"
         },
         "toasts": {
           "set": {

@@ -7,80 +7,7 @@
 import type { ReactNode } from "react";
 // plane imports
 import type { TAuthErrorInfo } from "@plane/constants";
-import { E_PASSWORD_STRENGTH, EErrorAlertType, EAuthErrorCodes } from "@plane/constants";
-
-/**
- * @description Password strength levels
- */
-export enum PasswordStrength {
-  EMPTY = "empty",
-  WEAK = "weak",
-  FAIR = "fair",
-  GOOD = "good",
-  STRONG = "strong",
-}
-
-/**
- * Calculate password strength based on various criteria
- */
-export const getPasswordStrength = (password: string): E_PASSWORD_STRENGTH => {
-  if (!password || password === "" || password.length <= 0) {
-    return E_PASSWORD_STRENGTH.EMPTY;
-  }
-
-  if (password.length < 8) {
-    return E_PASSWORD_STRENGTH.LENGTH_NOT_VALID;
-  }
-
-  // Check all criteria
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasDigit = /[0-9]/.test(password);
-  const hasSpecialChar = /[!@#$%^&*()\-_+=\[\]{}|;:'",.<>?/]/.test(password);
-
-  if (hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar) {
-    return E_PASSWORD_STRENGTH.STRENGTH_VALID;
-  }
-
-  return E_PASSWORD_STRENGTH.STRENGTH_NOT_VALID;
-};
-
-export type PasswordCriteria = {
-  key: string;
-  label: string;
-  isValid: boolean;
-};
-
-/**
- * Get password criteria for validation display
- */
-export const getPasswordCriteria = (password: string): PasswordCriteria[] => [
-  {
-    key: "length",
-    label: "Min 8 characters",
-    isValid: password.length >= 8,
-  },
-  {
-    key: "uppercase",
-    label: "Min 1 upper-case letter",
-    isValid: /[A-Z]/.test(password),
-  },
-  {
-    key: "lowercase",
-    label: "Min 1 lower-case letter",
-    isValid: /[a-z]/.test(password),
-  },
-  {
-    key: "number",
-    label: "Min 1 number",
-    isValid: /[0-9]/.test(password),
-  },
-  {
-    key: "special",
-    label: "Min 1 special character",
-    isValid: /[!@#$%^&*()\-_+=\[\]{}|;:'",.<>?/]/.test(password),
-  },
-];
+import { EErrorAlertType, EAuthErrorCodes } from "@plane/constants";
 
 // Error code messages
 const errorCodeMessages: {
@@ -100,8 +27,8 @@ const errorCodeMessages: {
     message: () => `Invalid password. Please try again.`,
   },
   [EAuthErrorCodes.PASSWORD_TOO_WEAK]: {
-    title: `Password too weak`,
-    message: () => `Please use a stronger password.`,
+    title: `Password is too easy to guess`,
+    message: () => `Use a longer phrase you don't use elsewhere. Avoid common words, names, and years.`,
   },
   [EAuthErrorCodes.SMTP_NOT_CONFIGURED]: {
     title: `SMTP not configured`,
@@ -314,6 +241,7 @@ export const authErrorHandler = (errorCode: EAuthErrorCodes, email?: string): TA
     EAuthErrorCodes.EMAIL_REQUIRED,
     EAuthErrorCodes.SIGNUP_DISABLED,
     EAuthErrorCodes.INVALID_PASSWORD,
+    EAuthErrorCodes.PASSWORD_TOO_WEAK,
     EAuthErrorCodes.SMTP_NOT_CONFIGURED,
     EAuthErrorCodes.USER_ALREADY_EXIST,
     EAuthErrorCodes.AUTHENTICATION_FAILED_SIGN_UP,

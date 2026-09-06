@@ -6,19 +6,20 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-// plane imports
+import { useTranslation } from "@plane/i18n";
 import type { TStateOperationsCallbacks } from "@plane/types";
 import { cn } from "@plane/utils";
 
 type TStateMarksAsDefault = {
   stateId: string;
   isDefault: boolean;
+  color?: string;
   markStateAsDefaultCallback: TStateOperationsCallbacks["markStateAsDefault"];
 };
 
 export const StateMarksAsDefault = observer(function StateMarksAsDefault(props: TStateMarksAsDefault) {
-  const { stateId, isDefault, markStateAsDefaultCallback } = props;
-  // states
+  const { stateId, isDefault, color, markStateAsDefaultCallback } = props;
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleMarkAsDefault = async () => {
@@ -26,24 +27,30 @@ export const StateMarksAsDefault = observer(function StateMarksAsDefault(props: 
     setIsLoading(true);
 
     try {
-      setIsLoading(false);
       await markStateAsDefaultCallback(stateId);
-      setIsLoading(false);
-    } catch {
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
     <button
+      type="button"
       className={cn(
         "text-11 whitespace-nowrap transition-colors",
         isDefault ? "text-tertiary" : "text-secondary hover:text-primary"
       )}
+      style={
+        isDefault ? { textDecoration: "underline", textDecorationColor: color, textUnderlineOffset: "3px" } : undefined
+      }
       disabled={isDefault || isLoading}
       onClick={handleMarkAsDefault}
     >
-      {isLoading ? "Marking as default" : isDefault ? `Default` : `Mark as default`}
+      {isLoading
+        ? t("project_settings.states.marking_as_default")
+        : isDefault
+          ? t("project_settings.states.default")
+          : t("project_settings.states.mark_as_default")}
     </button>
   );
 });

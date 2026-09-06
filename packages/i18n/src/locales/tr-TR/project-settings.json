@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Durumlar",
-      "description": "İş akışı rayınızı şekillendirin — gruplar ekleyin, sütunları yeniden sıralayın ve işin nasıl ilerlediğini özelleştirin.",
+      "description": "İş öğeleri bu durumlardan, bu sırayla geçer.",
+      "add_status": "Durum ekle",
+      "default": "Varsayılan",
+      "mark_as_default": "Varsayılan yap",
+      "marking_as_default": "Varsayılan yapılıyor",
       "describe_this_state_for_your_members": "Bu durumu üyeleriniz için açıklayın.",
       "empty_state": {
         "title": "{groupKey} içinde durum yok",
         "description": "Lütfen yeni bir durum oluşturun"
+      },
+      "delete": {
+        "title": "Durumu sil",
+        "confirm": "{name} durumunu silmek istediğinizden emin misiniz? Bu durumdaki iş öğeleri seçilen duruma taşınacaktır. Bu işlem geri alınamaz.",
+        "move_work_items": "İş öğelerini şuraya taşı",
+        "button": "Sil",
+        "deleting": "Siliniyor",
+        "cannot_delete_default": "Varsayılan durum silinemez.",
+        "success": "Durum başarıyla silindi.",
+        "failed": "Durum silinemedi. Lütfen tekrar deneyin.",
+        "select_state": "Bir durum seçin"
       },
       "add_group": "Grup ekle",
       "group_name_placeholder": "Grup adı",
@@ -425,7 +440,11 @@
           "no_properties": "Bu iş öğesi türünün formda kullanılabilecek özelliği yok.",
           "delete_form": "Formu sil",
           "allowed_labels": "İzin verilen etiketler",
-          "submit_error": "Bu form gönderilemedi. Lütfen tekrar deneyin."
+          "submit_error": "Bu form gönderilemedi. Lütfen tekrar deneyin.",
+          "attachments_help": "İş öğesine eklenecek dosyaları ekleyin. En fazla {count} dosya.",
+          "attachments_too_many": "En fazla {count} dosya ekleyebilirsiniz.",
+          "add_attachments": "Dosya ekle",
+          "attachments_uploading": "Yükleniyor"
         },
         "toasts": {
           "set": {

@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Status",
-      "description": "Bentuk rel alur kerja Anda — tambahkan grup, urutkan ulang kolom, dan sesuaikan cara pekerjaan bergerak.",
+      "description": "Item kerja bergerak melalui status ini, dalam urutan ini.",
+      "add_status": "Tambah status",
+      "default": "Bawaan",
+      "mark_as_default": "Jadikan bawaan",
+      "marking_as_default": "Menjadikan bawaan",
       "describe_this_state_for_your_members": "Jelaskan status ini untuk anggota Anda.",
       "empty_state": {
         "title": "Tidak ada status di {groupKey}",
         "description": "Silakan buat status baru"
+      },
+      "delete": {
+        "title": "Hapus status",
+        "confirm": "Anda yakin ingin menghapus {name}? Item kerja dalam status ini akan dipindahkan ke status yang dipilih. Tindakan ini tidak dapat dibatalkan.",
+        "move_work_items": "Pindahkan item kerja ke",
+        "button": "Hapus",
+        "deleting": "Menghapus",
+        "cannot_delete_default": "Status default tidak dapat dihapus.",
+        "success": "Status berhasil dihapus.",
+        "failed": "Status tidak dapat dihapus. Silakan coba lagi.",
+        "select_state": "Pilih status"
       },
       "add_group": "Tambah grup",
       "group_name_placeholder": "Nama grup",
@@ -425,7 +440,11 @@
           "no_properties": "Jenis item kerja ini tidak memiliki properti yang siap untuk formulir.",
           "delete_form": "Hapus formulir",
           "allowed_labels": "Label yang diizinkan",
-          "submit_error": "Formulir ini tidak dapat dikirim. Silakan coba lagi."
+          "submit_error": "Formulir ini tidak dapat dikirim. Silakan coba lagi.",
+          "attachments_help": "Tambahkan file untuk disertakan pada item pekerjaan. Maksimal {count} file.",
+          "attachments_too_many": "Anda dapat melampirkan maksimal {count} file.",
+          "add_attachments": "Tambah file",
+          "attachments_uploading": "Mengunggah"
         },
         "toasts": {
           "set": {

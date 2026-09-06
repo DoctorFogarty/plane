@@ -90,6 +90,15 @@ class StateSerializer(BaseSerializer):
     def update(self, instance, validated_data):
         if "workflow_group" in validated_data and validated_data["workflow_group"]:
             validated_data["group"] = validated_data["workflow_group"].category
+        elif validated_data.get("group") and "workflow_group" not in validated_data:
+            project_id = self.context.get("project_id") or instance.project_id
+            group = (
+                ProjectStateGroup.objects.filter(project_id=project_id, category=validated_data["group"])
+                .order_by("sequence")
+                .first()
+            )
+            if group:
+                validated_data["workflow_group"] = group
         return super().update(instance, validated_data)
 
 

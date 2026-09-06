@@ -9,12 +9,11 @@ import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { Eye, EyeOff } from "lucide-react";
 // plane imports
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Input, PasswordStrengthIndicator } from "@plane/ui";
-import { getPasswordStrength } from "@plane/utils";
+import { Input, PasswordStrengthIndicator, usePasswordAssessment } from "@plane/ui";
+import { getPasswordRequirementCopy } from "@plane/utils";
 // components
 import { ProfileSettingsHeading } from "@/components/settings/profile/heading";
 // helpers
@@ -68,6 +67,8 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
   const oldPasswordRequired = !currentUser?.is_password_autoset;
   // i18n
   const { t } = useTranslation();
+  const { assessment, ready } = usePasswordAssessment(password);
+  const requirementCopy = getPasswordRequirementCopy(t);
 
   const isNewPasswordSameAsOldPassword = oldPassword !== "" && password !== "" && password === oldPassword;
 
@@ -116,17 +117,13 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
   };
 
   const isButtonDisabled =
-    getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID ||
+    !ready ||
+    assessment?.acceptable !== true ||
     (oldPasswordRequired && oldPassword.trim() === "") ||
     password.trim() === "" ||
     confirmPassword.trim() === "" ||
     password !== confirmPassword ||
     password === oldPassword;
-
-  const passwordSupport = password.length > 0 &&
-    getPasswordStrength(password) != E_PASSWORD_STRENGTH.STRENGTH_VALID && (
-      <PasswordStrengthIndicator password={password} isFocused={isPasswordInputFocused} />
-    );
 
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 
@@ -212,7 +209,7 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
                   />
                 )}
               </div>
-              {passwordSupport}
+              <PasswordStrengthIndicator password={password} assessment={assessment} copy={requirementCopy} />
               {errors.new_password && (
                 <span className="text-11 text-danger-primary">{errors.new_password.message}</span>
               )}

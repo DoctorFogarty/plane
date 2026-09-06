@@ -1,4 +1,4 @@
-/* eslint-disable no-shadow, no-unused-expressions, promise/always-return */
+/* eslint-disable no-shadow, no-unused-expressions, promise/always-return, unicorn/no-array-sort */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -200,7 +200,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
         }
       }
     }
-    return [...propertyMap.values()].toSorted((a, b) => a.name.localeCompare(b.name));
+    return [...propertyMap.values()].sort((a, b) => a.name.localeCompare(b.name));
     // projectTypeRevisionKey tracks atomic project-scoped type/property snapshot replacements.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopedProjectIds, issueTypeStore, areIssueTypesFetched, projectTypeRevisionKey]);

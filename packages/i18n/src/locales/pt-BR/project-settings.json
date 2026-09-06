@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Estados",
-      "description": "Modele seu trilho de fluxo de trabalho — adicione grupos, reordene colunas e personalize como o trabalho avança.",
+      "description": "Os itens de trabalho passam por esses status, nesta ordem.",
+      "add_status": "Adicionar um status",
+      "default": "Padrão",
+      "mark_as_default": "Marcar como padrão",
+      "marking_as_default": "Marcando como padrão",
       "describe_this_state_for_your_members": "Descreva este estado para seus membros.",
       "empty_state": {
         "title": "Nenhum estado em {groupKey}",
         "description": "Por favor, crie um novo estado"
+      },
+      "delete": {
+        "title": "Excluir estado",
+        "confirm": "Tem certeza de que deseja excluir {name}? Os itens de trabalho neste estado serão movidos para o estado selecionado. Esta ação não pode ser desfeita.",
+        "move_work_items": "Mover itens de trabalho para",
+        "button": "Excluir",
+        "deleting": "Excluindo",
+        "cannot_delete_default": "Não é possível excluir o estado padrão.",
+        "success": "Estado excluído com sucesso.",
+        "failed": "Não foi possível excluir o estado. Tente novamente.",
+        "select_state": "Selecione um estado"
       },
       "add_group": "Adicionar grupo",
       "group_name_placeholder": "Nome do grupo",
@@ -425,7 +440,11 @@
           "no_properties": "Este tipo de item de trabalho não tem propriedades adequadas para o formulário.",
           "delete_form": "Excluir formulário",
           "allowed_labels": "Labels permitidas",
-          "submit_error": "Não foi possível enviar este formulário. Tente novamente."
+          "submit_error": "Não foi possível enviar este formulário. Tente novamente.",
+          "attachments_help": "Adicione arquivos para incluir no item de trabalho. Até {count} arquivos.",
+          "attachments_too_many": "Você pode anexar até {count} arquivos.",
+          "add_attachments": "Adicionar arquivos",
+          "attachments_uploading": "Enviando"
         },
         "toasts": {
           "set": {

@@ -4,16 +4,18 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
+
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 // icons
 import { Eye, EyeOff } from "lucide-react";
 // plane internal packages
-import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
+import { API_BASE_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
-import { Checkbox, Input, PasswordStrengthIndicator, Spinner } from "@plane/ui";
-import { getPasswordStrength, validatePersonName, validateCompanyName } from "@plane/utils";
+import { Checkbox, Input, PasswordStrengthIndicator, Spinner, usePasswordAssessment } from "@plane/ui";
+import { validatePersonName, validateCompanyName } from "@plane/utils";
 // components
 import { AuthHeader } from "@/app/(all)/(home)/auth-header";
 import { Banner } from "../common/banner";
@@ -29,6 +31,7 @@ enum EErrorCodes {
   REQUIRED_EMAIL_PASSWORD_FIRST_NAME = "REQUIRED_EMAIL_PASSWORD_FIRST_NAME",
   INVALID_EMAIL = "INVALID_EMAIL",
   INVALID_PASSWORD = "INVALID_PASSWORD",
+  PASSWORD_TOO_WEAK = "PASSWORD_TOO_WEAK",
   USER_ALREADY_EXISTS = "USER_ALREADY_EXISTS",
 }
 
@@ -67,6 +70,7 @@ export function InstanceSetupForm() {
   const isTelemetryEnabledParam = (searchParams?.get("is_telemetry_enabled") === "True" ? true : false) || true;
   const errorCode = searchParams?.get("error_code") || undefined;
   const errorMessage = searchParams?.get("error_message") || undefined;
+  const passwordWarning = searchParams?.get("password_warning") || undefined;
   // state
   const [showPassword, setShowPassword] = useState({
     password: false,
@@ -74,7 +78,6 @@ export function InstanceSetupForm() {
   });
   const [csrfToken, setCsrfToken] = useState<string | undefined>(undefined);
   const [formData, setFormData] = useState<TFormData>(defaultFromData);
-  const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
 
@@ -98,7 +101,19 @@ export function InstanceSetupForm() {
   }, [firstNameParam, lastNameParam, companyParam, emailParam, isTelemetryEnabledParam]);
 
   // derived values
+  const password = formData?.password ?? "";
+  const confirmPassword = formData?.confirm_password ?? "";
+  const { assessment, ready } = usePasswordAssessment(password);
+
   const errorData: TError = useMemo(() => {
+    const isTooWeak =
+      errorCode === "5021" || errorCode === EErrorCodes.PASSWORD_TOO_WEAK || errorMessage === "PASSWORD_TOO_WEAK";
+    if (isTooWeak) {
+      return {
+        type: EErrorCodes.PASSWORD_TOO_WEAK,
+        message: passwordWarning || "Password is too easy to guess. Use a longer phrase you don’t use elsewhere.",
+      };
+    }
     if (errorCode && errorMessage) {
       switch (errorCode) {
         case EErrorCodes.INSTANCE_NOT_CONFIGURED:
@@ -116,8 +131,9 @@ export function InstanceSetupForm() {
         default:
           return { type: undefined, message: undefined };
       }
-    } else return { type: undefined, message: undefined };
-  }, [errorCode, errorMessage]);
+    }
+    return { type: undefined, message: undefined };
+  }, [errorCode, errorMessage, passwordWarning]);
 
   const isButtonDisabled = useMemo(
     () =>
@@ -125,15 +141,21 @@ export function InstanceSetupForm() {
       formData.first_name &&
       formData.email &&
       formData.password &&
-      getPasswordStrength(formData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
+      ready &&
+      assessment?.acceptable === true &&
       formData.password === formData.confirm_password
         ? false
         : true,
-    [formData.confirm_password, formData.email, formData.first_name, formData.password, isSubmitting]
+    [
+      assessment?.acceptable,
+      formData.confirm_password,
+      formData.email,
+      formData.first_name,
+      formData.password,
+      isSubmitting,
+      ready,
+    ]
   );
-
-  const password = formData?.password ?? "";
-  const confirmPassword = formData?.confirm_password ?? "";
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 
   return (
@@ -265,9 +287,9 @@ export function InstanceSetupForm() {
                   placeholder="New password"
                   value={formData.password}
                   onChange={(e) => handleFormChange("password", e.target.value)}
-                  hasError={errorData.type && errorData.type === EErrorCodes.INVALID_PASSWORD ? true : false}
-                  onFocus={() => setIsPasswordInputFocused(true)}
-                  onBlur={() => setIsPasswordInputFocused(false)}
+                  hasError={
+                    errorData.type === EErrorCodes.INVALID_PASSWORD || errorData.type === EErrorCodes.PASSWORD_TOO_WEAK
+                  }
                   autoComplete="new-password"
                 />
                 {showPassword.password ? (
@@ -290,10 +312,10 @@ export function InstanceSetupForm() {
                   </button>
                 )}
               </div>
-              {errorData.type && errorData.type === EErrorCodes.INVALID_PASSWORD && errorData.message && (
-                <p className="px-1 text-11 text-danger-primary">{errorData.message}</p>
-              )}
-              <PasswordStrengthIndicator password={formData.password} isFocused={isPasswordInputFocused} />
+              {errorData.type &&
+                (errorData.type === EErrorCodes.INVALID_PASSWORD || errorData.type === EErrorCodes.PASSWORD_TOO_WEAK) &&
+                errorData.message && <p className="px-1 text-11 text-danger-primary">{errorData.message}</p>}
+              <PasswordStrengthIndicator password={password} assessment={assessment} />
             </div>
 
             <div className="w-full space-y-1">

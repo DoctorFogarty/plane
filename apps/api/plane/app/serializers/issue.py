@@ -797,6 +797,7 @@ class IssueIntakeSerializer(DynamicBaseSerializer):
             "created_at",
             "label_ids",
             "created_by",
+            "type_id",
         ]
         read_only_fields = fields
 

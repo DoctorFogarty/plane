@@ -4,78 +4,78 @@
  * See the LICENSE file for details.
  */
 
-import { CircleCheck } from "lucide-react";
 import React from "react";
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
-import { cn, getPasswordStrength, getPasswordCriteria } from "@plane/utils";
-import { getStrengthInfo, getFragmentColor } from "./helper";
+import type { TPasswordAssessment } from "@plane/constants";
+import { cn } from "@plane/utils";
+import {
+  DEFAULT_PASSWORD_REQUIREMENT_COPY,
+  getPasswordCoachColor,
+  getPasswordCoachMessage,
+  getPasswordTickColor,
+  type TPasswordRequirementCopy,
+} from "./copy";
+import { usePasswordAssessment } from "./use-password-assessment";
 
 export interface PasswordStrengthIndicatorProps {
   password: string;
+  showPolicy?: boolean;
+  copy?: Partial<TPasswordRequirementCopy>;
+  assessment?: TPasswordAssessment | null;
+  /** @deprecated Visibility is owned by the indicator. Kept so existing call sites type-check. */
   showCriteria?: boolean;
+  /** @deprecated Visibility is owned by the indicator. Kept so existing call sites type-check. */
   isFocused?: boolean;
 }
 
 export function PasswordStrengthIndicator({
   password,
-  showCriteria = true,
-  isFocused = false,
+  showPolicy = true,
+  copy: copyOverrides,
+  assessment: assessmentProp,
 }: PasswordStrengthIndicatorProps) {
-  const strength = getPasswordStrength(password);
-  const criteria = getPasswordCriteria(password);
-  const strengthInfo = getStrengthInfo(strength);
+  const copy = { ...DEFAULT_PASSWORD_REQUIREMENT_COPY, ...copyOverrides };
+  const assessed = usePasswordAssessment(password);
+  const assessment = assessmentProp === undefined ? assessed.assessment : assessmentProp;
+  const hasPassword = password.length > 0;
+  const accepted = assessment?.acceptable === true;
+  const showMeter = hasPassword && !accepted;
+  const showSuccess = hasPassword && accepted;
+  const coach = getPasswordCoachMessage(assessment, copy);
+  const score = assessment?.score ?? 0;
 
-  const isPasswordMeterVisible = isFocused ? true : strength === E_PASSWORD_STRENGTH.STRENGTH_VALID ? false : true;
-
-  if ((!password && !showCriteria) || !isPasswordMeterVisible) {
+  if (!showPolicy && !hasPassword) {
     return null;
   }
 
   return (
-    <div className={cn("space-y-3")}>
-      {/* Strength Indicator */}
-      <div className="space-y-2">
-        <div className="flex w-full gap-1 transition-all duration-300 ease-linear">
-          {[0, 1, 2].map((fragmentIndex) => (
-            <div
-              key={fragmentIndex}
-              className={cn(
-                "h-1 flex-1 rounded-xs transition-all duration-300 ease-in-out",
-                getFragmentColor(fragmentIndex, strengthInfo.activeFragments)
-              )}
-            />
-          ))}
-        </div>
-
-        {/* Strength Message */}
-        {password && <p className={cn("!text-13 font-medium", strengthInfo.textColor)}>{strengthInfo.message}</p>}
-      </div>
-
-      {/* Criteria list */}
-      {showCriteria && (
-        <div className="flex flex-wrap gap-2">
-          {criteria.map((criterion) => (
-            <div key={criterion.key} className="flex items-center gap-1.5">
-              <div className="flex items-center justify-center p-0.5">
-                <CircleCheck
-                  className={cn("h-3 w-3 flex-shrink-0", {
-                    "text-success-primary": criterion.isValid,
-                    "text-primary": !criterion.isValid,
-                  })}
+    <div className="space-y-2">
+      {showPolicy ? <p className="!text-11 text-tertiary">{copy.policy}</p> : null}
+      {showMeter ? (
+        <div className="space-y-2">
+          <meter className="sr-only" min={0} max={4} value={score} aria-label="Password guessability" />
+          <div className="flex w-full items-center gap-1" aria-hidden>
+            {[0, 1, 2, 3].map((tickIndex) => (
+              <React.Fragment key={tickIndex}>
+                {tickIndex === 3 ? <span className="bg-tertiary h-2 w-px shrink-0" /> : null}
+                <div
+                  className={cn(
+                    "h-1 min-w-0 flex-1 rounded-xs motion-safe:transition-colors motion-safe:duration-300 motion-reduce:transition-none",
+                    getPasswordTickColor(score, score > tickIndex)
+                  )}
                 />
-              </div>
-              <span
-                className={cn("!text-11", {
-                  "text-success-primary": criterion.isValid,
-                  "text-primary": !criterion.isValid,
-                })}
-              >
-                {criterion.label}
-              </span>
-            </div>
-          ))}
+              </React.Fragment>
+            ))}
+          </div>
+          {coach ? (
+            <p className={cn("!text-13 font-medium", getPasswordCoachColor(assessment))} aria-live="polite">
+              {coach}
+            </p>
+          ) : null}
         </div>
-      )}
+      ) : null}
+      {showSuccess && coach ? (
+        <p className={cn("!text-13 font-medium", getPasswordCoachColor(assessment))}>{coach}</p>
+      ) : null}
     </div>
   );
 }

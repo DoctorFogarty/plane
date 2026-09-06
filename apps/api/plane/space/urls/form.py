@@ -4,7 +4,11 @@
 
 from django.urls import path
 
-from plane.space.views import IntakeFormPublicEndpoint, IntakeFormSubmitEndpoint
+from plane.space.views import (
+    IntakeFormAttachmentEndpoint,
+    IntakeFormPublicEndpoint,
+    IntakeFormSubmitEndpoint,
+)
 
 urlpatterns = [
     path(
@@ -16,5 +20,15 @@ urlpatterns = [
         "forms/<str:anchor>/submissions/",
         IntakeFormSubmitEndpoint.as_view(),
         name="intake-form-submit",
+    ),
+    path(
+        "forms/<str:anchor>/attachments/",
+        IntakeFormAttachmentEndpoint.as_view(),
+        name="intake-form-attachment-upload",
+    ),
+    path(
+        "forms/<str:anchor>/attachments/<uuid:pk>/",
+        IntakeFormAttachmentEndpoint.as_view(),
+        name="intake-form-attachment-detail",
     ),
 ]

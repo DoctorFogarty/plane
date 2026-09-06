@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "상태",
-      "description": "워크플로 레일을 구성하세요. 그룹을 추가하고 열 순서를 바꾸며 작업 흐름을 맞춤 설정할 수 있습니다.",
+      "description": "작업 항목은 이 순서대로 해당 상태를 거칩니다.",
+      "add_status": "상태 추가",
+      "default": "기본",
+      "mark_as_default": "기본으로 표시",
+      "marking_as_default": "기본으로 표시하는 중",
       "describe_this_state_for_your_members": "멤버를 위해 이 상태를 설명하세요.",
       "empty_state": {
         "title": "{groupKey}에 상태가 없습니다",
         "description": "새 상태를 생성하세요"
+      },
+      "delete": {
+        "title": "상태 삭제",
+        "confirm": "{name}을(를) 삭제하시겠습니까? 이 상태의 작업 항목은 선택한 상태로 이동합니다. 이 작업은 되돌릴 수 없습니다.",
+        "move_work_items": "작업 항목 이동 위치",
+        "button": "삭제",
+        "deleting": "삭제 중",
+        "cannot_delete_default": "기본 상태는 삭제할 수 없습니다.",
+        "success": "상태가 삭제되었습니다.",
+        "failed": "상태를 삭제하지 못했습니다. 다시 시도해 주세요.",
+        "select_state": "상태 선택"
       },
       "add_group": "그룹 추가",
       "group_name_placeholder": "그룹 이름",
@@ -425,7 +440,11 @@
           "no_properties": "이 작업 항목 유형에는 양식에서 사용할 수 있는 속성이 없습니다.",
           "delete_form": "양식 삭제",
           "allowed_labels": "허용된 레이블",
-          "submit_error": "양식을 제출할 수 없습니다. 다시 시도해 주세요."
+          "submit_error": "양식을 제출할 수 없습니다. 다시 시도해 주세요.",
+          "attachments_help": "작업 항목에 포함할 파일을 추가하세요. 최대 {count}개까지.",
+          "attachments_too_many": "파일은 최대 {count}개까지 첨부할 수 있습니다.",
+          "add_attachments": "파일 추가",
+          "attachments_uploading": "업로드 중"
         },
         "toasts": {
           "set": {

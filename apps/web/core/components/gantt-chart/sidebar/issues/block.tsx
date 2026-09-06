@@ -15,6 +15,7 @@ import { cn } from "@plane/utils";
 // components
 import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
 import { IssueGanttSidebarBlock } from "@/components/issues/issue-layouts/gantt/blocks";
+import { IssueGanttSidebarStateChip } from "@/components/issues/issue-layouts/gantt/state-chip";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
@@ -63,7 +64,7 @@ export const IssuesSidebarBlock = observer(function IssuesSidebarBlock(props: Pr
 
   return (
     <div
-      className={cn("group/list-block", {
+      className={cn("group/list-block min-w-0 overflow-hidden", {
         "rounded-sm bg-layer-1": isDragging,
         "rounded-l-sm border border-r-0 border-accent-strong": getIsIssuePeeked(block.data.id),
         "border border-r-0 border-strong-1": isIssueFocused,
@@ -73,7 +74,7 @@ export const IssuesSidebarBlock = observer(function IssuesSidebarBlock(props: Pr
     >
       <Row
         className={cn(
-          "group flex w-full items-center gap-2 bg-layer-transparent pr-4 hover:bg-layer-transparent-hover",
+          "group flex w-full min-w-0 items-center gap-2 overflow-hidden bg-layer-transparent pr-4 hover:bg-layer-transparent-hover",
           {
             "bg-layer-transparent-hover": isBlockHoveredOn,
             "bg-accent-primary/5 hover:bg-accent-primary/10": isIssueSelected,
@@ -100,12 +101,12 @@ export const IssuesSidebarBlock = observer(function IssuesSidebarBlock(props: Pr
           </div>
         )}
         <div
-          className="flex h-full flex-grow items-center justify-between gap-2 truncate"
+          className="flex h-full w-full min-w-0 flex-grow items-center gap-2 overflow-hidden"
           style={nestingLevel > 0 ? { paddingLeft: `${nestingLevel * 12}px` } : undefined}
         >
-          <div className="flex min-w-0 flex-grow items-center gap-1 truncate">
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
             <div className="grid size-4 flex-shrink-0 place-items-center">
-              {subIssuesCount > 0 && (
+              {subIssuesCount > 0 ? (
                 <button
                   type="button"
                   aria-label={isExpanded ? "Collapse sub-work items" : "Expand sub-work items"}
@@ -123,12 +124,12 @@ export const IssuesSidebarBlock = observer(function IssuesSidebarBlock(props: Pr
                     strokeWidth={2.5}
                   />
                 </button>
-              )}
+              ) : null}
             </div>
-            <div className="min-w-0 flex-grow truncate">
+            <div className="min-w-0 flex-1 overflow-hidden">
               <IssueGanttSidebarBlock issueId={block.data.id} isEpic={isEpic} />
             </div>
-            {nestingLevel < 3 && (
+            {nestingLevel < 3 ? (
               <Tooltip tooltipContent="Add child" position="top" renderByDefault={false}>
                 <button
                   type="button"
@@ -143,15 +144,18 @@ export const IssuesSidebarBlock = observer(function IssuesSidebarBlock(props: Pr
                   <PlusIcon className="size-3.5" />
                 </button>
               </Tooltip>
-            )}
+            ) : null}
           </div>
-          {duration && (
-            <div className="flex-shrink-0 text-13 text-secondary">
-              <span>
-                {duration} day{duration > 1 ? "s" : ""}
-              </span>
-            </div>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            <IssueGanttSidebarStateChip issueId={block.data.id} />
+            {duration ? (
+              <div className="flex-shrink-0 text-13 text-secondary">
+                <span>
+                  {duration} day{duration > 1 ? "s" : ""}
+                </span>
+              </div>
+            ) : null}
+          </div>
         </div>
       </Row>
     </div>

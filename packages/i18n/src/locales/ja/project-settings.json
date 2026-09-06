@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "ステータス",
-      "description": "ワークフローレールを整えましょう。グループの追加、列の並べ替え、作業の流れのカスタマイズができます。",
+      "description": "作業項目は、この順序でこれらのステータスを進みます。",
+      "add_status": "ステータスを追加",
+      "default": "デフォルト",
+      "mark_as_default": "デフォルトに設定",
+      "marking_as_default": "デフォルトに設定中",
       "describe_this_state_for_your_members": "このステータスについてメンバーに説明してください。",
       "empty_state": {
         "title": "{groupKey} に状態がありません",
         "description": "新しいステータスを作成してください"
+      },
+      "delete": {
+        "title": "状態を削除",
+        "confirm": "「{name}」を削除しますか？この状態の作業項目は、選択した状態に移動されます。この操作は元に戻せません。",
+        "move_work_items": "作業項目の移動先",
+        "button": "削除",
+        "deleting": "削除中",
+        "cannot_delete_default": "デフォルトの状態は削除できません。",
+        "success": "状態を削除しました。",
+        "failed": "状態を削除できませんでした。もう一度お試しください。",
+        "select_state": "状態を選択"
       },
       "add_group": "グループを追加",
       "group_name_placeholder": "グループ名",
@@ -425,7 +440,11 @@
           "no_properties": "この作業項目タイプにはフォームで使えるプロパティーがありません。",
           "delete_form": "フォームを削除",
           "allowed_labels": "許可するラベル",
-          "submit_error": "フォームを送信できませんでした。もう一度お試しください。"
+          "submit_error": "フォームを送信できませんでした。もう一度お試しください。",
+          "attachments_help": "作業項目に含めるファイルを追加してください。最大{count}件まで。",
+          "attachments_too_many": "添付できるファイルは最大{count}件です。",
+          "add_attachments": "ファイルを追加",
+          "attachments_uploading": "アップロード中"
         },
         "toasts": {
           "set": {

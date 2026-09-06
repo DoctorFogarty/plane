@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "状态",
-      "description": "打造你的工作流轨道——添加分组、调整列顺序，并自定义工作如何推进。",
+      "description": "工作项按此顺序经过这些状态。",
+      "add_status": "添加状态",
+      "default": "默认",
+      "mark_as_default": "设为默认",
+      "marking_as_default": "正在设为默认",
       "describe_this_state_for_your_members": "为您的成员描述此状态。",
       "empty_state": {
         "title": "{groupKey} 中没有状态",
         "description": "请创建一个新状态"
+      },
+      "delete": {
+        "title": "删除状态",
+        "confirm": "确定要删除 {name} 吗？此状态中的工作项将移至所选状态。此操作无法撤销。",
+        "move_work_items": "将工作项移至",
+        "button": "删除",
+        "deleting": "正在删除",
+        "cannot_delete_default": "无法删除默认状态。",
+        "success": "状态已删除。",
+        "failed": "无法删除状态，请重试。",
+        "select_state": "选择状态"
       },
       "add_group": "添加分组",
       "group_name_placeholder": "分组名称",
@@ -425,7 +440,11 @@
           "no_properties": "此工作项类型没有可用于表单的属性。",
           "delete_form": "删除表单",
           "allowed_labels": "允许的标签",
-          "submit_error": "无法提交此表单，请重试。"
+          "submit_error": "无法提交此表单，请重试。",
+          "attachments_help": "添加要包含在工作项中的文件。最多 {count} 个文件。",
+          "attachments_too_many": "最多可附加 {count} 个文件。",
+          "add_attachments": "添加文件",
+          "attachments_uploading": "正在上传"
         },
         "toasts": {
           "set": {

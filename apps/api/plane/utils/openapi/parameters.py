@@ -179,6 +179,21 @@ STATE_ID_PARAMETER = OpenApiParameter(
     ],
 )
 
+FALLBACK_STATE_ID_PARAMETER = OpenApiParameter(
+    name="fallback_state_id",
+    description="State to move work items to before deleting an occupied state",
+    required=False,
+    type=OpenApiTypes.UUID,
+    location=OpenApiParameter.QUERY,
+    examples=[
+        OpenApiExample(
+            name="Example fallback state ID",
+            value="550e8400-e29b-41d4-a716-446655440001",
+            description="Destination state for work items currently in the deleted state",
+        )
+    ],
+)
+
 # Additional Path Parameters
 LABEL_ID_PARAMETER = OpenApiParameter(
     name="pk",

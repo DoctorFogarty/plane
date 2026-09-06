@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Stavy",
-      "description": "Upravte koľajnicu pracovného postupu — pridávajte skupiny, meňte poradie stĺpcov a prispôsobte pohyb práce.",
+      "description": "Pracovné položky prechádzajú týmito stavmi, v tomto poradí.",
+      "add_status": "Pridať stav",
+      "default": "Predvolený",
+      "mark_as_default": "Nastaviť ako predvolený",
+      "marking_as_default": "Nastavovanie ako predvolený",
       "describe_this_state_for_your_members": "Opíšte tento stav členom.",
       "empty_state": {
         "title": "Žiadne stavy v {groupKey}",
         "description": "Vytvorte nový stav"
+      },
+      "delete": {
+        "title": "Odstrániť stav",
+        "confirm": "Naozaj chcete odstrániť {name}? Pracovné položky v tomto stave budú presunuté do vybratého stavu. Túto akciu nie je možné vrátiť späť.",
+        "move_work_items": "Presunúť pracovné položky do",
+        "button": "Odstrániť",
+        "deleting": "Odstraňovanie",
+        "cannot_delete_default": "Predvolený stav nie je možné odstrániť.",
+        "success": "Stav bol úspešne odstránený.",
+        "failed": "Stav sa nepodarilo odstrániť. Skúste to znova.",
+        "select_state": "Vyberte stav"
       },
       "add_group": "Pridať skupinu",
       "group_name_placeholder": "Názov skupiny",
@@ -425,7 +440,11 @@
           "no_properties": "Tento typ pracovnej položky nemá vlastnosti použiteľné vo formulári.",
           "delete_form": "Odstrániť formulár",
           "allowed_labels": "Povolené štítky",
-          "submit_error": "Formulár sa nepodarilo odoslať. Skúste to znova."
+          "submit_error": "Formulár sa nepodarilo odoslať. Skúste to znova.",
+          "attachments_help": "Pridajte súbory, ktoré sa pripoja k pracovnej položke. Najviac {count} súborov.",
+          "attachments_too_many": "Môžete pripojiť najviac {count} súborov.",
+          "add_attachments": "Pridať súbory",
+          "attachments_uploading": "Nahráva sa"
         },
         "toasts": {
           "set": {

@@ -145,8 +145,9 @@ export class InboxIssueStore implements IInboxIssueStore {
         const updatedIssue = { ...this.issue, ...inboxIssue.issue };
         this.store.issue.issues.addIssue([updatedIssue]);
       }
-    } catch {
+    } catch (error) {
       runInAction(() => set(this, "status", previousData.status));
+      throw error;
     }
   };
 

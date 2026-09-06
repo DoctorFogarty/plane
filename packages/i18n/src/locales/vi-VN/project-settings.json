@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Trạng thái",
-      "description": "Định hình đường ray quy trình — thêm nhóm, sắp xếp lại cột và tùy chỉnh cách công việc di chuyển.",
+      "description": "Các mục công việc đi qua các trạng thái này, theo thứ tự này.",
+      "add_status": "Thêm trạng thái",
+      "default": "Mặc định",
+      "mark_as_default": "Đặt làm mặc định",
+      "marking_as_default": "Đang đặt làm mặc định",
       "describe_this_state_for_your_members": "Mô tả trạng thái này cho thành viên của bạn.",
       "empty_state": {
         "title": "Không có trạng thái trong {groupKey}",
         "description": "Vui lòng tạo một trạng thái mới"
+      },
+      "delete": {
+        "title": "Xóa trạng thái",
+        "confirm": "Bạn có chắc chắn muốn xóa {name}? Các mục công việc trong trạng thái này sẽ được chuyển sang trạng thái đã chọn. Hành động này không thể hoàn tác.",
+        "move_work_items": "Chuyển mục công việc sang",
+        "button": "Xóa",
+        "deleting": "Đang xóa",
+        "cannot_delete_default": "Không thể xóa trạng thái mặc định.",
+        "success": "Đã xóa trạng thái thành công.",
+        "failed": "Không thể xóa trạng thái. Vui lòng thử lại.",
+        "select_state": "Chọn một trạng thái"
       },
       "add_group": "Thêm nhóm",
       "group_name_placeholder": "Tên nhóm",
@@ -425,7 +440,11 @@
           "no_properties": "Loại mục công việc này không có thuộc tính phù hợp cho biểu mẫu.",
           "delete_form": "Xóa biểu mẫu",
           "allowed_labels": "Nhãn được phép",
-          "submit_error": "Không thể gửi biểu mẫu này. Vui lòng thử lại."
+          "submit_error": "Không thể gửi biểu mẫu này. Vui lòng thử lại.",
+          "attachments_help": "Thêm tệp để đính kèm vào mục công việc. Tối đa {count} tệp.",
+          "attachments_too_many": "Bạn có thể đính kèm tối đa {count} tệp.",
+          "add_attachments": "Thêm tệp",
+          "attachments_uploading": "Đang tải lên"
         },
         "toasts": {
           "set": {

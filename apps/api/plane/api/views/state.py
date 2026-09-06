@@ -13,11 +13,13 @@ from drf_spectacular.utils import OpenApiResponse, OpenApiRequest
 # Module imports
 from plane.api.serializers import StateSerializer
 from plane.app.permissions import ProjectEntityPermission
-from plane.db.models import Issue, State
+from plane.db.models import State
 from .base import BaseAPIView
+from plane.utils.state import StateDeleteError, delete_project_state, fallback_state_id_from_request
 from plane.utils.openapi import (
     state_docs,
     STATE_ID_PARAMETER,
+    FALLBACK_STATE_ID_PARAMETER,
     CURSOR_PARAMETER,
     PER_PAGE_PARAMETER,
     FIELDS_PARAMETER,
@@ -213,9 +215,10 @@ class StateDetailAPIEndpoint(BaseAPIView):
     @state_docs(
         operation_id="delete_state",
         summary="Delete state",
-        description="Permanently remove a workflow state from a project. Default states and states with existing work items cannot be deleted.",  # noqa: E501
+        description="Remove a workflow state from a project. Occupied states require fallback_state_id so work items can be moved first. Default states cannot be deleted.",  # noqa: E501
         parameters=[
             STATE_ID_PARAMETER,
+            FALLBACK_STATE_ID_PARAMETER,
         ],
         responses={
             204: DELETED_RESPONSE,
@@ -225,27 +228,20 @@ class StateDetailAPIEndpoint(BaseAPIView):
     def delete(self, request, slug, project_id, state_id):
         """Delete state
 
-        Permanently remove a workflow state from a project.
-        Default states and states with existing work items cannot be deleted.
+        Remove a workflow state from a project.
+        Occupied states require fallback_state_id so work items can be moved first.
+        Default states cannot be deleted.
         """
-        state = State.objects.get(is_triage=False, pk=state_id, project_id=project_id, workspace__slug=slug)
-
-        if state.default:
-            return Response(
-                {"error": "Default state cannot be deleted"},
-                status=status.HTTP_400_BAD_REQUEST,
+        try:
+            delete_project_state(
+                slug=slug,
+                project_id=project_id,
+                state_id=state_id,
+                fallback_state_id=fallback_state_id_from_request(request),
             )
+        except StateDeleteError as error:
+            return Response({"error": error.message}, status=error.status_code)
 
-        # Check for any issues in the state
-        issue_exist = Issue.objects.filter(state=state_id).exists()
-
-        if issue_exist:
-            return Response(
-                {"error": "The state is not empty, only empty states can be deleted"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        state.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @state_docs(

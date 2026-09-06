@@ -30,6 +30,7 @@ import { EIssueLayoutTypes } from "@plane/types";
 // helpers
 import { getComputedDisplayFilters, getComputedDisplayProperties } from "@plane/utils";
 // helpers
+import { isHierarchyLayout } from "@/components/issues/issue-layouts/hierarchy.helpers";
 import { shouldExcludeEpicsFromKanbanParams } from "@/helpers/kanban-epic-filter";
 // lib
 import { storage } from "@/lib/local-storage";
@@ -107,11 +108,9 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
     displayFilters: IIssueDisplayFilterOptions | undefined,
     acceptableParamsByLayout: TIssueParams[]
   ): Partial<Record<TIssueParams, string | boolean>> => {
-    // List / Spreadsheet / Gantt nest children under parents — never fetch children as root rows
-    const isHierarchyLayout =
-      displayFilters?.layout === EIssueLayoutTypes.LIST ||
-      displayFilters?.layout === EIssueLayoutTypes.SPREADSHEET ||
-      displayFilters?.layout === EIssueLayoutTypes.GANTT;
+    // Spreadsheet / Gantt nest children under parents — never fetch children as root rows.
+    // List is flat: always include children so they appear under their own group header.
+    const hierarchyLayout = isHierarchyLayout(displayFilters?.layout);
 
     const computedDisplayFilters: Partial<Record<TIssueParams, undefined | string[] | boolean | string>> = {
       group_by: displayFilters?.group_by ? EIssueGroupByToServerOptions[displayFilters.group_by] : undefined,
@@ -119,7 +118,7 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
         ? EIssueGroupByToServerOptions[displayFilters.sub_group_by]
         : undefined,
       order_by: displayFilters?.order_by || undefined,
-      sub_issue: isHierarchyLayout ? false : (displayFilters?.sub_issue ?? true),
+      sub_issue: hierarchyLayout ? false : (displayFilters?.sub_issue ?? true),
     };
 
     const issueFiltersParams: Partial<Record<TIssueParams, boolean | string>> = {};
@@ -135,8 +134,12 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
 
     // Hierarchy layouts always exclude parented issues from the root list, even when the
     // sub_issue toggle is not part of acceptableParamsByLayout (toggle is hidden there).
-    if (isHierarchyLayout) {
+    if (hierarchyLayout) {
       issueFiltersParams.sub_issue = false;
+    }
+
+    if (displayFilters?.layout === EIssueLayoutTypes.LIST) {
+      issueFiltersParams.sub_issue = true;
     }
 
     if (

@@ -9,14 +9,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
-import { Eye, EyeOff, Info, XCircle } from "lucide-react";
+import { Eye, EyeOff, XCircle } from "lucide-react";
 // plane imports
-import { API_BASE_URL, E_PASSWORD_STRENGTH, AUTH_TRACKER_ELEMENTS } from "@plane/constants";
+import { API_BASE_URL, AUTH_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { CloseIcon } from "@plane/propel/icons";
-import { Input, PasswordStrengthIndicator, Spinner } from "@plane/ui";
-import { getPasswordStrength } from "@plane/utils";
+import { Input, PasswordStrengthIndicator, Spinner, usePasswordAssessment } from "@plane/ui";
+import { getPasswordRequirementCopy } from "@plane/utils";
 // components
 import { ForgotPasswordPopover } from "@/components/account/auth-forms/forgot-password-popover";
 // constants
@@ -65,9 +64,11 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
     retypePassword: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
   const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
-  const [isBannerMessage, setBannerMessage] = useState(false);
+  const password = passwordFormData?.password ?? "";
+  const confirmPassword = passwordFormData?.confirm_password ?? "";
+  const { assessment, ready } = usePasswordAssessment(password);
+  const requirementCopy = getPasswordRequirementCopy(t);
 
   const handleShowPassword = (key: keyof typeof showPassword) =>
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -102,24 +103,21 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         )}
       </div>
     ) : (
-      passwordFormData.password.length > 0 &&
-      getPasswordStrength(passwordFormData.password) != E_PASSWORD_STRENGTH.STRENGTH_VALID && (
-        <PasswordStrengthIndicator password={passwordFormData.password} isFocused={isPasswordInputFocused} />
-      )
+      <PasswordStrengthIndicator password={password} assessment={assessment} copy={requirementCopy} />
     );
 
   const isButtonDisabled = useMemo(
     () =>
       !isSubmitting &&
-      !!passwordFormData.password &&
-      (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
+      !!password &&
+      (mode === EAuthModes.SIGN_UP
+        ? ready && assessment?.acceptable === true && password === passwordFormData.confirm_password
+        : true)
         ? false
         : true,
-    [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
+    [assessment?.acceptable, isSubmitting, mode, password, passwordFormData.confirm_password, ready]
   );
 
-  const password = passwordFormData?.password ?? "";
-  const confirmPassword = passwordFormData?.confirm_password ?? "";
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 
   const handleCSRFToken = async () => {
@@ -132,43 +130,19 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   return (
     <>
-      {isBannerMessage && mode === EAuthModes.SIGN_UP && (
-        <div className="relative flex items-center gap-2 rounded-md border border-danger-strong/50 bg-danger-subtle p-2">
-          <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-            <Info size={16} className="text-danger-primary" />
-          </div>
-          <div className="w-full text-13 font-medium text-danger-primary">
-            {t("auth.sign_up.errors.password.strength")}
-          </div>
-          <button
-            type="button"
-            className="relative ml-auto flex h-6 w-6 cursor-pointer items-center justify-center rounded-xs text-accent-primary/80 transition-all hover:bg-danger-subtle-hover"
-            onClick={() => setBannerMessage(false)}
-          >
-            <CloseIcon className="h-4 w-4 shrink-0 text-danger-primary" />
-          </button>
-        </div>
-      )}
       <form
         ref={formRef}
         className="space-y-4"
         method="POST"
         action={`${API_BASE_URL}/auth/${mode === EAuthModes.SIGN_IN ? "sign-in" : "sign-up"}/`}
         onSubmit={async (event) => {
-          event.preventDefault(); // Prevent form from submitting by default
+          event.preventDefault();
           await handleCSRFToken();
-          const isPasswordValid =
-            mode === EAuthModes.SIGN_UP
-              ? getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID
-              : true;
-          if (isPasswordValid) {
+          const isPasswordValid = mode === EAuthModes.SIGN_UP ? ready && assessment?.acceptable === true : true;
+          if (isPasswordValid && formRef.current) {
             setIsSubmitting(true);
-            if (formRef.current) {
-              stampBrowserTimezoneOnForm(formRef.current);
-              formRef.current.submit();
-            }
-          } else {
-            setBannerMessage(true);
+            stampBrowserTimezoneOnForm(formRef.current);
+            formRef.current.submit();
           }
         }}
         onError={() => {
@@ -222,8 +196,6 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               onChange={(e) => handleFormChange("password", e.target.value)}
               placeholder={t("auth.common.password.placeholder")}
               className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
-              onFocus={() => setIsPasswordInputFocused(true)}
-              onBlur={() => setIsPasswordInputFocused(false)}
               autoComplete="off"
               autoFocus
             />

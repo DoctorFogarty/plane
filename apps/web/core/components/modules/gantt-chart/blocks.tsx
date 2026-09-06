@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
+
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -12,7 +14,7 @@ import { MODULE_STATUS } from "@plane/constants";
 import { ModuleStatusIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 // components
-import { SIDEBAR_WIDTH } from "@/components/gantt-chart/constants";
+import { useGanttSidebarWidth } from "@/components/gantt-chart/contexts";
 import { getBlockViewDetails } from "@/components/issues/issue-layouts/utils";
 // constants
 // hooks
@@ -35,6 +37,7 @@ export const ModuleGanttBlock = observer(function ModuleGanttBlock(props: Props)
   const moduleDetails = getModuleById(moduleId);
   // hooks
   const { isMobile } = usePlatformOS();
+  const { sidebarWidth } = useGanttSidebarWidth();
 
   const { message, blockStyle } = getBlockViewDetails(
     moduleDetails,
@@ -64,7 +67,7 @@ export const ModuleGanttBlock = observer(function ModuleGanttBlock(props: Props)
         <div className="absolute top-0 left-0 h-full w-full bg-surface-1/50" />
         <div
           className="sticky w-auto truncate overflow-hidden px-2.5 py-1 text-13 text-primary"
-          style={{ left: `${SIDEBAR_WIDTH}px` }}
+          style={{ left: `${sidebarWidth}px` }}
         >
           {moduleDetails?.name}
         </div>

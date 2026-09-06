@@ -4,20 +4,18 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable no-unneeded-ternary, no-unused-vars, promise/always-return, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-autofocus */
+
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { Eye, EyeOff } from "lucide-react";
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
-// types
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IUser, TUserProfile, TOnboardingSteps } from "@plane/types";
-// ui
-import { Input, PasswordStrengthIndicator, Spinner } from "@plane/ui";
-// components
-import { cn, getFileURL, getPasswordStrength, validatePersonName } from "@plane/utils";
+import { Input, PasswordStrengthIndicator, Spinner, usePasswordAssessment } from "@plane/ui";
+import { cn, getFileURL, getPasswordRequirementCopy, validatePersonName } from "@plane/utils";
 import { UserImageUploadModal } from "@/components/core/modals/user-image-upload-modal";
 // hooks
 import { useUser, useUserProfile } from "@/hooks/store/user";
@@ -223,20 +221,15 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
   const currentPassword = watch("password") || undefined;
   const currentConfirmPassword = watch("confirm_password") || undefined;
 
+  const { assessment, ready } = usePasswordAssessment(currentPassword ?? "");
+  const requirementCopy = getPasswordRequirementCopy(t);
+
   const isValidPassword = useMemo(() => {
     if (currentPassword) {
-      if (
-        currentPassword === currentConfirmPassword &&
-        getPasswordStrength(currentPassword) === E_PASSWORD_STRENGTH.STRENGTH_VALID
-      ) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return true;
+      return currentPassword === currentConfirmPassword && ready && assessment?.acceptable === true;
     }
-  }, [currentPassword, currentConfirmPassword]);
+    return true;
+  }, [assessment?.acceptable, currentConfirmPassword, currentPassword, ready]);
 
   // Check for all available fields validation and if password field is available, then checks for password validation (strength + confirmation).
   // Also handles the condition for optional password i.e if password field is optional it only checks for above validation if it's not empty.
@@ -408,7 +401,11 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                         </div>
                       )}
                     />
-                    <PasswordStrengthIndicator password={watch("password") ?? ""} isFocused={isPasswordInputFocused} />
+                    <PasswordStrengthIndicator
+                      password={watch("password") ?? ""}
+                      assessment={assessment}
+                      copy={requirementCopy}
+                    />
                   </div>
                   <div className="space-y-1">
                     <label className="text-13 font-medium text-tertiary" htmlFor="confirm_password">

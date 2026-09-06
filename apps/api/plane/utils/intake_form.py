@@ -7,7 +7,7 @@ from uuid import UUID
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 
-from plane.db.models import IssueProperty, IssueType, Label, ProjectIssueType
+from plane.db.models import FileAsset, IssueProperty, IssueType, Label, ProjectIssueType
 from plane.db.models.issue_property import IssuePropertyType
 from plane.db.models.intake import get_default_intake_form_fields
 
@@ -19,8 +19,11 @@ SYSTEM_FIELD_KEYS = frozenset(
         "labels",
         "submitter_email",
         "submitter_name",
+        "attachments",
     }
 )
+MAX_INTAKE_FORM_ATTACHMENTS = 10
+INTAKE_FORM_PENDING_ATTACHMENT_HOURLY_LIMIT = 100
 ALLOWED_SOURCES = frozenset({"system", "property"})
 PUBLIC_PROPERTY_TYPES = frozenset(
     {
@@ -156,6 +159,42 @@ def validate_issue_type_for_project(*, project_id, issue_type_id, types_enabled)
 
 def field_map(fields):
     return {item["key"]: item for item in fields or []}
+
+
+def form_allows_attachments(fields):
+    return any(item.get("source") == "system" and item.get("key") == "attachments" for item in (fields or []))
+
+
+def parse_attachment_ids(raw_ids):
+    if not isinstance(raw_ids, list):
+        return []
+    parsed = []
+    seen = set()
+    for raw in raw_ids:
+        attachment_id = _as_uuid(raw)
+        if attachment_id is None or attachment_id in seen:
+            continue
+        seen.add(attachment_id)
+        parsed.append(attachment_id)
+    return parsed
+
+
+def pending_form_attachments(*, form, attachment_ids, uploaded_only=True):
+    parsed_ids = parse_attachment_ids(attachment_ids)
+    if not parsed_ids:
+        return FileAsset.objects.none(), parsed_ids
+    queryset = FileAsset.objects.filter(
+        id__in=parsed_ids,
+        project_id=form.project_id,
+        workspace_id=form.project.workspace_id,
+        entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+        entity_identifier=str(form.id),
+        issue_id__isnull=True,
+        is_deleted=False,
+    )
+    if uploaded_only:
+        queryset = queryset.filter(is_uploaded=True)
+    return queryset, parsed_ids
 
 
 def is_valid_email(value):

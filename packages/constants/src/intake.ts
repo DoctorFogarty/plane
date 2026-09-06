@@ -71,6 +71,8 @@ export const INBOX_ISSUE_SORT_BY_OPTIONS = [
   },
 ];
 
+export const MAX_INTAKE_FORM_ATTACHMENTS = 10;
+
 export enum EPastDurationFilters {
   TODAY = "today",
   YESTERDAY = "yesterday",

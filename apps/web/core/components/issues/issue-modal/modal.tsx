@@ -17,7 +17,6 @@ export interface IssuesModalProps {
   data?: Partial<TIssue>;
   isOpen: boolean;
   onClose: () => void;
-  beforeFormSubmit?: () => Promise<void>;
   onSubmit?: (res: TIssue) => Promise<void>;
   withDraftIssueWrapper?: boolean;
   storeType?: EIssuesStoreType;

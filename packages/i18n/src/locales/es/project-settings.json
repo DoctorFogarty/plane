@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Estados",
-      "description": "Da forma a tu riel de flujo de trabajo: añade grupos, reordena columnas y personaliza cómo avanza el trabajo.",
+      "description": "Los elementos de trabajo pasan por estos estados, en este orden.",
+      "add_status": "Añadir un estado",
+      "default": "Predeterminado",
+      "mark_as_default": "Marcar como predeterminado",
+      "marking_as_default": "Marcando como predeterminado",
       "describe_this_state_for_your_members": "Describe este estado para tus miembros.",
       "empty_state": {
         "title": "No hay estados en {groupKey}",
         "description": "Por favor, crea un nuevo estado"
+      },
+      "delete": {
+        "title": "Eliminar estado",
+        "confirm": "¿Está seguro de que desea eliminar {name}? Los elementos de trabajo de este estado se moverán al estado seleccionado. Esta acción no se puede deshacer.",
+        "move_work_items": "Mover elementos de trabajo a",
+        "button": "Eliminar",
+        "deleting": "Eliminando",
+        "cannot_delete_default": "No se puede eliminar el estado predeterminado.",
+        "success": "Estado eliminado correctamente.",
+        "failed": "No se pudo eliminar el estado. Inténtelo de nuevo.",
+        "select_state": "Seleccionar un estado"
       },
       "add_group": "Añadir grupo",
       "group_name_placeholder": "Nombre del grupo",
@@ -425,7 +440,11 @@
           "no_properties": "Este tipo de elemento de trabajo no tiene propiedades aptas para el formulario.",
           "delete_form": "Eliminar formulario",
           "allowed_labels": "Etiquetas permitidas",
-          "submit_error": "No se pudo enviar este formulario. Inténtalo de nuevo."
+          "submit_error": "No se pudo enviar este formulario. Inténtalo de nuevo.",
+          "attachments_help": "Añade archivos para incluirlos en el elemento de trabajo. Hasta {count} archivos.",
+          "attachments_too_many": "Puedes adjuntar hasta {count} archivos.",
+          "add_attachments": "Añadir archivos",
+          "attachments_uploading": "Subiendo"
         },
         "toasts": {
           "set": {

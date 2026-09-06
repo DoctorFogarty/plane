@@ -1316,8 +1316,12 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
             if (hierarchyLayout) {
               // Nest under parent when parent is a visible root; else promote (parent filtered out).
               if (this.isIssueIdInGroupedLists(issue.parent_id)) continue;
-            } else if (!(this.issueFilterStore.issueFilters?.displayFilters?.sub_issue ?? false)) {
+            } else if (
+              layout !== EIssueLayoutTypes.LIST &&
+              !(this.issueFilterStore.issueFilters?.displayFilters?.sub_issue ?? false)
+            ) {
               // Flat + sub-issues off: match API — only epic children appear as cards.
+              // List always includes children as independent rows in their own group.
               const parentIssue = this.rootIssueStore.issues.getIssueById(issue.parent_id);
               if (parentIssue && !parentIssue.is_epic) continue;
             }

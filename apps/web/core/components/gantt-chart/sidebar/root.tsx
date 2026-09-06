@@ -16,7 +16,9 @@ import { MultipleSelectGroupAction } from "@/components/core/multiple-select";
 // hooks
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 // constants
-import { GANTT_SELECT_GROUP, HEADER_HEIGHT, SIDEBAR_WIDTH } from "../constants";
+import { GANTT_SELECT_GROUP, HEADER_HEIGHT } from "../constants";
+import { useGanttSidebarWidth } from "../contexts";
+import { GanttSidebarResizeHandle } from "./resize-handle";
 
 type Props = {
   blockIds: string[];
@@ -51,14 +53,17 @@ export const GanttChartSidebar = observer(function GanttChartSidebar(props: Prop
   } = props;
 
   const isGroupSelectionEmpty = selectionHelpers.isGroupSelected(GANTT_SELECT_GROUP) === "empty";
+  const { sidebarWidth, setSidebarWidth } = useGanttSidebarWidth();
 
   return (
     <Row
       // DO NOT REMOVE THE ID
       id="gantt-sidebar"
-      className="sticky left-0 z-10 h-max min-h-full flex-shrink-0 border-r-[0.5px] border-subtle-1 bg-surface-1"
+      className="relative sticky left-0 z-10 h-max min-h-full flex-shrink-0 overflow-hidden border-r-[0.5px] border-subtle-1 bg-surface-1"
       style={{
-        width: `${SIDEBAR_WIDTH}px`,
+        width: `${sidebarWidth}px`,
+        minWidth: `${sidebarWidth}px`,
+        maxWidth: `${sidebarWidth}px`,
       }}
       variant={ERowVariant.HUGGING}
     >
@@ -88,22 +93,24 @@ export const GanttChartSidebar = observer(function GanttChartSidebar(props: Prop
         <h6>{t("common.duration")}</h6>
       </Row>
 
-      <Row variant={ERowVariant.HUGGING} className="h-max min-h-full bg-surface-1">
-        {sidebarToRender &&
-          sidebarToRender({
-            title,
-            blockUpdateHandler,
-            blockIds,
-            enableReorder,
-            enableSelection,
-            canLoadMoreBlocks,
-            ganttContainerRef,
-            loadMoreBlocks,
-            selectionHelpers,
-            showAllBlocks,
-            isEpic,
-          })}
+      <Row variant={ERowVariant.HUGGING} className="h-max min-h-full overflow-hidden bg-surface-1">
+        {sidebarToRender
+          ? sidebarToRender({
+              title,
+              blockUpdateHandler,
+              blockIds,
+              enableReorder,
+              enableSelection,
+              canLoadMoreBlocks,
+              ganttContainerRef,
+              loadMoreBlocks,
+              selectionHelpers,
+              showAllBlocks,
+              isEpic,
+            })
+          : null}
       </Row>
+      <GanttSidebarResizeHandle sidebarWidth={sidebarWidth} setSidebarWidth={setSidebarWidth} />
     </Row>
   );
 });

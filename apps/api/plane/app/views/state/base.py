@@ -17,8 +17,9 @@ from rest_framework import status
 from .. import BaseViewSet, BaseAPIView
 from plane.app.serializers import StateSerializer
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import State, Issue
+from plane.db.models import State
 from plane.utils.cache import invalidate_cache
+from plane.utils.state import StateDeleteError, delete_project_state, fallback_state_id_from_request
 
 
 class StateViewSet(BaseViewSet):
@@ -116,24 +117,16 @@ class StateViewSet(BaseViewSet):
     @invalidate_cache(path="workspaces/:slug/states/", url_params=True, user=False)
     @allow_permission([ROLE.ADMIN])
     def destroy(self, request, slug, project_id, pk):
-        state = State.objects.get(is_triage=False, pk=pk, project_id=project_id, workspace__slug=slug)
-
-        if state.default:
-            return Response(
-                {"error": "Default state cannot be deleted"},
-                status=status.HTTP_400_BAD_REQUEST,
+        try:
+            delete_project_state(
+                slug=slug,
+                project_id=project_id,
+                state_id=pk,
+                fallback_state_id=fallback_state_id_from_request(request),
             )
+        except StateDeleteError as error:
+            return Response({"error": error.message}, status=error.status_code)
 
-        # Check for any issues in the state
-        issue_exist = Issue.objects.filter(state=pk).exists()
-
-        if issue_exist:
-            return Response(
-                {"error": "The state is not empty, only empty states can be deleted"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        state.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

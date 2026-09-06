@@ -22,6 +22,8 @@ const KANBAN_ACCEPTABLE_PARAMS: TIssueParams[] = [
 
 const LIST_ACCEPTABLE_PARAMS: TIssueParams[] = ["filters", "group_by", "order_by", "type", "show_empty_groups"];
 
+const HIERARCHY_ACCEPTABLE_PARAMS: TIssueParams[] = ["filters", "order_by", "type"];
+
 describe("workItemFiltersIncludeTypeId", () => {
   it("returns false for empty or missing expressions", () => {
     expect(workItemFiltersIncludeTypeId(undefined)).toBe(false);
@@ -121,5 +123,37 @@ describe("computedFilteredParams exclude_epics", () => {
     store.excludeEpicTypesOnKanban = false;
     const params = store.computedFilteredParams({}, { layout: EIssueLayoutTypes.KANBAN }, KANBAN_ACCEPTABLE_PARAMS);
     expect(params.exclude_epics).toBeUndefined();
+  });
+});
+
+describe("computedFilteredParams sub_issue", () => {
+  it("always includes children as root rows on list", () => {
+    const store = new IssueFilterHelperStore();
+    const params = store.computedFilteredParams(
+      {},
+      { layout: EIssueLayoutTypes.LIST, sub_issue: false },
+      LIST_ACCEPTABLE_PARAMS
+    );
+    expect(params.sub_issue).toBe(true);
+  });
+
+  it("excludes parented issues from spreadsheet root rows", () => {
+    const store = new IssueFilterHelperStore();
+    const params = store.computedFilteredParams(
+      {},
+      { layout: EIssueLayoutTypes.SPREADSHEET, sub_issue: true },
+      HIERARCHY_ACCEPTABLE_PARAMS
+    );
+    expect(params.sub_issue).toBe(false);
+  });
+
+  it("excludes parented issues from gantt root rows", () => {
+    const store = new IssueFilterHelperStore();
+    const params = store.computedFilteredParams(
+      {},
+      { layout: EIssueLayoutTypes.GANTT, sub_issue: true },
+      HIERARCHY_ACCEPTABLE_PARAMS
+    );
+    expect(params.sub_issue).toBe(false);
   });
 });

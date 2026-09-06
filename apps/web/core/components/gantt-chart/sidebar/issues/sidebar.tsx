@@ -120,7 +120,7 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
   const isNestDragEnabled = true;
 
   return (
-    <div>
+    <div className="min-w-0 overflow-hidden">
       <CreateUpdateIssueModal
         isOpen={!!createChildParentId}
         onClose={() => setCreateChildParentId(null)}
@@ -141,7 +141,7 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
         storeType={EIssuesStoreType.PROJECT}
       />
       {blockIds ? (
-        <>
+        <div className="min-w-0 overflow-hidden">
           {blockIds.map((blockId, index) => {
             const block = getBlockById(blockId);
             const isBlockVisibleOnSidebar = block?.start_date && block?.target_date;
@@ -160,6 +160,7 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
                 horizontalOffset={100}
                 verticalOffset={200}
                 shouldRecordHeights={false}
+                classNames="min-w-0 overflow-hidden"
                 placeholderChildren={<GanttLayoutListItemLoader />}
               >
                 <GanttDnDHOC
@@ -192,7 +193,7 @@ export const IssueGanttSidebar = observer(function IssueGanttSidebar(props: Prop
               <div className="flex h-10 w-full animate-pulse items-center justify-between gap-1.5 rounded-sm bg-layer-1 px-4 py-1.5 md:h-8 md:px-1" />
             </div>
           )}
-        </>
+        </div>
       ) : (
         <Loader className="space-y-3 pr-2">
           <Loader.Item height="34px" />

@@ -3,7 +3,10 @@
 # See the LICENSE file for details.
 
 import json
+import uuid
+from datetime import timedelta
 
+from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
 from rest_framework import status
@@ -11,9 +14,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from plane.app.serializers import IssueCreateSerializer
-from plane.authentication.rate_limit import IntakeFormSubmitThrottle
+from plane.authentication.rate_limit import IntakeFormSubmitThrottle, IntakeFormUploadThrottle
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from plane.db.models import (
+    FileAsset,
     Intake,
     IntakeForm,
     IntakeIssue,
@@ -25,11 +30,21 @@ from plane.db.models import (
 )
 from plane.db.models.intake import IntakeFormAccess, SourceType
 from plane.db.models.issue_property import IssuePropertyType
+from plane.settings.storage import S3Storage
 from plane.space.views.base import BaseAPIView
 from plane.utils.content_validator import validate_html_content
 from plane.utils.host import base_host
-from plane.utils.intake_form import PUBLIC_PROPERTY_TYPES, field_map, is_valid_email
+from plane.utils.intake_form import (
+    INTAKE_FORM_PENDING_ATTACHMENT_HOURLY_LIMIT,
+    MAX_INTAKE_FORM_ATTACHMENTS,
+    PUBLIC_PROPERTY_TYPES,
+    field_map,
+    form_allows_attachments,
+    is_valid_email,
+    pending_form_attachments,
+)
 from plane.utils.issue_property import upsert_property_values
+from plane.utils.path_validator import sanitize_filename
 
 
 def _active_form(anchor):
@@ -93,6 +108,9 @@ def _build_public_schema(form: IntakeForm):
                     if allowed
                     else labels
                 )
+            if item["key"] == "attachments":
+                public_item["max_count"] = MAX_INTAKE_FORM_ATTACHMENTS
+                public_item["max_size"] = settings.FILE_SIZE_LIMIT
             public_fields.append(public_item)
             continue
         property_obj = properties.get(item.get("property_id"))
@@ -143,6 +161,27 @@ def _build_public_schema(form: IntakeForm):
     }
 
 
+def _require_active_form(request, anchor):
+    form = _active_form(anchor)
+    if not form:
+        return None, _public_not_found()
+    if form.access == IntakeFormAccess.AUTHENTICATED and not request.user.is_authenticated:
+        return None, Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+    return form, None
+
+
+def _pending_form_asset(form, pk):
+    return FileAsset.objects.filter(
+        pk=pk,
+        project_id=form.project_id,
+        workspace_id=form.project.workspace_id,
+        entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+        entity_identifier=str(form.id),
+        issue_id__isnull=True,
+        is_deleted=False,
+    ).first()
+
+
 def _ensure_triage_state(project: Project):
     triage_state = State.triage_objects.filter(project_id=project.id, workspace_id=project.workspace_id).first()
     if triage_state:
@@ -173,12 +212,9 @@ class IntakeFormSubmitEndpoint(BaseAPIView):
     throttle_classes = [IntakeFormSubmitThrottle]
 
     def post(self, request, anchor):
-        form = _active_form(anchor)
-        if not form:
-            return _public_not_found()
-
-        if form.access == IntakeFormAccess.AUTHENTICATED and not request.user.is_authenticated:
-            return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        form, error_response = _require_active_form(request, anchor)
+        if error_response:
+            return error_response
 
         honeypot = request.data.get("website") or request.data.get("hp")
         if honeypot:
@@ -263,6 +299,20 @@ class IntakeFormSubmitEndpoint(BaseAPIView):
             ):
                 errors[property_id] = "This field is required"
 
+        attachments_field = schema.get("attachments")
+        attachment_queryset = FileAsset.objects.none()
+        if attachments_field:
+            attachment_queryset, requested_attachment_ids = pending_form_attachments(
+                form=form,
+                attachment_ids=request.data.get("attachment_ids") or [],
+            )
+            if len(requested_attachment_ids) > MAX_INTAKE_FORM_ATTACHMENTS:
+                errors["attachments"] = "Too many attachments"
+            elif attachment_queryset.count() != len(requested_attachment_ids):
+                errors["attachments"] = "One or more attachments are invalid"
+            elif attachments_field.get("required") and not requested_attachment_ids:
+                errors["attachments"] = "Add at least one file"
+
         if errors:
             return Response({"error": "Validation failed", "errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -328,6 +378,9 @@ class IntakeFormSubmitEndpoint(BaseAPIView):
             created_by_id=actor_id,
         )
 
+        if attachments_field:
+            attachment_queryset.filter(issue_id__isnull=True).update(issue_id=issue.id)
+
         issue_activity.delay(
             type="issue.activity.created",
             requested_data=json.dumps({"issue": issue_data, "source": SourceType.FORM}, cls=DjangoJSONEncoder),
@@ -341,3 +394,106 @@ class IntakeFormSubmitEndpoint(BaseAPIView):
         )
 
         return Response({"success": True}, status=status.HTTP_201_CREATED)
+
+
+class IntakeFormAttachmentEndpoint(BaseAPIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [IntakeFormUploadThrottle]
+
+    def post(self, request, anchor):
+        form, error_response = _require_active_form(request, anchor)
+        if error_response:
+            return error_response
+        if not form_allows_attachments(form.fields):
+            return Response({"error": "Attachments are not enabled on this form"}, status=status.HTTP_400_BAD_REQUEST)
+
+        name = sanitize_filename(request.data.get("name")) or "unnamed"
+        file_type = request.data.get("type", False)
+        try:
+            size = int(request.data.get("size", settings.FILE_SIZE_LIMIT))
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid file size.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not file_type or file_type not in settings.ATTACHMENT_MIME_TYPES:
+            return Response(
+                {"error": "Invalid file type.", "status": False},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if size < 1 or size > settings.FILE_SIZE_LIMIT:
+            return Response(
+                {"error": "Invalid file size.", "status": False},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pending_count = FileAsset.objects.filter(
+            project_id=form.project_id,
+            workspace_id=form.project.workspace_id,
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+            entity_identifier=str(form.id),
+            issue_id__isnull=True,
+            is_deleted=False,
+            created_at__gte=timezone.now() - timedelta(hours=1),
+        ).count()
+        if pending_count >= INTAKE_FORM_PENDING_ATTACHMENT_HOURLY_LIMIT:
+            return Response(
+                {"error": "Too many pending uploads. Try again later."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        size_limit = min(size, settings.FILE_SIZE_LIMIT)
+        asset_key = f"{form.project.workspace_id}/{uuid.uuid4().hex}-{name}"
+        created_by = request.user if request.user.is_authenticated else None
+        asset = FileAsset.objects.create(
+            attributes={"name": name, "type": file_type, "size": size_limit},
+            asset=asset_key,
+            size=size_limit,
+            workspace_id=form.project.workspace_id,
+            created_by=created_by,
+            project_id=form.project_id,
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+            entity_identifier=str(form.id),
+        )
+
+        storage = S3Storage(request=request)
+        presigned_url = storage.generate_presigned_post(object_name=asset_key, file_type=file_type, file_size=size_limit)
+        return Response(
+            {
+                "upload_data": presigned_url,
+                "asset_id": str(asset.id),
+                "asset_url": "",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def patch(self, request, anchor, pk):
+        form, error_response = _require_active_form(request, anchor)
+        if error_response:
+            return error_response
+        if not form_allows_attachments(form.fields):
+            return Response({"error": "Attachments are not enabled on this form"}, status=status.HTTP_400_BAD_REQUEST)
+
+        asset = _pending_form_asset(form, pk)
+        if not asset:
+            return Response({"error": "Attachment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        asset.is_uploaded = True
+        if not asset.storage_metadata:
+            get_asset_object_metadata.delay(str(asset.id))
+        asset.save(update_fields=["is_uploaded", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def delete(self, request, anchor, pk):
+        form, error_response = _require_active_form(request, anchor)
+        if error_response:
+            return error_response
+        if not form_allows_attachments(form.fields):
+            return Response({"error": "Attachments are not enabled on this form"}, status=status.HTTP_400_BAD_REQUEST)
+
+        asset = _pending_form_asset(form, pk)
+        if not asset:
+            return Response({"error": "Attachment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        asset.is_deleted = True
+        asset.deleted_at = timezone.now()
+        asset.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)

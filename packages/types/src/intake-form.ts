@@ -23,6 +23,8 @@ export type TIntakeFormField = {
   settings?: Record<string, unknown>;
   options?: { id: string; name: string }[];
   labels?: { id: string; name: string; color: string }[];
+  max_count?: number;
+  max_size?: number;
 };
 
 export type TIntakeForm = {
@@ -85,4 +87,11 @@ export type TPublicIntakeFormSubmission = {
   submitter_email?: string;
   submitter_name?: string;
   website?: string;
+  attachment_ids?: string[];
+};
+
+export type TIntakeFormUploadedAttachment = {
+  id: string;
+  name: string;
+  size: number;
 };

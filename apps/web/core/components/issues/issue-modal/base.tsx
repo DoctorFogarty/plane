@@ -39,7 +39,6 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     data,
     isOpen,
     onClose,
-    beforeFormSubmit,
     onSubmit,
     withDraftIssueWrapper = true,
     storeType: issueStoreFromProps,
@@ -391,7 +390,6 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     let response: TIssue | undefined = undefined;
 
     try {
-      if (beforeFormSubmit) await beforeFormSubmit();
       if (!data?.id) response = await handleCreateIssue(payload, is_draft_issue);
       else response = await handleUpdateIssue(payload);
     } finally {

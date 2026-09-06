@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Status",
-      "description": "Gestalten Sie Ihre Workflow-Schiene — Gruppen hinzufügen, Spalten neu ordnen und den Arbeitsfluss anpassen.",
+      "description": "Arbeitselemente durchlaufen diese Status, in dieser Reihenfolge.",
+      "add_status": "Status hinzufügen",
+      "default": "Standard",
+      "mark_as_default": "Als Standard festlegen",
+      "marking_as_default": "Wird als Standard festgelegt",
       "describe_this_state_for_your_members": "Beschreiben Sie diesen Status für Ihre Mitglieder.",
       "empty_state": {
         "title": "Keine Status in {groupKey}",
         "description": "Erstellen Sie einen neuen Status"
+      },
+      "delete": {
+        "title": "Status löschen",
+        "confirm": "Möchten Sie den Status {name} wirklich löschen? Arbeitselemente in diesem Status werden in den ausgewählten Status verschoben. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "move_work_items": "Arbeitselemente verschieben nach",
+        "button": "Löschen",
+        "deleting": "Wird gelöscht",
+        "cannot_delete_default": "Der Standardstatus kann nicht gelöscht werden.",
+        "success": "Status erfolgreich gelöscht.",
+        "failed": "Der Status konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+        "select_state": "Status auswählen"
       },
       "add_group": "Gruppe hinzufügen",
       "group_name_placeholder": "Gruppenname",
@@ -425,7 +440,11 @@
           "no_properties": "Dieser Arbeitselementtyp hat keine formulargeeigneten Eigenschaften.",
           "delete_form": "Formular löschen",
           "allowed_labels": "Zugelassene Labels",
-          "submit_error": "Das Formular konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+          "submit_error": "Das Formular konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+          "attachments_help": "Fügen Sie Dateien hinzu, die dem Arbeitselement beigefügt werden. Bis zu {count} Dateien.",
+          "attachments_too_many": "Sie können bis zu {count} Dateien anhängen.",
+          "add_attachments": "Dateien hinzufügen",
+          "attachments_uploading": "Wird hochgeladen"
         },
         "toasts": {
           "set": {

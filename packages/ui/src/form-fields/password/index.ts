@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
-export * from "./indicator";
+export * from "./copy";
 export * from "./helper";
+export * from "./indicator";
 export * from "./password-input";
+export * from "./use-password-assessment";

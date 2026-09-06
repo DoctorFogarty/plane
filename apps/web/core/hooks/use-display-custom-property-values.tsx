@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable unicorn/no-array-sort, unicorn/no-useless-spread */
+
 import { useContext, useEffect, useMemo, useRef } from "react";
 import { sortBy } from "lodash-es";
 import { useParams } from "next/navigation";
@@ -51,7 +53,7 @@ export const useDisplayCustomPropertyValues = (
   );
   const enabledCustomPropertyKey = enabledCustomPropertyIds.join(",");
 
-  const typesReadyKey = Object.keys(issueTypeStore.fetchedMap).toSorted().join(",");
+  const typesReadyKey = [...Object.keys(issueTypeStore.fetchedMap)].sort().join(",");
   const revisionKey = Object.entries(issueTypeStore.projectRevisionMap)
     .map(([projectId, revision]) => `${projectId}:${revision}`)
     .join("|");

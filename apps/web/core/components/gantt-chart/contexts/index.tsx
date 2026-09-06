@@ -13,3 +13,5 @@ export const useTimeLineType = () => {
   const timelineType = useContext(TimeLineTypeContext);
   return timelineType;
 };
+
+export { GanttSidebarWidthProvider, useGanttSidebarWidth } from "./sidebar-width";

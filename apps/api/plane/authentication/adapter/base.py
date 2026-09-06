@@ -16,9 +16,6 @@ from plane.utils.url_security import pinned_fetch_following_redirects
 # Django imports
 from django.utils import timezone
 
-# Third party imports
-from zxcvbn import zxcvbn
-
 from plane.bgtasks.user_activation_email_task import user_activation_email
 
 # Module imports
@@ -28,6 +25,7 @@ from plane.settings.storage import S3Storage
 from plane.utils.exception_logger import log_exception
 from plane.utils.host import base_host
 from plane.utils.ip_address import get_client_ip
+from plane.utils.password import assess_password, weak_password_payload
 from plane.utils.timezone_converter import resolve_signup_timezone
 
 from .error import AUTHENTICATION_ERROR_CODES, AuthenticationException
@@ -112,13 +110,13 @@ class Adapter:
 
     def validate_password(self, email):
         """Validate password strength"""
-        results = zxcvbn(self.code)
-        if results["score"] < 3:
+        assessment = assess_password(self.code)
+        if not assessment["acceptable"]:
             self.logger.warning("Password is not strong enough")
             raise AuthenticationException(
                 error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
                 error_message="PASSWORD_TOO_WEAK",
-                payload={"email": email},
+                payload=weak_password_payload(assessment, {"email": email}),
             )
         return
 

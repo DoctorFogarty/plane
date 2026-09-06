@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
+
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -12,7 +14,7 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { ControlLink } from "@plane/ui";
 import { findTotalDaysInRange, generateWorkItemLink } from "@plane/utils";
 // components
-import { SIDEBAR_WIDTH } from "@/components/gantt-chart/constants";
+import { useGanttSidebarWidth } from "@/components/gantt-chart/contexts";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
@@ -47,6 +49,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
   // hooks
   const { isMobile } = usePlatformOS();
   const { handleRedirection } = useIssuePeekOverviewRedirection(isEpic);
+  const { sidebarWidth } = useGanttSidebarWidth();
 
   // derived values
   const issueDetails = getIssueById(issueId);
@@ -73,7 +76,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
             <div className="absolute top-0 left-0 h-full w-full bg-surface-1/50" />
             <div
               className="sticky w-auto flex-1 truncate overflow-hidden px-2.5 py-1 text-13 text-primary"
-              style={{ left: `${SIDEBAR_WIDTH}px` }}
+              style={{ left: `${sidebarWidth}px` }}
             >
               {issueDetails?.name}
             </div>
@@ -146,11 +149,11 @@ export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(p
       id={`issue-${issueId}`}
       href={workItemLink}
       onClick={handleIssuePeekOverview}
-      className="line-clamp-1 w-full cursor-pointer text-13 text-primary"
+      className="flex w-full min-w-0 cursor-pointer overflow-hidden text-13 text-primary"
       disabled={!!issueDetails?.tempId}
     >
-      <div className="relative flex h-full w-full cursor-pointer items-center gap-2">
-        {issueDetails?.project_id && (
+      <div className="flex h-full w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden">
+        {issueDetails?.project_id ? (
           <IssueIdentifier
             issueId={issueDetails.id}
             projectId={issueDetails.project_id}
@@ -158,10 +161,12 @@ export const IssueGanttSidebarBlock = observer(function IssueGanttSidebarBlock(p
             variant="tertiary"
             displayProperties={issuesFilter?.issueFilters?.displayProperties}
           />
-        )}
-        <Tooltip tooltipContent={issueDetails?.name} isMobile={isMobile}>
-          <span className="flex-grow truncate text-13 font-medium">{issueDetails?.name}</span>
-        </Tooltip>
+        ) : null}
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <Tooltip tooltipContent={issueDetails?.name} isMobile={isMobile}>
+            <span className="block truncate text-13 font-medium">{issueDetails?.name}</span>
+          </Tooltip>
+        </div>
       </div>
     </ControlLink>
   );

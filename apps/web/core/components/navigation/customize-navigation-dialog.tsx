@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable unicorn/consistent-function-scoping, unicorn/no-array-sort, jsx-a11y/label-has-associated-control */
+
 import { useCallback, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -270,23 +272,6 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                     <input
                       type="radio"
                       name="navigation-mode"
-                      value="ACCORDION"
-                      checked={projectPreferences.navigationMode === "ACCORDION"}
-                      onChange={() => updateNavigationMode("ACCORDION")}
-                      className="mt-1 size-4 text-accent-primary focus:ring-accent-strong"
-                    />
-                    <div className="flex-1">
-                      <div className="text-13 text-primary">{t("accordion_navigation_control")}</div>
-                      <div className="text-11 text-secondary">
-                        Feature tabs will appear as nested items under project and acts as accordion.
-                      </div>
-                    </div>
-                  </label>
-
-                  <label className="flex cursor-pointer gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
-                    <input
-                      type="radio"
-                      name="navigation-mode"
                       value="TABBED"
                       checked={projectPreferences.navigationMode === "TABBED"}
                       onChange={() => updateNavigationMode("TABBED")}
@@ -296,6 +281,23 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                       <div className="text-13 text-primary">{t("horizontal_navigation_bar")}</div>
                       <div className="text-11 text-secondary">
                         Feature tabs will appear as horizontal tabs inside a project.
+                      </div>
+                    </div>
+                  </label>
+
+                  <label className="flex cursor-pointer gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
+                    <input
+                      type="radio"
+                      name="navigation-mode"
+                      value="ACCORDION"
+                      checked={projectPreferences.navigationMode === "ACCORDION"}
+                      onChange={() => updateNavigationMode("ACCORDION")}
+                      className="mt-1 size-4 text-accent-primary focus:ring-accent-strong"
+                    />
+                    <div className="flex-1">
+                      <div className="text-13 text-primary">{t("accordion_navigation_control")}</div>
+                      <div className="text-11 text-secondary">
+                        Feature tabs will appear as nested items under project and acts as accordion.
                       </div>
                     </div>
                   </label>

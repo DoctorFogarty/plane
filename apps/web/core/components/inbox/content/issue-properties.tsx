@@ -25,6 +25,7 @@ import { PriorityDropdown } from "@/components/dropdowns/priority";
 import { StateDropdown } from "@/components/dropdowns/state/dropdown";
 import type { TIssueOperations } from "@/components/issues/issue-detail";
 import { IssueLabel } from "@/components/issues/issue-detail/label";
+import { WorkItemAdditionalSidebarProperties } from "@/plane-web/components/issues/issue-details/additional-properties";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -183,6 +184,16 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
                 )}
               </div>
             </div>
+
+            {issue.id ? (
+              <WorkItemAdditionalSidebarProperties
+                workItemId={issue.id}
+                workItemTypeId={issue.type_id}
+                projectId={projectId}
+                workspaceSlug={workspaceSlug}
+                isEditable={isEditable}
+              />
+            ) : null}
 
             {/* duplicate to*/}
             {duplicateIssueDetails && (

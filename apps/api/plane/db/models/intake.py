@@ -21,6 +21,7 @@ def get_default_intake_form_fields():
         {"key": "description", "source": "system", "required": False},
         {"key": "submitter_email", "source": "system", "required": True},
         {"key": "submitter_name", "source": "system", "required": False},
+        {"key": "attachments", "source": "system", "required": False},
     ]
 
 

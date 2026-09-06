@@ -9,11 +9,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Eye, EyeOff, XCircle } from "lucide-react";
 // plane imports
-import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
+import { API_BASE_URL } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
-import { Input, Spinner, PasswordStrengthIndicator } from "@plane/ui";
-import { getPasswordStrength } from "@plane/utils";
+import { Input, PasswordStrengthIndicator, Spinner, usePasswordAssessment } from "@plane/ui";
+import { getPasswordRequirementCopy } from "@plane/utils";
 import { stampBrowserTimezoneOnForm } from "@/helpers/browser-timezone";
 // types
 import { EAuthModes, EAuthSteps } from "@/types/auth";
@@ -43,6 +44,7 @@ const authService = new AuthService();
 
 export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props) {
   const { email, nextPath, isSMTPConfigured, handleAuthStep, handleEmailClear, mode } = props;
+  const { t } = useTranslation();
   // ref
   const formRef = useRef<HTMLFormElement>(null);
   // states
@@ -53,8 +55,11 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
     retypePassword: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
   const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
+  const password = passwordFormData.password ?? "";
+  const confirmPassword = passwordFormData.confirm_password ?? "";
+  const { assessment, ready } = usePasswordAssessment(password);
+  const requirementCopy = getPasswordRequirementCopy(t);
 
   const handleShowPassword = (key: keyof typeof showPassword) =>
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -73,27 +78,23 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
     handleAuthStep(EAuthSteps.UNIQUE_CODE);
   };
 
-  const passwordSupport = passwordFormData.password.length > 0 &&
-    mode === EAuthModes.SIGN_UP &&
-    getPasswordStrength(passwordFormData.password) != E_PASSWORD_STRENGTH.STRENGTH_VALID && (
-      <PasswordStrengthIndicator password={passwordFormData.password} isFocused={isPasswordInputFocused} />
-    );
+  const passwordSupport =
+    mode === EAuthModes.SIGN_UP ? (
+      <PasswordStrengthIndicator password={password} assessment={assessment} copy={requirementCopy} />
+    ) : null;
 
   const isButtonDisabled = useMemo(
     () =>
       !isSubmitting &&
-      !!passwordFormData.password &&
+      !!password &&
       (mode === EAuthModes.SIGN_UP
-        ? getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
-          passwordFormData.password === passwordFormData.confirm_password
+        ? ready && assessment?.acceptable === true && password === passwordFormData.confirm_password
         : true)
         ? false
         : true,
-    [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
+    [assessment?.acceptable, isSubmitting, mode, password, passwordFormData.confirm_password, ready]
   );
 
-  const password = passwordFormData.password ?? "";
-  const confirmPassword = passwordFormData.confirm_password ?? "";
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 
   const handleCSRFToken = async () => {
@@ -113,11 +114,12 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
       onSubmit={async (event) => {
         event.preventDefault();
         await handleCSRFToken();
-        if (formRef.current) {
+        const isPasswordValid = mode === EAuthModes.SIGN_UP ? ready && assessment?.acceptable === true : true;
+        if (isPasswordValid && formRef.current) {
+          setIsSubmitting(true);
           stampBrowserTimezoneOnForm(formRef.current);
           formRef.current.submit();
         }
-        setIsSubmitting(true);
       }}
       onError={() => setIsSubmitting(false)}
     >
@@ -161,8 +163,6 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
             onChange={(e) => handleFormChange("password", e.target.value)}
             placeholder="Enter password"
             className="h-10 w-full border border-subtle !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
-            onFocus={() => setIsPasswordInputFocused(true)}
-            onBlur={() => setIsPasswordInputFocused(false)}
             autoComplete="off"
             autoFocus
           />

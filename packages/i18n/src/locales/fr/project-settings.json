@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "États",
-      "description": "Façonnez votre rail de workflow — ajoutez des groupes, réordonnez les colonnes et personnalisez le parcours du travail.",
+      "description": "Les éléments de travail passent par ces statuts, dans cet ordre.",
+      "add_status": "Ajouter un statut",
+      "default": "Par défaut",
+      "mark_as_default": "Définir par défaut",
+      "marking_as_default": "Définition par défaut",
       "describe_this_state_for_your_members": "Décrivez cet état pour vos membres.",
       "empty_state": {
         "title": "Aucun état dans {groupKey}",
         "description": "Veuillez créer un nouvel état"
+      },
+      "delete": {
+        "title": "Supprimer l’état",
+        "confirm": "Voulez-vous vraiment supprimer {name}\u202f? Les éléments de travail de cet état seront déplacés vers l’état sélectionné. Cette action est irréversible.",
+        "move_work_items": "Déplacer les éléments de travail vers",
+        "button": "Supprimer",
+        "deleting": "Suppression",
+        "cannot_delete_default": "Impossible de supprimer l’état par défaut.",
+        "success": "État supprimé avec succès.",
+        "failed": "L’état n’a pas pu être supprimé. Veuillez réessayer.",
+        "select_state": "Sélectionner un état"
       },
       "add_group": "Ajouter un groupe",
       "group_name_placeholder": "Nom du groupe",
@@ -425,7 +440,11 @@
           "no_properties": "Ce type d’élément de travail n’a aucune propriété utilisable dans un formulaire.",
           "delete_form": "Supprimer le formulaire",
           "allowed_labels": "Labels autorisés",
-          "submit_error": "Impossible d’envoyer ce formulaire. Veuillez réessayer."
+          "submit_error": "Impossible d’envoyer ce formulaire. Veuillez réessayer.",
+          "attachments_help": "Ajoutez des fichiers à inclure sur l’élément de travail. Jusqu’à {count} fichiers.",
+          "attachments_too_many": "Vous pouvez joindre jusqu’à {count} fichiers.",
+          "add_attachments": "Ajouter des fichiers",
+          "attachments_uploading": "Envoi en cours"
         },
         "toasts": {
           "set": {

@@ -4,18 +4,22 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable react/no-array-index-key */
+
 import { observer } from "mobx-react";
 // plane utils
 import { cn } from "@plane/utils";
 // hooks
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 //
-import { HEADER_HEIGHT, SIDEBAR_WIDTH } from "../../constants";
+import { HEADER_HEIGHT } from "../../constants";
+import { useGanttSidebarWidth } from "../../contexts";
 import type { IMonthBlock, IQuarterMonthBlock } from "../../views";
 import { groupMonthsToQuarters } from "../../views";
 
 export const QuarterChartView = observer(function QuarterChartView(_props: any) {
   const { currentViewData, renderView } = useTimeLineChartStore();
+  const { sidebarWidth } = useGanttSidebarWidth();
   const monthBlocks: IMonthBlock[] = renderView;
 
   const quarterBlocks: IQuarterMonthBlock[] = groupMonthsToQuarters(monthBlocks);
@@ -40,7 +44,7 @@ export const QuarterChartView = observer(function QuarterChartView(_props: any) 
                 <div
                   className="sticky z-[1] my-1 flex items-center bg-surface-1 px-3 py-1 text-14 font-regular whitespace-nowrap text-secondary capitalize"
                   style={{
-                    left: `${SIDEBAR_WIDTH}px`,
+                    left: `${sidebarWidth}px`,
                   }}
                 >
                   {quarterBlock?.title}

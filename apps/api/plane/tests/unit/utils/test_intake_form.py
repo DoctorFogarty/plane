@@ -2,11 +2,19 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from uuid import UUID
+
 import pytest
 
 from plane.db.models import IssueProperty, IssueType, Label, Project, ProjectIssueType, Workspace, WorkspaceMember
 from plane.db.models.issue_property import IssuePropertyType
-from plane.utils.intake_form import validate_intake_form_fields, validate_issue_type_for_project
+from plane.db.models.intake import get_default_intake_form_fields
+from plane.utils.intake_form import (
+    form_allows_attachments,
+    parse_attachment_ids,
+    validate_intake_form_fields,
+    validate_issue_type_for_project,
+)
 
 
 @pytest.fixture
@@ -92,6 +100,35 @@ class TestIntakeFormFieldValidation:
         assert normalized[0]["key"] == "name"
         assert normalized[1]["allowed_ids"] == [label_id]
         assert normalized[2]["property_id"] == property_id
+
+    def test_accepts_attachments_system_field(self, form_project):
+        project = form_project["project"]
+        normalized = validate_intake_form_fields(
+            [
+                {"key": "name", "source": "system", "required": True},
+                {"key": "attachments", "source": "system", "required": True},
+            ],
+            project_id=project.id,
+            issue_type_id=form_project["issue_type"].id,
+            types_enabled=True,
+        )
+        assert normalized[1]["key"] == "attachments"
+        assert normalized[1]["required"] is True
+
+    def test_default_fields_include_optional_attachments(self):
+        keys = [field["key"] for field in get_default_intake_form_fields()]
+        assert "attachments" in keys
+        attachments = next(field for field in get_default_intake_form_fields() if field["key"] == "attachments")
+        assert attachments["required"] is False
+
+    def test_form_allows_attachments_and_parses_ids(self):
+        assert form_allows_attachments(
+            [{"key": "name", "source": "system"}, {"key": "attachments", "source": "system"}]
+        )
+        assert not form_allows_attachments([{"key": "name", "source": "system"}])
+        assert parse_attachment_ids(
+            ["not-a-uuid", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]
+        ) == [UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")]
 
     def test_issue_type_required_when_enabled(self, form_project):
         with pytest.raises(ValueError, match="Work item type is required"):

@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
+
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
@@ -11,13 +13,11 @@ import { useSearchParams } from "next/navigation";
 // icons
 import { Eye, EyeOff } from "lucide-react";
 // plane imports
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Input, PasswordStrengthIndicator } from "@plane/ui";
-// components
-import { getPasswordStrength } from "@plane/utils";
+import { Input, PasswordStrengthIndicator, usePasswordAssessment } from "@plane/ui";
+import { getPasswordRequirementCopy } from "@plane/utils";
 // hooks
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -57,7 +57,6 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
     email: email ? email.toString() : "",
   });
   const [csrfToken, setCsrfToken] = useState<string | undefined>(undefined);
-  const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
   const [isRetryPasswordInputFocused, setIsRetryPasswordInputFocused] = useState(false);
   // plane hooks
   const { t } = useTranslation();
@@ -75,14 +74,17 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
   const handleFormChange = (key: keyof TResetPasswordFormValues, value: string) =>
     setPasswordFormData((prev) => ({ ...prev, [key]: value }));
 
+  const password = passwordFormData?.password ?? "";
+  const confirmPassword = passwordFormData?.confirm_password ?? "";
+  const { assessment, ready } = usePasswordAssessment(password);
+  const requirementCopy = getPasswordRequirementCopy(t);
+
   const isButtonDisabled = useMemo(
     () =>
-      !!passwordFormData.password &&
-      getPasswordStrength(passwordFormData.password) === E_PASSWORD_STRENGTH.STRENGTH_VALID &&
-      passwordFormData.password === passwordFormData.confirm_password
+      !!password && ready && assessment?.acceptable === true && password === passwordFormData.confirm_password
         ? false
         : true,
-    [passwordFormData]
+    [assessment?.acceptable, password, passwordFormData.confirm_password, ready]
   );
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -105,8 +107,6 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
     }
   };
 
-  const password = passwordFormData?.password ?? "";
-  const confirmPassword = passwordFormData?.confirm_password ?? "";
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 
   return (
@@ -144,9 +144,6 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
               //hasError={Boolean(errors.password)}
               placeholder={t("auth.common.password.placeholder")}
               className="h-10 w-full border border-strong !bg-surface-1 pr-12 placeholder:text-placeholder"
-              minLength={8}
-              onFocus={() => setIsPasswordInputFocused(true)}
-              onBlur={() => setIsPasswordInputFocused(false)}
               autoComplete="new-password"
               autoFocus
             />
@@ -162,7 +159,7 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
               />
             )}
           </div>
-          <PasswordStrengthIndicator password={passwordFormData.password} isFocused={isPasswordInputFocused} />
+          <PasswordStrengthIndicator password={password} assessment={assessment} copy={requirementCopy} />
         </div>
         <div className="space-y-1">
           <label className="text-13 font-medium text-tertiary" htmlFor="confirm_password">

@@ -300,12 +300,13 @@ STATE_CANNOT_DELETE_RESPONSE = OpenApiResponse(
     description="State cannot be deleted",
     examples=[
         OpenApiExample(
-            name="State Cannot Delete",
-            value={
-                "error": "State cannot be deleted",
-                "reason": "Default state or has issues",
-            },
-        )
+            name="Default state",
+            value={"error": "Default state cannot be deleted"},
+        ),
+        OpenApiExample(
+            name="Occupied state without fallback",
+            value={"error": "The state is not empty, only empty states can be deleted"},
+        ),
     ],
 )
 

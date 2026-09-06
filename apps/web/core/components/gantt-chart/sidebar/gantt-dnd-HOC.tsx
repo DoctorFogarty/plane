@@ -124,7 +124,7 @@ export const GanttDnDHOC = observer(function GanttDnDHOC(props: Props) {
   return (
     <div
       id={`draggable-${id}`}
-      className={cn("relative", {
+      className={cn("relative min-w-0 overflow-hidden", {
         "rounded-sm ring-2 ring-accent-strong/40 ring-inset": instruction === "MAKE_CHILD",
       })}
       ref={blockRef}

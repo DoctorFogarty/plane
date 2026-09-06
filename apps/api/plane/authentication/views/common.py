@@ -10,7 +10,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from zxcvbn import zxcvbn
 
 ## Module imports
 from plane.app.serializers import UserSerializer
@@ -23,6 +22,7 @@ from plane.authentication.adapter.error import (
 from django.middleware.csrf import get_token
 from plane.utils.cache import invalidate_cache
 from plane.authentication.utils.host import base_host
+from plane.utils.password import assess_password, weak_password_payload
 
 
 class CSRFTokenEndpoint(APIView):
@@ -79,12 +79,12 @@ class ChangePasswordEndpoint(APIView):
             )
             return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
-        # check the password score
-        results = zxcvbn(new_password)
-        if results["score"] < 3:
+        assessment = assess_password(new_password)
+        if not assessment["acceptable"]:
             exc = AuthenticationException(
                 error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
                 error_message="PASSWORD_TOO_WEAK",
+                payload=weak_password_payload(assessment),
             )
             return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
@@ -119,11 +119,12 @@ class SetUserPasswordEndpoint(APIView):
             )
             return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
-        results = zxcvbn(password)
-        if results["score"] < 3:
+        assessment = assess_password(password)
+        if not assessment["acceptable"]:
             exc = AuthenticationException(
-                error_code=AUTHENTICATION_ERROR_CODES["INVALID_PASSWORD"],
-                error_message="INVALID_PASSWORD",
+                error_code=AUTHENTICATION_ERROR_CODES["PASSWORD_TOO_WEAK"],
+                error_message="PASSWORD_TOO_WEAK",
+                payload=weak_password_payload(assessment),
             )
             return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 

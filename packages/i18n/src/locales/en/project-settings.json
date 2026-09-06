@@ -38,7 +38,11 @@
     },
     "states": {
       "heading": "States",
-      "description": "Shape your workflow rail — add groups, reorder columns, and customize how work moves.",
+      "description": "Work items move through these statuses, in this order.",
+      "add_status": "Add a status",
+      "default": "Default",
+      "mark_as_default": "Mark as default",
+      "marking_as_default": "Marking as default",
       "describe_this_state_for_your_members": "Describe this state for your members.",
       "add_group": "Add group",
       "group_name_placeholder": "Group name",
@@ -52,6 +56,17 @@
       "empty_state": {
         "title": "No states in {groupKey}",
         "description": "Please create a new state"
+      },
+      "delete": {
+        "title": "Delete state",
+        "confirm": "Are you sure you want to delete {name}? Work items in this state will be moved to the selected state. This action cannot be undone.",
+        "move_work_items": "Move work items to",
+        "button": "Delete",
+        "deleting": "Deleting",
+        "cannot_delete_default": "Cannot delete the default state.",
+        "success": "State deleted successfully.",
+        "failed": "State could not be deleted. Please try again.",
+        "select_state": "Select a state"
       }
     },
     "labels": {
@@ -415,6 +430,10 @@
           "delete_form": "Delete form",
           "allowed_labels": "Allowed labels",
           "submit_error": "We could not submit this form. Please try again.",
+          "attachments_help": "Add files to include on the work item. Up to {count} files.",
+          "attachments_too_many": "You can attach up to {count} files.",
+          "add_attachments": "Add files",
+          "attachments_uploading": "Uploading",
           "toasts": {
             "success_create": "Intake form created successfully",
             "success_update": "Intake form updated successfully",

@@ -8,22 +8,22 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { STATE_GROUPS } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { IState, TStateGroups, TStateOperationsCallbacks } from "@plane/types";
-// components
-import { StateForm } from "@/components/project-states";
+import type { IState, IStateGroup, TStateGroups, TStateOperationsCallbacks } from "@plane/types";
+import { getFirstGroupIdForCategory } from "@/components/project-states/helpers";
+import { StateForm } from "@/components/project-states/create-update/form";
 
 type TStateCreate = {
-  groupKey: TStateGroups;
-  groupId: string;
+  defaultCategory?: TStateGroups;
+  groups?: IStateGroup[];
   shouldTrackEvents?: boolean;
   createStateCallback: TStateOperationsCallbacks["createState"];
   handleClose: () => void;
 };
 
 export const StateCreate = observer(function StateCreate(props: TStateCreate) {
-  const { groupKey, groupId, createStateCallback, handleClose } = props;
-
+  const { defaultCategory = "unstarted", groups, createStateCallback, handleClose } = props;
   const [loader, setLoader] = useState(false);
+  const groupId = getFirstGroupIdForCategory(groups ?? [], defaultCategory);
 
   const onCancel = () => {
     setLoader(false);
@@ -31,10 +31,13 @@ export const StateCreate = observer(function StateCreate(props: TStateCreate) {
   };
 
   const onSubmit = async (formData: Partial<IState>) => {
-    if (!groupKey || !groupId) return { status: "error" };
-
     try {
-      await createStateCallback({ ...formData, group: groupKey, group_id: groupId });
+      setLoader(true);
+      await createStateCallback({
+        ...formData,
+        group: formData.group ?? defaultCategory,
+        group_id: formData.group_id ?? groupId,
+      });
 
       setToast({
         type: TOAST_TYPE.SUCCESS,
@@ -52,24 +55,32 @@ export const StateCreate = observer(function StateCreate(props: TStateCreate) {
           message: "State with that name already exists. Please try again with another name.",
         });
         return { status: "already_exists" };
-      } else {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: errorStatus.data.error ?? "State could not be created. Please try again.",
-        });
-        return { status: "error" };
       }
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: errorStatus.data?.error ?? "State could not be created. Please try again.",
+      });
+      return { status: "error" };
+    } finally {
+      setLoader(false);
     }
   };
 
   return (
     <StateForm
-      data={{ name: "", description: "", color: STATE_GROUPS[groupKey].color, group: groupKey, group_id: groupId }}
+      data={{
+        name: "",
+        description: "",
+        color: STATE_GROUPS[defaultCategory].color,
+        group: defaultCategory,
+        group_id: groupId,
+      }}
       onSubmit={onSubmit}
       onCancel={onCancel}
       buttonDisabled={loader}
       buttonTitle={loader ? `Creating` : `Create`}
+      groups={groups}
     />
   );
 });

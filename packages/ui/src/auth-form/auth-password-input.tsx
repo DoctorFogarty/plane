@@ -4,10 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
-import type { E_PASSWORD_STRENGTH } from "@plane/constants";
-import { cn, getPasswordStrength } from "@plane/utils";
+import React from "react";
+import { cn } from "@plane/utils";
+import type { TPasswordRequirementCopy } from "../form-fields/password/copy";
 import { PasswordStrengthIndicator } from "../form-fields/password/indicator";
+import { usePasswordAssessment } from "../form-fields/password/use-password-assessment";
 import { AuthInput } from "./auth-input";
 
 export type TAuthPasswordInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
@@ -17,8 +18,8 @@ export type TAuthPasswordInputProps = React.InputHTMLAttributes<HTMLInputElement
   showPasswordToggle?: boolean;
   containerClassName?: string;
   errorClassName?: string;
+  copy?: Partial<TPasswordRequirementCopy>;
   onPasswordChange?: (password: string) => void;
-  onPasswordStrengthChange?: (strength: E_PASSWORD_STRENGTH) => void;
 };
 
 export function AuthPasswordInput({
@@ -30,33 +31,18 @@ export function AuthPasswordInput({
   errorClassName = "",
   className = "",
   value = "",
+  copy,
   onChange,
   onPasswordChange,
-  onPasswordStrengthChange,
   ...props
 }: TAuthPasswordInputProps) {
-  const [isFocused, setIsFocused] = useState(false);
+  const password = typeof value === "string" ? value : "";
+  const { assessment } = usePasswordAssessment(password);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPassword = e.target.value;
     onChange?.(e);
-    onPasswordChange?.(newPassword);
+    onPasswordChange?.(e.target.value);
   };
-
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-  };
-
-  const passwordStrength = getPasswordStrength(value as string);
-
-  // Notify parent of strength change
-  React.useEffect(() => {
-    onPasswordStrengthChange?.(passwordStrength);
-  }, [passwordStrength, onPasswordStrengthChange]);
 
   return (
     <div className={cn("space-y-2", containerClassName)}>
@@ -70,13 +56,11 @@ export function AuthPasswordInput({
         className={className}
         value={value}
         onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
         autoComplete="off"
       />
-      {showPasswordStrength && value && isFocused && (
-        <PasswordStrengthIndicator password={value as string} showCriteria />
-      )}
+      {showPasswordStrength ? (
+        <PasswordStrengthIndicator password={password} showPolicy assessment={assessment} copy={copy} />
+      ) : null}
     </div>
   );
 }

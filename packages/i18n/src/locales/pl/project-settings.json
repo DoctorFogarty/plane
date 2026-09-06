@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Stany",
-      "description": "Ukształtuj szynę przepływu pracy — dodawaj grupy, zmieniaj kolejność kolumn i dostosuj przebieg pracy.",
+      "description": "Elementy pracy przechodzą przez te statusy, w tej kolejności.",
+      "add_status": "Dodaj status",
+      "default": "Domyślny",
+      "mark_as_default": "Ustaw jako domyślny",
+      "marking_as_default": "Ustawianie jako domyślny",
       "describe_this_state_for_your_members": "Opisz ten stan członkom projektu.",
       "empty_state": {
         "title": "Brak stanów w {groupKey}",
         "description": "Utwórz nowy stan"
+      },
+      "delete": {
+        "title": "Usuń stan",
+        "confirm": "Czy na pewno chcesz usunąć {name}? Elementy pracy w tym stanie zostaną przeniesione do wybranego stanu. Tej czynności nie można cofnąć.",
+        "move_work_items": "Przenieś elementy pracy do",
+        "button": "Usuń",
+        "deleting": "Usuwanie",
+        "cannot_delete_default": "Nie można usunąć stanu domyślnego.",
+        "success": "Stan został usunięty.",
+        "failed": "Nie udało się usunąć stanu. Spróbuj ponownie.",
+        "select_state": "Wybierz stan"
       },
       "add_group": "Dodaj grupę",
       "group_name_placeholder": "Nazwa grupy",
@@ -425,7 +440,11 @@
           "no_properties": "Ten typ elementu pracy nie ma właściwości do użycia w formularzu.",
           "delete_form": "Usuń formularz",
           "allowed_labels": "Dozwolone etykiety",
-          "submit_error": "Nie udało się wysłać formularza. Spróbuj ponownie."
+          "submit_error": "Nie udało się wysłać formularza. Spróbuj ponownie.",
+          "attachments_help": "Dodaj pliki, które zostaną dołączone do elementu pracy. Maksymalnie {count} plików.",
+          "attachments_too_many": "Można dołączyć maksymalnie {count} plików.",
+          "add_attachments": "Dodaj pliki",
+          "attachments_uploading": "Przesyłanie"
         },
         "toasts": {
           "set": {

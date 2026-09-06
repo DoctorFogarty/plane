@@ -23,6 +23,7 @@ function fieldTitle(field: TIntakeFormField, t: (key: string) => string) {
   if (field.key === "labels") return t("labels");
   if (field.key === "submitter_email") return t("project_settings.features.intake.form.submitter_email");
   if (field.key === "submitter_name") return t("project_settings.features.intake.form.submitter_name");
+  if (field.key === "attachments") return t("attachments");
   return field.name || field.key;
 }
 

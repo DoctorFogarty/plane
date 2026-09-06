@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState, useMemo } from "react";
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
+import React, { useMemo, useState } from "react";
 import { Button } from "../button/button";
+import { usePasswordAssessment } from "../form-fields/password/use-password-assessment";
 import { Spinner } from "../spinners/circular-spinner";
 import { cn } from "../utils";
 import { AuthConfirmPasswordInput } from "./auth-confirm-password-input";
@@ -65,8 +65,8 @@ export function AuthForm({
     confirmPassword: initialData.confirmPassword || "",
   });
 
-  const [passwordStrength, setPasswordStrength] = useState<E_PASSWORD_STRENGTH>(E_PASSWORD_STRENGTH.EMPTY);
-  const [_passwordsMatch, setPasswordsMatch] = useState(false);
+  const { assessment, ready: passwordReady } = usePasswordAssessment(formData.password);
+  const passwordAcceptable = assessment?.acceptable === true;
 
   const handleInputChange = (field: keyof AuthFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -80,14 +80,6 @@ export function AuthForm({
       ...prev,
       password,
     }));
-  };
-
-  const handlePasswordStrengthChange = (strength: E_PASSWORD_STRENGTH) => {
-    setPasswordStrength(strength);
-  };
-
-  const handleConfirmPasswordChange = (matches: boolean) => {
-    setPasswordsMatch(matches);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -109,11 +101,10 @@ export function AuthForm({
     if (mode === "sign-in") {
       return hasEmail && hasPassword && !loading && !disabled;
     } else {
-      const isPasswordStrong = passwordStrength === E_PASSWORD_STRENGTH.STRENGTH_VALID;
       const passwordsMatch = formData.password === formData.confirmPassword && formData.password.length > 0;
-      return hasEmail && hasPassword && isPasswordStrong && passwordsMatch && !loading && !disabled;
+      return hasEmail && hasPassword && passwordReady && passwordAcceptable && passwordsMatch && !loading && !disabled;
     }
-  }, [mode, formData, passwordStrength, loading, disabled]);
+  }, [mode, formData, passwordAcceptable, passwordReady, loading, disabled]);
 
   const getSubmitButtonText = () => {
     if (submitButtonText) return submitButtonText;
@@ -155,7 +146,6 @@ export function AuthForm({
         value={formData.password}
         onChange={handleInputChange("password")}
         onPasswordChange={handlePasswordChange}
-        onPasswordStrengthChange={handlePasswordStrengthChange}
         placeholder="Enter password"
         error={passwordError}
         showPasswordStrength={showPasswordStrength && mode === "sign-up"}
@@ -172,7 +162,6 @@ export function AuthForm({
           password={formData.password}
           value={formData.confirmPassword}
           onChange={handleInputChange("confirmPassword")}
-          onPasswordMatchChange={handleConfirmPasswordChange}
           error={confirmPasswordError}
           disabled={disabled}
           // autoComplete="new-password"

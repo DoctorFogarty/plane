@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Stări",
-      "description": "Modelează șina fluxului de lucru — adaugă grupuri, reordonează coloanele și personalizează cum avansează munca.",
+      "description": "Elementele de lucru trec prin aceste stări, în această ordine.",
+      "add_status": "Adaugă o stare",
+      "default": "Implicit",
+      "mark_as_default": "Setează ca implicit",
+      "marking_as_default": "Se setează ca implicit",
       "describe_this_state_for_your_members": "Descrie această stare pentru membrii tăi.",
       "empty_state": {
         "title": "Nicio stare în {groupKey}",
         "description": "Te rog să creezi o stare nouă"
+      },
+      "delete": {
+        "title": "Șterge starea",
+        "confirm": "Sigur doriți să ștergeți {name}? Elementele de lucru din această stare vor fi mutate în starea selectată. Această acțiune nu poate fi anulată.",
+        "move_work_items": "Mută elementele de lucru în",
+        "button": "Șterge",
+        "deleting": "Se șterge",
+        "cannot_delete_default": "Starea implicită nu poate fi ștearsă.",
+        "success": "Stare ștearsă cu succes.",
+        "failed": "Starea nu a putut fi ștearsă. Încercați din nou.",
+        "select_state": "Selectați o stare"
       },
       "add_group": "Adaugă grup",
       "group_name_placeholder": "Numele grupului",
@@ -425,7 +440,11 @@
           "no_properties": "Acest tip de element de lucru nu are proprietăți potrivite pentru formular.",
           "delete_form": "Șterge formularul",
           "allowed_labels": "Etichete permise",
-          "submit_error": "Nu am putut trimite acest formular. Încearcă din nou."
+          "submit_error": "Nu am putut trimite acest formular. Încearcă din nou.",
+          "attachments_help": "Adăugați fișiere care vor fi incluse pe elementul de lucru. Maximum {count} fișiere.",
+          "attachments_too_many": "Puteți atașa maximum {count} fișiere.",
+          "add_attachments": "Adăugați fișiere",
+          "attachments_uploading": "Se încarcă"
         },
         "toasts": {
           "set": {

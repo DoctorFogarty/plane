@@ -10,8 +10,9 @@ import type { TIssue } from "@plane/types";
  * Layouts that render parent→child trees. Children whose parent is also in the
  * current result set nest under that parent; orphaned children (parent filtered out)
  * remain as root rows so they stay filterable/searchable.
+ * List is flat: every matching work item is a root row in its own group.
  */
-export const HIERARCHY_LAYOUTS = ["list", "spreadsheet", "gantt_chart"] as const;
+export const HIERARCHY_LAYOUTS = ["spreadsheet", "gantt_chart"] as const;
 
 export type THierarchyLayout = (typeof HIERARCHY_LAYOUTS)[number];
 

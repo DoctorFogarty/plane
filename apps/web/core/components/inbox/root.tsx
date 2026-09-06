@@ -18,6 +18,7 @@ import { InboxContentRoot } from "@/components/inbox/content";
 import { InboxSidebar } from "@/components/inbox/sidebar";
 import { InboxLayoutLoader } from "@/components/ui/loader/layouts/project-inbox/inbox-layout-loader";
 // hooks
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";
 
 type TInboxIssueRoot = {
@@ -36,9 +37,12 @@ export const InboxIssueRoot = observer(function InboxIssueRoot(props: TInboxIssu
   const { t } = useTranslation();
   // hooks
   const { loader, error, currentTab, currentInboxProjectId, handleCurrentTab, fetchInboxIssues } = useProjectInbox();
+  const issueTypeStore = useIssueType();
 
   useEffect(() => {
-    if (!inboxAccessible || !workspaceSlug || !projectId) return;
+    if (!workspaceSlug || !projectId) return;
+    void issueTypeStore.fetchWorkItemTypesPropertiesAndOptions(workspaceSlug.toString(), projectId.toString());
+    if (!inboxAccessible) return;
     // Check if project has changed
     const hasProjectChanged = currentInboxProjectId && currentInboxProjectId !== projectId;
 

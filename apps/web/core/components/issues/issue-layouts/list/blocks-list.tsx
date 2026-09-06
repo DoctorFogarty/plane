@@ -69,8 +69,6 @@ export function IssueBlocksList(props: Props) {
       quickActions={quickActions}
       canEditProperties={canEditProperties}
       displayProperties={displayProperties}
-      nestingLevel={0}
-      spacingLeft={0}
       containerRef={containerRef}
       selectionHelpers={selectionHelpers}
       groupId={groupId}

@@ -151,8 +151,8 @@ const errorCodeMessages: {
     message: () => `Invalid password. Please try again.`,
   },
   [EAuthenticationErrorCodes.PASSWORD_TOO_WEAK]: {
-    title: `Password too weak`,
-    message: () => `Please use a stronger password.`,
+    title: `Password is too easy to guess`,
+    message: () => `Use a longer phrase you don’t use elsewhere. Avoid common words, names, and years.`,
   },
   [EAuthenticationErrorCodes.SMTP_NOT_CONFIGURED]: {
     title: `SMTP not configured`,

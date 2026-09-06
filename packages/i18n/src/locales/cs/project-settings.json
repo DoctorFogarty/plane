@@ -38,11 +38,26 @@
     },
     "states": {
       "heading": "Stavy",
-      "description": "Upravte kolejnici pracovního postupu — přidávejte skupiny, měňte pořadí sloupců a přizpůsobte pohyb práce.",
+      "description": "Pracovní položky procházejí těmito stavy, v tomto pořadí.",
+      "add_status": "Přidat stav",
+      "default": "Výchozí",
+      "mark_as_default": "Nastavit jako výchozí",
+      "marking_as_default": "Nastavování jako výchozí",
       "describe_this_state_for_your_members": "Popište tento stav členům.",
       "empty_state": {
         "title": "Žádné stavy ve skupině {groupKey}",
         "description": "Vytvořte nový stav"
+      },
+      "delete": {
+        "title": "Odstranit stav",
+        "confirm": "Opravdu chcete odstranit {name}? Pracovní položky v tomto stavu budou přesunuty do vybraného stavu. Tuto akci nelze vrátit zpět.",
+        "move_work_items": "Přesunout pracovní položky do",
+        "button": "Odstranit",
+        "deleting": "Odstraňování",
+        "cannot_delete_default": "Výchozí stav nelze odstranit.",
+        "success": "Stav byl úspěšně odstraněn.",
+        "failed": "Stav se nepodařilo odstranit. Zkuste to znovu.",
+        "select_state": "Vyberte stav"
       },
       "add_group": "Přidat skupinu",
       "group_name_placeholder": "Název skupiny",
@@ -425,7 +440,11 @@
           "no_properties": "Tento typ pracovní položky nemá vlastnosti použitelné ve formuláři.",
           "delete_form": "Smazat formulář",
           "allowed_labels": "Povolené štítky",
-          "submit_error": "Formulář se nepodařilo odeslat. Zkuste to znovu."
+          "submit_error": "Formulář se nepodařilo odeslat. Zkuste to znovu.",
+          "attachments_help": "Přidejte soubory, které se připojí k pracovní položce. Nejvýše {count} souborů.",
+          "attachments_too_many": "Můžete připojit nejvýše {count} souborů.",
+          "add_attachments": "Přidat soubory",
+          "attachments_uploading": "Nahrávání"
         },
         "toasts": {
           "set": {

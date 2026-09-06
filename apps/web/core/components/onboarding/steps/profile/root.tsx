@@ -4,17 +4,19 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable no-unneeded-ternary, jsx-a11y/click-events-have-key-events, jsx-a11y/no-autofocus */
+
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { ImageIcon } from "lucide-react";
 // plane imports
-import { E_PASSWORD_STRENGTH } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IUser } from "@plane/types";
 import { EOnboardingSteps } from "@plane/types";
-import { cn, getFileURL, getPasswordStrength, validatePersonName } from "@plane/utils";
+import { usePasswordAssessment } from "@plane/ui";
+import { cn, getFileURL, validatePersonName } from "@plane/utils";
 // components
 import { UserImageUploadModal } from "@/components/core/modals/user-image-upload-modal";
 // hooks
@@ -124,20 +126,14 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   const currentPassword = watch("password") || undefined;
   const currentConfirmPassword = watch("confirm_password") || undefined;
 
+  const { assessment, ready } = usePasswordAssessment(currentPassword ?? "");
+
   const isValidPassword = useMemo(() => {
     if (currentPassword) {
-      if (
-        currentPassword === currentConfirmPassword &&
-        getPasswordStrength(currentPassword) === E_PASSWORD_STRENGTH.STRENGTH_VALID
-      ) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return true;
+      return currentPassword === currentConfirmPassword && ready && assessment?.acceptable === true;
     }
-  }, [currentPassword, currentConfirmPassword]);
+    return true;
+  }, [assessment?.acceptable, currentConfirmPassword, currentPassword, ready]);
 
   // Check for all available fields validation and if password field is available, then checks for password validation (strength + confirmation).
   // Also handles the condition for optional password i.e if password field is optional it only checks for above validation if it's not empty.

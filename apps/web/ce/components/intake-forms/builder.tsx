@@ -16,6 +16,7 @@ import type {
   TIssueProperty,
   TIssueType,
 } from "@plane/types";
+import { MAX_INTAKE_FORM_ATTACHMENTS } from "@plane/constants";
 import { CustomSelect, Input, TextArea, ToggleSwitch } from "@plane/ui";
 import { defaultFormFields, getIntakeFormPublicUrl, NATIVE_FORM_FIELDS } from "./helpers";
 
@@ -298,15 +299,24 @@ export const IntakeFormBuilder = observer(function IntakeFormBuilder(props: Prop
                 key={native.key}
                 className="flex items-center justify-between gap-3 rounded-md border border-subtle px-3 py-2"
               >
-                <label className="flex items-center gap-2 text-13 text-primary">
-                  <input
-                    type="checkbox"
-                    checked={enabled}
-                    disabled={native.locked}
-                    onChange={(event) => toggleSystemField(native.key, event.target.checked)}
-                  />
-                  {t(native.i18nLabel)}
-                </label>
+                <div className="min-w-0 flex-1">
+                  <label className="flex items-center gap-2 text-13 text-primary">
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      disabled={native.locked}
+                      onChange={(event) => toggleSystemField(native.key, event.target.checked)}
+                    />
+                    {t(native.i18nLabel)}
+                  </label>
+                  {native.key === "attachments" ? (
+                    <p className="mt-1 pl-6 text-11 text-tertiary">
+                      {t("project_settings.features.intake.form.attachments_help", {
+                        count: MAX_INTAKE_FORM_ATTACHMENTS,
+                      })}
+                    </p>
+                  ) : null}
+                </div>
                 {enabled ? (
                   <label className="flex items-center gap-2 text-11 text-secondary">
                     {t("required")}

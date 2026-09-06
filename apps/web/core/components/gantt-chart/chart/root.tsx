@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable unicorn/consistent-function-scoping */
+
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { createPortal } from "react-dom";
@@ -16,8 +18,7 @@ import { GanttChartHeader, GanttChartMainContent } from "@/components/gantt-char
 // hooks
 import { useUserProfile } from "@/hooks/store/user";
 import { useTimeLineChartStore } from "@/hooks/use-timeline-chart";
-//
-import { SIDEBAR_WIDTH } from "../constants";
+import { useGanttSidebarWidth } from "../contexts";
 import { currentViewDataWithView } from "../data";
 import type { IMonthBlock, IMonthView, IWeekBlock } from "../views";
 import { getNumberOfDaysBetweenTwoDates, monthView, quarterView, weekView } from "../views";
@@ -78,6 +79,7 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
     updateBlockDates,
     isEpic = false,
   } = props;
+  const { sidebarWidth } = useGanttSidebarWidth();
   // states
   const [itemsContainerWidth, setItemsContainerWidth] = useState(0);
   const [fullScreenMode, setFullScreenMode] = useState(false);
@@ -171,7 +173,7 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
     scrollWidth =
       Math.abs(daysDifference) * currentState.data.dayWidth -
       (clientVisibleWidth / 2 - currentState.data.dayWidth) +
-      SIDEBAR_WIDTH / 2;
+      sidebarWidth / 2;
 
     scrollContainer.scrollLeft = scrollWidth;
   };
