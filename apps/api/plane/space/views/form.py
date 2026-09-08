@@ -44,6 +44,7 @@ from plane.utils.intake_form import (
     pending_form_attachments,
 )
 from plane.utils.issue_property import upsert_property_values
+from plane.utils.attachment import is_allowed_attachment, resolve_attachment_mime_type
 from plane.utils.path_validator import sanitize_filename
 
 
@@ -408,13 +409,13 @@ class IntakeFormAttachmentEndpoint(BaseAPIView):
             return Response({"error": "Attachments are not enabled on this form"}, status=status.HTTP_400_BAD_REQUEST)
 
         name = sanitize_filename(request.data.get("name")) or "unnamed"
-        file_type = request.data.get("type", False)
+        file_type = resolve_attachment_mime_type(request.data.get("type"))
         try:
             size = int(request.data.get("size", settings.FILE_SIZE_LIMIT))
         except (TypeError, ValueError):
             return Response({"error": "Invalid file size.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not file_type or file_type not in settings.ATTACHMENT_MIME_TYPES:
+        if not is_allowed_attachment(name=name, file_type=file_type):
             return Response(
                 {"error": "Invalid file type.", "status": False},
                 status=status.HTTP_400_BAD_REQUEST,

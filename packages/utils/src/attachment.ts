@@ -4,7 +4,39 @@
  * See the LICENSE file for details.
  */
 
+import { DANGEROUS_EXTENSIONS, DEFAULT_ATTACHMENT_MIME_TYPE } from "@plane/constants";
+
 export const PREVIEWABLE_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff", "tif"]);
+
+export const resolveAttachmentMimeType = (...candidates: Array<string | null | undefined>): string => {
+  for (const candidate of candidates) {
+    if (typeof candidate === "string") {
+      const normalized = candidate.trim();
+      if (normalized) return normalized;
+    }
+  }
+  return DEFAULT_ATTACHMENT_MIME_TYPE;
+};
+
+export const hasDangerousAttachmentExtension = (filename: string): boolean => {
+  if (!filename) return false;
+
+  const parts = filename
+    .split(".")
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+  if (parts.length < 2) return false;
+
+  const extension = parts[parts.length - 1] ?? "";
+  if (DANGEROUS_EXTENSIONS.includes(extension)) return true;
+
+  if (parts.length >= 3) {
+    const secondLast = parts[parts.length - 2] ?? "";
+    if (DANGEROUS_EXTENSIONS.includes(secondLast)) return true;
+  }
+
+  return false;
+};
 
 export const generateFileName = (fileName: string) => {
   const date = new Date();

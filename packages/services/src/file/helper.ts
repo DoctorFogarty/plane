@@ -8,7 +8,7 @@
 import { fileTypeFromBuffer } from "file-type";
 // plane imports
 import type { TFileMetaDataLite, TFileSignedURLResponse } from "@plane/types";
-import { DANGEROUS_EXTENSIONS } from "@plane/constants";
+import { DANGEROUS_EXTENSIONS, DEFAULT_ATTACHMENT_MIME_TYPE } from "@plane/constants";
 
 /**
  * @description Filename validation - checks for double extensions and dangerous patterns
@@ -91,6 +91,12 @@ const validateAndDetectFileType = async (file: File): Promise<string> => {
   // Basic filename validation
   const filenameError = validateFilename(file.name);
   if (filenameError) {
+    const parts = file.name.split(".");
+    const extension = parts[parts.length - 1]?.toLowerCase() || "";
+    const secondLastExt = parts.length >= 3 ? parts[parts.length - 2]?.toLowerCase() || "" : "";
+    if (DANGEROUS_EXTENSIONS.includes(extension) || DANGEROUS_EXTENSIONS.includes(secondLastExt)) {
+      throw new Error(filenameError);
+    }
     console.warn(`File validation warning: ${filenameError}`);
   }
 
@@ -103,8 +109,8 @@ const validateAndDetectFileType = async (file: File): Promise<string> => {
     console.warn("Error detecting file type from signature:", _error);
   }
 
-  // fallback for unknown files
-  return "";
+  // CAD/CAM files often have no magic bytes and an empty browser MIME type.
+  return file.type || DEFAULT_ATTACHMENT_MIME_TYPE;
 };
 
 /**

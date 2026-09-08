@@ -461,6 +461,27 @@ class TestIntakeFormPublicAPI:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
+    @patch("plane.space.views.form.S3Storage")
+    def test_upload_accepts_cad_engineering_types(self, mock_storage, session_client, intake_form_context):
+        mock_storage.return_value.generate_presigned_post.return_value = {
+            "url": "https://s3.example/upload",
+            "fields": {},
+        }
+        form = self._create_form_with_attachments(session_client, intake_form_context)
+        for name, file_type in (
+            ("bracket.step", "application/step"),
+            ("toolpath.tap", ""),
+            ("plate.dxf", "image/vnd.dxf"),
+        ):
+            response = _anon_client().post(
+                f"/api/public/forms/{form['anchor']}/attachments/",
+                {"name": name, "type": file_type, "size": 12},
+                format="json",
+            )
+            assert response.status_code == status.HTTP_200_OK, name
+            assert response.data["asset_id"]
+
+    @pytest.mark.django_db
     @patch("plane.space.views.form.issue_activity.delay")
     def test_submit_attaches_uploaded_files(self, _activity, session_client, intake_form_context):
         form = self._create_form_with_attachments(session_client, intake_form_context)

@@ -19,6 +19,8 @@ export const ACCEPTED_COVER_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE = {
   "image/webp": [],
 };
 
+export const DEFAULT_ATTACHMENT_MIME_TYPE = "application/octet-stream";
+
 /**
  * Dangerous file extensions that should be blocked
  */
