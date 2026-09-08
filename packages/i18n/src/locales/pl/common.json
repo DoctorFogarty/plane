@@ -764,7 +764,9 @@
     "drag_and_drop": "Przeciągnij plik w dowolne miejsce, aby przesłać",
     "delete": "Usuń załącznik",
     "download": "Pobierz",
-    "preview_failed": "Nie udało się wczytać podglądu"
+    "preview_failed": "Nie udało się wczytać podglądu",
+    "add": "Dodaj załączniki",
+    "upload_partial": "{count, plural, one {Element pracy utworzony, ale nie udało się przesłać # załącznika.} few {Element pracy utworzony, ale nie udało się przesłać # załączników.} many {Element pracy utworzony, ale nie udało się przesłać # załączników.} other {Element pracy utworzony, ale nie udało się przesłać # załącznika.}}"
   },
   "label": {
     "select": "Wybierz etykietę",

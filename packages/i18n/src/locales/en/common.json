@@ -790,7 +790,9 @@
     "drag_and_drop": "Drag and drop anywhere to upload",
     "delete": "Delete attachment",
     "download": "Download",
-    "preview_failed": "Failed to load preview"
+    "preview_failed": "Failed to load preview",
+    "add": "Add attachments",
+    "upload_partial": "{count, plural, one {Work item created, but # attachment could not be uploaded.} other {Work item created, but # attachments could not be uploaded.}}"
   },
   "label": {
     "select": "Add labels",

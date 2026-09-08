@@ -764,7 +764,9 @@
     "drag_and_drop": "Arrastra y suelta en cualquier lugar para subir",
     "delete": "Eliminar archivo adjunto",
     "download": "Descargar",
-    "preview_failed": "No se pudo cargar la vista previa"
+    "preview_failed": "No se pudo cargar la vista previa",
+    "add": "Añadir archivos adjuntos",
+    "upload_partial": "{count, plural, one {Elemento de trabajo creado, pero no se pudo cargar # archivo adjunto.} other {Elemento de trabajo creado, pero no se pudieron cargar # archivos adjuntos.}}"
   },
   "label": {
     "select": "Seleccionar etiqueta",

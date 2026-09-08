@@ -764,7 +764,9 @@
     "drag_and_drop": "Přetáhněte soubor kamkoli pro nahrání",
     "delete": "Smazat přílohu",
     "download": "Stáhnout",
-    "preview_failed": "Náhled se nepodařilo načíst"
+    "preview_failed": "Náhled se nepodařilo načíst",
+    "add": "Přidat přílohy",
+    "upload_partial": "{count, plural, one {Pracovní položka byla vytvořena, ale nepodařilo se nahrát # přílohu.} few {Pracovní položka byla vytvořena, ale nepodařilo se nahrát # přílohy.} many {Pracovní položka byla vytvořena, ale nepodařilo se nahrát # přílohy.} other {Pracovní položka byla vytvořena, ale nepodařilo se nahrát # příloh.}}"
   },
   "label": {
     "select": "Vybrat štítek",

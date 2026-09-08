@@ -764,7 +764,9 @@
     "drag_and_drop": "Kéo và thả vào bất kỳ đâu để tải lên",
     "delete": "Xóa tệp đính kèm",
     "download": "Tải xuống",
-    "preview_failed": "Không thể tải bản xem trước"
+    "preview_failed": "Không thể tải bản xem trước",
+    "add": "Thêm tệp đính kèm",
+    "upload_partial": "{count, plural, one {Đã tạo mục công việc, nhưng không thể tải lên # tệp đính kèm.} other {Đã tạo mục công việc, nhưng không thể tải lên # tệp đính kèm.}}"
   },
   "label": {
     "select": "Chọn nhãn",

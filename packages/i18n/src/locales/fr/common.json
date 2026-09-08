@@ -764,7 +764,9 @@
     "drag_and_drop": "Glissez-déposez n’importe où pour uploader",
     "delete": "Supprimer la pièce jointe",
     "download": "Télécharger",
-    "preview_failed": "Échec du chargement de l’aperçu"
+    "preview_failed": "Échec du chargement de l’aperçu",
+    "add": "Ajouter des pièces jointes",
+    "upload_partial": "{count, plural, one {Élément de travail créé, mais # pièce jointe n’a pas pu être téléversée.} many {Élément de travail créé, mais # pièces jointes n’ont pas pu être téléversées.} other {Élément de travail créé, mais # pièces jointes n’ont pas pu être téléversées.}}"
   },
   "label": {
     "select": "Sélectionner une étiquette",

@@ -764,7 +764,9 @@
     "drag_and_drop": "Yüklemek için herhangi bir yere sürükleyip bırakın",
     "delete": "Eki sil",
     "download": "İndir",
-    "preview_failed": "Önizleme yüklenemedi"
+    "preview_failed": "Önizleme yüklenemedi",
+    "add": "Ekler ekle",
+    "upload_partial": "{count, plural, one {İş öğesi oluşturuldu, ancak # ek yüklenemedi.} other {İş öğesi oluşturuldu, ancak # ek yüklenemedi.}}"
   },
   "label": {
     "select": "Etiket seç",

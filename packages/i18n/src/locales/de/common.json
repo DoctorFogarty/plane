@@ -764,7 +764,9 @@
     "drag_and_drop": "Datei hierher ziehen, um sie hochzuladen",
     "delete": "Anhang löschen",
     "download": "Herunterladen",
-    "preview_failed": "Vorschau konnte nicht geladen werden"
+    "preview_failed": "Vorschau konnte nicht geladen werden",
+    "add": "Anhänge hinzufügen",
+    "upload_partial": "{count, plural, one {Arbeitselement erstellt, aber # Anhang konnte nicht hochgeladen werden.} other {Arbeitselement erstellt, aber # Anhänge konnten nicht hochgeladen werden.}}"
   },
   "label": {
     "select": "Label auswählen",

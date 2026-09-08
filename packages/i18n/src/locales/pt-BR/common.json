@@ -764,7 +764,9 @@
     "drag_and_drop": "Arraste e solte em qualquer lugar para enviar",
     "delete": "Excluir anexo",
     "download": "Baixar",
-    "preview_failed": "Falha ao carregar a pré-visualização"
+    "preview_failed": "Falha ao carregar a pré-visualização",
+    "add": "Adicionar anexos",
+    "upload_partial": "{count, plural, one {Item de trabalho criado, mas não foi possível enviar # anexo.} many {Item de trabalho criado, mas não foi possível enviar # anexos.} other {Item de trabalho criado, mas não foi possível enviar # anexos.}}"
   },
   "label": {
     "select": "Selecionar etiqueta",

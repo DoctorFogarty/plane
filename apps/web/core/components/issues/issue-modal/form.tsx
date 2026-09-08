@@ -29,14 +29,14 @@ import {
 } from "@plane/utils";
 // components
 import {
+  CreateIssueAttachments,
   IssueDefaultProperties,
   IssueDescriptionEditor,
   IssueParentTag,
   IssueProjectSelect,
   IssueTitleInput,
 } from "@/components/issues/issue-modal/components";
-// helpers
-// hooks
+import type { TPendingAttachment } from "@/helpers/create-issue-attachments";
 import { useIssueModal } from "@/hooks/context/use-issue-modal";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssueType } from "@/hooks/store/use-issue-type";
@@ -75,6 +75,9 @@ export interface IssueFormProps {
   isProjectSelectionDisabled?: boolean;
   showActionButtons?: boolean;
   dataResetProperties?: any[];
+  pendingAttachments?: TPendingAttachment[];
+  onAddPendingAttachments?: (files: File[]) => void;
+  onRemovePendingAttachment?: (id: string) => void;
 }
 
 export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormProps) {
@@ -102,6 +105,9 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     isProjectSelectionDisabled = false,
     showActionButtons = true,
     dataResetProperties = [],
+    pendingAttachments = [],
+    onAddPendingAttachments,
+    onRemovePendingAttachment,
   } = props;
 
   // states
@@ -368,12 +374,29 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
   const condition =
     (watch("name") && watch("name") !== "") || (watch("description_html") && watch("description_html") !== "<p></p>");
+  const showAttachments = !data?.id && !isDraft;
 
   const handleFormChange = () => {
     if (!onChange) return;
 
     if (isDirty && condition) onChange(watch());
     else onChange(null);
+  };
+
+  const notifyAttachmentsChanged = (hasFiles: boolean) => {
+    if (!onChange) return;
+    if (hasFiles || (isDirty && condition)) onChange(watch());
+    else onChange(null);
+  };
+
+  const handleAddPendingAttachments = (incoming: File[]) => {
+    onAddPendingAttachments?.(incoming);
+    notifyAttachmentsChanged(pendingAttachments.length + incoming.length > 0);
+  };
+
+  const handleRemovePendingAttachment = (id: string) => {
+    onRemovePendingAttachment?.(id);
+    notifyAttachmentsChanged(pendingAttachments.some((attachment) => attachment.id !== id));
   };
 
   // debounced duplicate issues swr
@@ -570,6 +593,17 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                   handleFormChange={handleFormChange}
                   setSelectedParentIssue={setSelectedParentIssue}
                 />
+                {showAttachments ? (
+                  <div className="pt-2">
+                    <CreateIssueAttachments
+                      files={pendingAttachments}
+                      onAdd={handleAddPendingAttachments}
+                      onRemove={handleRemovePendingAttachment}
+                      disabled={isDisabled}
+                      tabIndex={getIndex("attachments")}
+                    />
+                  </div>
+                ) : null}
               </div>
               {showActionButtons && (
                 <div

@@ -28,6 +28,8 @@ import { useIssuesActions } from "@/hooks/use-issues-actions";
 import { FileService } from "@/services/file.service";
 const fileService = new FileService();
 // local imports
+import type { TPendingAttachment } from "@/helpers/create-issue-attachments";
+import { addPendingAttachments, uploadPendingIssueAttachments } from "@/helpers/create-issue-attachments";
 import { CreateIssueToastActionItems } from "../create-issue-toast-action-items";
 import { DraftIssueLayout } from "./draft-issue-layout";
 import { IssueFormRoot } from "./form";
@@ -65,6 +67,7 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [description, setDescription] = useState<string | undefined>(undefined);
   const [uploadedAssetIds, setUploadedAssetIds] = useState<string[]>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<TPendingAttachment[]>([]);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   // store hooks
   const { t } = useTranslation();
@@ -74,7 +77,7 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   const { issues } = useIssues(storeType);
   const { issues: projectIssues } = useIssues(EIssuesStoreType.PROJECT);
   const { issues: draftIssues } = useIssues(EIssuesStoreType.WORKSPACE_DRAFT);
-  const { fetchIssue } = useIssueDetail();
+  const { fetchIssue, addAttachments } = useIssueDetail();
   const { allowedProjectIds, handleCreateUpdatePropertyValues, handleCreateSubWorkItem, issuePropertyValues } =
     useIssueModal();
   const { getProjectByIdentifier } = useProject();
@@ -106,6 +109,7 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     // and return to avoid activeProjectId being set to some other project
     if (!isOpen) {
       setActiveProjectId(null);
+      setPendingAttachments([]);
       return;
     }
 
@@ -168,6 +172,7 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
 
     setActiveProjectId(null);
     setChangesMade(null);
+    setPendingAttachments([]);
     onClose();
     handleDuplicateIssueModal(false);
   };
@@ -251,6 +256,19 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
         });
       }
 
+      let failedAttachmentCount = 0;
+      if (!is_draft_issue && pendingAttachments.length > 0 && response.id && response.project_id) {
+        const { failed, attachments } = await uploadPendingIssueAttachments({
+          workspaceSlug: workspaceSlug.toString(),
+          projectId: response.project_id,
+          issueId: response.id,
+          files: pendingAttachments.map((item) => item.file),
+        });
+        failedAttachmentCount = failed;
+        if (attachments.length > 0) addAttachments(response.id, attachments);
+      }
+      setPendingAttachments([]);
+
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("success"),
@@ -263,6 +281,13 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
           />
         ),
       });
+      if (failedAttachmentCount > 0) {
+        setToast({
+          type: TOAST_TYPE.WARNING,
+          title: t("error"),
+          message: t("attachment.upload_partial", { count: failedAttachmentCount }),
+        });
+      }
       if (!createMore) handleClose();
       if (createMore && issueTitleRef) issueTitleRef?.current?.focus();
       setDescription("<p></p>");
@@ -401,6 +426,14 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
 
   const handleUpdateUploadedAssetIds = (assetId: string) => setUploadedAssetIds((prev) => [...prev, assetId]);
 
+  const handleAddPendingAttachments = (files: File[]) => {
+    setPendingAttachments((current) => addPendingAttachments(current, files).next);
+  };
+
+  const handleRemovePendingAttachment = (id: string) => {
+    setPendingAttachments((current) => current.filter((item) => item.id !== id));
+  };
+
   const handleDuplicateIssueModal = (value: boolean) => setIsDuplicateModalOpen(value);
 
   // don't open the modal if there are no projects
@@ -427,6 +460,9 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     isDuplicateModalOpen: isDuplicateModalOpen,
     handleDuplicateIssueModal: handleDuplicateIssueModal,
     isProjectSelectionDisabled: isProjectSelectionDisabled,
+    pendingAttachments,
+    onAddPendingAttachments: handleAddPendingAttachments,
+    onRemovePendingAttachment: handleRemovePendingAttachment,
   };
 
   return (

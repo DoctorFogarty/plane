@@ -18,6 +18,7 @@ import type { TIssue, TIssuePropertyValueErrors, TIssuePropertyValues } from "@p
 import { ToggleSwitch } from "@plane/ui";
 import { renderFormattedPayloadDate, getTabIndex } from "@plane/utils";
 // hooks
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";
@@ -37,6 +38,9 @@ import { useDebouncedDuplicateIssues } from "@/hooks/use-debounced-duplicate-iss
 // services
 import { FileService } from "@/services/file.service";
 // local imports
+import { CreateIssueAttachments } from "@/components/issues/issue-modal/components/create-attachments";
+import type { TPendingAttachment } from "@/helpers/create-issue-attachments";
+import { addPendingAttachments, uploadPendingIssueAttachments } from "@/helpers/create-issue-attachments";
 import { InboxIssueDescription } from "./issue-description";
 import { InboxIssueProperties } from "./issue-properties";
 import { InboxIssueTitle } from "./issue-title";
@@ -67,6 +71,7 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
   const { workspaceSlug, projectId, handleModalClose, isDuplicateModalOpen, handleDuplicateIssueModal } = props;
   // states
   const [uploadedAssetIds, setUploadedAssetIds] = useState<string[]>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<TPendingAttachment[]>([]);
   // router
   const router = useAppRouter();
   // refs
@@ -76,6 +81,7 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
   const modalContainerRef = useRef<HTMLDivElement | null>(null);
   // hooks
   const { createInboxIssue } = useProjectInbox();
+  const { addAttachments } = useIssueDetail();
   const { getWorkspaceBySlug } = useWorkspace();
   const workspaceId = getWorkspaceBySlug(workspaceSlug)?.id;
   const { isMobile } = usePlatformOS();
@@ -205,6 +211,19 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
           );
         }
 
+        let failedAttachmentCount = 0;
+        if (createdIssueId && pendingAttachments.length > 0) {
+          const { failed, attachments } = await uploadPendingIssueAttachments({
+            workspaceSlug,
+            projectId,
+            issueId: createdIssueId,
+            files: pendingAttachments.map((item) => item.file),
+          });
+          failedAttachmentCount = failed;
+          if (attachments.length > 0) addAttachments(createdIssueId, attachments);
+        }
+        setPendingAttachments([]);
+
         if (!createMore) {
           router.push(`/${workspaceSlug}/projects/${projectId}/intake/?currentTab=open&inboxIssueId=${res?.issue?.id}`);
           handleModalClose();
@@ -226,6 +245,13 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
           title: `Success!`,
           message: "Work item created successfully.",
         });
+        if (failedAttachmentCount > 0) {
+          setToast({
+            type: TOAST_TYPE.WARNING,
+            title: t("error"),
+            message: t("attachment.upload_partial", { count: failedAttachmentCount }),
+          });
+        }
       })
       .catch((error) => {
         console.error(error);
@@ -277,6 +303,13 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
                 onAssetUpload={(assetId) => setUploadedAssetIds((prev) => [...prev, assetId])}
               />
               <InboxIssueProperties projectId={projectId} data={formData} handleData={handleFormData} />
+              <CreateIssueAttachments
+                files={pendingAttachments}
+                onAdd={(files) => setPendingAttachments((current) => addPendingAttachments(current, files).next)}
+                onRemove={(id) => setPendingAttachments((current) => current.filter((item) => item.id !== id))}
+                disabled={formSubmitting}
+                tabIndex={getIndex("attachments")}
+              />
               <InboxCustomProperties
                 workspaceSlug={workspaceSlug}
                 projectId={projectId}

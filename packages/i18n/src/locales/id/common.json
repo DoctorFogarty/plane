@@ -764,7 +764,9 @@
     "drag_and_drop": "Seret dan jatuhkan di mana saja untuk mengunggah",
     "delete": "Hapus lampiran",
     "download": "Unduh",
-    "preview_failed": "Gagal memuat pratinjau"
+    "preview_failed": "Gagal memuat pratinjau",
+    "add": "Tambah lampiran",
+    "upload_partial": "{count, plural, one {Item kerja dibuat, tetapi # lampiran tidak dapat diunggah.} other {Item kerja dibuat, tetapi # lampiran tidak dapat diunggah.}}"
   },
   "label": {
     "select": "Pilih label",

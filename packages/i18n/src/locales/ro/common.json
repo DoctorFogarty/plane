@@ -764,7 +764,9 @@
     "drag_and_drop": "Trage și plasează oriunde pentru a încărca",
     "delete": "Șterge atașamentul",
     "download": "Descarcă",
-    "preview_failed": "Nu s-a putut încărca previzualizarea"
+    "preview_failed": "Nu s-a putut încărca previzualizarea",
+    "add": "Adăugați atașamente",
+    "upload_partial": "{count, plural, one {Activitatea a fost creată, dar nu s-a putut încărca # atașament.} few {Activitatea a fost creată, dar nu s-au putut încărca # atașamente.} other {Activitatea a fost creată, dar nu s-au putut încărca # de atașamente.}}"
   },
   "label": {
     "select": "Selectează eticheta",

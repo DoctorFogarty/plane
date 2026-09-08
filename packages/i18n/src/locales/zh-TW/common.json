@@ -764,7 +764,9 @@
     "drag_and_drop": "拖曳到任何位置以上傳",
     "delete": "刪除附件",
     "download": "下載",
-    "preview_failed": "無法載入預覽"
+    "preview_failed": "無法載入預覽",
+    "add": "新增附件",
+    "upload_partial": "{count, plural, one {工作事項已建立，但有 # 個附件未能上傳。} other {工作事項已建立，但有 # 個附件未能上傳。}}"
   },
   "label": {
     "select": "選擇標籤",

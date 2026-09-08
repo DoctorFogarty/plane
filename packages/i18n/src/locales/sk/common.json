@@ -764,7 +764,9 @@
     "drag_and_drop": "Pretiahnite súbor kamkoľvek pre nahratie",
     "delete": "Zmazať prílohu",
     "download": "Stiahnuť",
-    "preview_failed": "Náhľad sa nepodarilo načítať"
+    "preview_failed": "Náhľad sa nepodarilo načítať",
+    "add": "Pridať prílohy",
+    "upload_partial": "{count, plural, one {Pracovná položka bola vytvorená, ale nepodarilo sa nahrať # prílohu.} few {Pracovná položka bola vytvorená, ale nepodarilo sa nahrať # prílohy.} many {Pracovná položka bola vytvorená, ale nepodarilo sa nahrať # prílohy.} other {Pracovná položka bola vytvorená, ale nepodarilo sa nahrať # príloh.}}"
   },
   "label": {
     "select": "Vybrať štítok",

@@ -764,7 +764,9 @@
     "drag_and_drop": "拖放到任意位置以上传",
     "delete": "删除附件",
     "download": "下载",
-    "preview_failed": "无法加载预览"
+    "preview_failed": "无法加载预览",
+    "add": "添加附件",
+    "upload_partial": "{count, plural, one {工作项已创建，但有 # 个附件未能上传。} other {工作项已创建，但有 # 个附件未能上传。}}"
   },
   "label": {
     "select": "选择标签",

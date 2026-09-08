@@ -764,7 +764,9 @@
     "drag_and_drop": "업로드하려면 아무 곳에나 드래그 앤 드롭하세요",
     "delete": "첨부 파일 삭제",
     "download": "다운로드",
-    "preview_failed": "미리보기를 불러오지 못했습니다"
+    "preview_failed": "미리보기를 불러오지 못했습니다",
+    "add": "첨부 파일 추가",
+    "upload_partial": "{count, plural, one {작업 항목은 생성되었지만 첨부 파일 #개를 업로드하지 못했습니다.} other {작업 항목은 생성되었지만 첨부 파일 #개를 업로드하지 못했습니다.}}"
   },
   "label": {
     "select": "레이블 선택",

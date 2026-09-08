@@ -764,7 +764,9 @@
     "drag_and_drop": "Trascina e rilascia ovunque per caricare",
     "delete": "Elimina allegato",
     "download": "Scarica",
-    "preview_failed": "Impossibile caricare l’anteprima"
+    "preview_failed": "Impossibile caricare l’anteprima",
+    "add": "Aggiungi allegati",
+    "upload_partial": "{count, plural, one {Elemento di lavoro creato, ma non è stato possibile caricare # allegato.} many {Elemento di lavoro creato, ma non è stato possibile caricare # allegati.} other {Elemento di lavoro creato, ma non è stato possibile caricare # allegati.}}"
   },
   "label": {
     "select": "Seleziona etichetta",
