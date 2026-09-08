@@ -44,6 +44,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID}
       MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     ports:
       - "9000:9000"
       - "9090:9090"
@@ -77,6 +78,11 @@ services:
     command: ./bin/docker-entrypoint-api-local.sh
     env_file:
       - ./apps/api/.env
+    extra_hosts:
+      # apps/api/.env points MinIO at http://localhost:9000 so browser
+      # presigned URLs work. Map that hostname to the host so API/workers
+      # can reach the published MinIO port from inside the container.
+      - "localhost:host-gateway"
     depends_on:
       - plane-db
       - plane-redis
@@ -98,6 +104,8 @@ services:
     command: ./bin/docker-entrypoint-worker.sh
     env_file:
       - ./apps/api/.env
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       - api
       - plane-db
@@ -117,6 +125,8 @@ services:
     command: ./bin/docker-entrypoint-beat.sh
     env_file:
       - ./apps/api/.env
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       - api
       - plane-db
@@ -136,6 +146,8 @@ services:
     command: ./bin/docker-entrypoint-migrator.sh --settings=plane.settings.local
     env_file:
       - ./apps/api/.env
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       - plane-db
       - plane-redis
