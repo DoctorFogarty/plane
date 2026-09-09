@@ -128,6 +128,16 @@ describe("GitHub integration controls", () => {
     expect(connectCodeModalStore.mode).toBe("create_pull_request");
   });
 
+  it("describes the project repository as an optional default", () => {
+    render(<IntegrationCard integration={integration} />);
+
+    expect(
+      screen.getByText(
+        "Optional default repository for this project. You can still pick any repository when creating a branch."
+      )
+    ).toBeTruthy();
+  });
+
   it("uses the numeric repository id as value and sync payload", async () => {
     const user = userEvent.setup();
     render(<IntegrationCard integration={integration} />);

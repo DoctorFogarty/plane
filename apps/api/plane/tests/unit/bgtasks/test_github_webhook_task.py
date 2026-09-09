@@ -153,22 +153,69 @@ class TestGithubWebhookHandlers:
         assert evaluate_delay.called
         assert evaluate_delay.call_args.kwargs["trigger_types"] == ["github.pr_opened"]
 
-    def test_events_ignore_repository_after_sync_is_removed(self, github_dev_context):
+    def test_pull_request_links_every_issue_with_the_same_branch(self, github_dev_context):
+        issue = github_dev_context["issue"]
+        repo = github_dev_context["repo"]
+        other = Issue.objects.create(
+            name="Second issue",
+            project=issue.project,
+            workspace=issue.workspace,
+            state=issue.state,
+            created_by=issue.created_by,
+        )
+        other.sequence_id = 99
+        other.save(update_fields=["sequence_id"])
+        for target in (issue, other):
+            IssueGithubBranch.objects.create(
+                issue=target,
+                project=issue.project,
+                repository=repo,
+                name="shared-feature",
+            )
+
+        with patch("plane.bgtasks.automation_task.evaluate_automations.delay") as evaluate_delay:
+            _handle_pull_request(
+                {
+                    "action": "opened",
+                    "pull_request": {
+                        "id": 2,
+                        "number": 7,
+                        "title": "Shared feature",
+                        "state": "open",
+                        "draft": False,
+                        "merged": False,
+                        "html_url": "https://github.com/makeplane/plane/pull/7",
+                        "head": {"ref": "shared-feature"},
+                        "base": {"ref": "main"},
+                    },
+                    "repository": {"id": 999001},
+                },
+                delivery_id="d4",
+            )
+
+        linked_issue_ids = set(IssueGithubPullRequest.objects.filter(number=7).values_list("issue_id", flat=True))
+        assert linked_issue_ids == {issue.id, other.id}
+        assert evaluate_delay.call_count == 2
+
+    def test_create_branch_auto_links_without_sync(self, github_dev_context):
         issue = github_dev_context["issue"]
         repo = github_dev_context["repo"]
         GithubRepositorySync.objects.filter(repository=repo).delete()
 
-        with patch("plane.bgtasks.automation_task.evaluate_automations.delay"):
+        with patch("plane.bgtasks.automation_task.evaluate_automations.delay") as evaluate_delay:
             _handle_create(
                 {
                     "ref_type": "branch",
                     "ref": "PROJ-12-stale-repository",
                     "repository": {"id": 999001},
-                }
+                },
+                delivery_id="d3",
             )
 
-        assert not IssueGithubBranch.objects.filter(
+        branch = IssueGithubBranch.objects.get(
             issue=issue,
             repository=repo,
             name="PROJ-12-stale-repository",
-        ).exists()
+        )
+        assert branch.status == "active"
+        assert evaluate_delay.called

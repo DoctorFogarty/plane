@@ -26,14 +26,19 @@ def _find_issue_for_identifier(workspace_id, identifier: str):
 
 
 def _repos_for_github_id(repository_id: int):
-    return list(
-        GithubRepository.objects.filter(
-            repository_id=repository_id,
-            syncs__deleted_at__isnull=True,
-        )
+    repositories = (
+        GithubRepository.objects.filter(repository_id=repository_id)
         .select_related("project", "workspace")
-        .distinct()
+        .order_by("created_at")
     )
+    seen_projects = set()
+    unique = []
+    for repository in repositories:
+        if repository.project_id in seen_projects:
+            continue
+        seen_projects.add(repository.project_id)
+        unique.append(repository)
+    return unique
 
 
 def _upsert_branch_for_issue(issue, repository, branch_name: str, head_sha: str = ""):
@@ -107,7 +112,6 @@ def _handle_push(payload: dict):
     IssueGithubBranch.objects.filter(
         repository__repository_id=int(repository_id),
         repository__deleted_at__isnull=True,
-        repository__syncs__deleted_at__isnull=True,
         name=branch_name,
     ).update(head_sha=head_sha or "")
 
@@ -134,6 +138,25 @@ def _github_pr_trigger(action: str, pr: dict) -> str | None:
     return None
 
 
+def _issues_for_pull_request(repository, head_branch: str, identifier: str | None):
+    issues = []
+    seen_issue_ids = set()
+    if head_branch:
+        linked_branches = IssueGithubBranch.objects.filter(repository=repository, name=head_branch).select_related(
+            "issue"
+        )
+        for linked_branch in linked_branches:
+            if linked_branch.issue_id in seen_issue_ids:
+                continue
+            seen_issue_ids.add(linked_branch.issue_id)
+            issues.append(linked_branch.issue)
+    if identifier:
+        candidate = _find_issue_for_identifier(repository.workspace_id, identifier)
+        if candidate and candidate.project_id == repository.project_id and candidate.id not in seen_issue_ids:
+            issues.append(candidate)
+    return issues
+
+
 def _handle_pull_request(payload: dict, delivery_id: str = ""):
     action = payload.get("action")
     if action not in {
@@ -153,6 +176,11 @@ def _handle_pull_request(payload: dict, delivery_id: str = ""):
     if not repository_id or not pr:
         return
 
+    try:
+        pr_number = int(pr.get("number"))
+    except (TypeError, ValueError):
+        return
+
     head_branch = (pr.get("head") or {}).get("ref") or ""
     title = pr.get("title") or ""
     body = pr.get("body") or ""
@@ -163,57 +191,47 @@ def _handle_pull_request(payload: dict, delivery_id: str = ""):
     )
 
     for repository in _repos_for_github_id(int(repository_id)):
-        issue = None
-        # Prefer already-linked branch
-        linked_branch = (
-            IssueGithubBranch.objects.filter(repository=repository, name=head_branch).select_related("issue").first()
-        )
-        if linked_branch:
-            issue = linked_branch.issue
-        elif identifier:
-            candidate = _find_issue_for_identifier(repository.workspace_id, identifier)
-            if candidate and candidate.project_id == repository.project_id:
-                issue = candidate
-
-        if not issue:
+        issues = _issues_for_pull_request(repository, head_branch, identifier)
+        if not issues:
             continue
 
         merged = bool(pr.get("merged_at") or pr.get("merged"))
-        IssueGithubPullRequest.objects.update_or_create(
-            issue=issue,
-            repository=repository,
-            number=int(pr.get("number")),
-            defaults={
-                "project_id": issue.project_id,
-                "github_id": pr.get("id"),
-                "title": title,
-                "state": pr.get("state") or "open",
-                "draft": bool(pr.get("draft")),
-                "merged": merged,
-                "html_url": pr.get("html_url") or "",
-                "head_branch": head_branch,
-                "base_branch": ((pr.get("base") or {}).get("ref") or ""),
-                "metadata": {"action": action},
-            },
-        )
-
-        trigger_type = _github_pr_trigger(action, pr)
-        if trigger_type:
-            _dispatch_github_automation(
-                issue,
-                trigger_type,
-                delivery_id,
-                {
-                    "action": action,
-                    "pr_number": pr.get("number"),
-                    "merged": merged,
+        for issue in issues:
+            IssueGithubPullRequest.objects.update_or_create(
+                issue=issue,
+                repository=repository,
+                number=pr_number,
+                defaults={
+                    "project_id": issue.project_id,
+                    "github_id": pr.get("id"),
+                    "title": title,
+                    "state": pr.get("state") or "open",
                     "draft": bool(pr.get("draft")),
+                    "merged": merged,
                     "html_url": pr.get("html_url") or "",
                     "head_branch": head_branch,
-                    "repository": f"{repository.owner}/{repository.name}",
-                    "event": "pull_request",
+                    "base_branch": ((pr.get("base") or {}).get("ref") or ""),
+                    "metadata": {"action": action},
                 },
             )
+
+            trigger_type = _github_pr_trigger(action, pr)
+            if trigger_type:
+                _dispatch_github_automation(
+                    issue,
+                    trigger_type,
+                    delivery_id,
+                    {
+                        "action": action,
+                        "pr_number": pr_number,
+                        "merged": merged,
+                        "draft": bool(pr.get("draft")),
+                        "html_url": pr.get("html_url") or "",
+                        "head_branch": head_branch,
+                        "repository": f"{repository.owner}/{repository.name}",
+                        "event": "pull_request",
+                    },
+                )
 
 
 @shared_task

@@ -116,6 +116,8 @@ export const APP_INTEGRATIONS = "APP_INTEGRATIONS";
 export const WORKSPACE_INTEGRATIONS = (workspaceSlug: string) =>
   `WORKSPACE_INTEGRATIONS_${workspaceSlug.toUpperCase()}`;
 export const ISSUE_GITHUB_DEVELOPMENT = (issueId: string) => `ISSUE_GITHUB_DEVELOPMENT_${issueId.toUpperCase()}`;
+export const ISSUE_GITHUB_INSTALLATION_REPOS = (issueId: string, q = "") =>
+  `ISSUE_GITHUB_INSTALLATION_REPOS_${issueId.toUpperCase()}_${q}`;
 
 export const JIRA_IMPORTER_DETAIL = (workspaceSlug: string, params: IJiraMetadata) => {
   const { api_token, cloud_hostname, email, project_key } = params;

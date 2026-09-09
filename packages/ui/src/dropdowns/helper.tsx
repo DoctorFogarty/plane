@@ -22,6 +22,7 @@ type Placement =
   | "right-end";
 
 export interface IDropdownProps {
+  id?: string;
   customButtonClassName?: string;
   customButtonTabIndex?: number;
   buttonClassName?: string;
@@ -72,7 +73,9 @@ interface CustomSearchSelectProps {
   onChange: any;
   onClose?: () => void;
   noResultsMessage?: string;
+  onSearchChange?: (query: string) => void;
   options?: ICustomSearchSelectOption[];
+  searchPlaceholder?: string;
 }
 
 interface SingleValueProps {

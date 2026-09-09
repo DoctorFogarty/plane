@@ -41,9 +41,13 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
     value,
     tabIndex,
     noResultsMessage = "No matches found",
+    onSearchChange,
+    searchPlaceholder = "Search",
     defaultOpen = false,
+    id,
   } = props;
   const [query, setQuery] = useState("");
+  const optionsId = React.useId();
 
   const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
@@ -55,8 +59,16 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
     placement: placement ?? "bottom-start",
   });
 
-  const filteredOptions =
-    query === "" ? options : options?.filter((option) => option.query.toLowerCase().includes(query.toLowerCase()));
+  const filteredOptions = onSearchChange
+    ? options
+    : query === ""
+      ? options
+      : options?.filter((option) => option.query.toLowerCase().includes(query.toLowerCase()));
+
+  const setSearchQuery = (next: string) => {
+    setQuery(next);
+    onSearchChange?.(next);
+  };
 
   const comboboxProps: any = {
     value,
@@ -74,7 +86,8 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
 
   const closeDropdown = () => {
     setIsOpen(false);
-    onClose && onClose();
+    setSearchQuery("");
+    onClose?.();
   };
 
   const handleKeyDown = useDropdownKeyDown(openDropdown, closeDropdown, isOpen);
@@ -90,6 +103,9 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
       as="div"
       ref={dropdownRef}
       tabIndex={tabIndex}
+      role="combobox"
+      aria-expanded={isOpen}
+      aria-controls={optionsId}
       className={cn("relative flex-shrink-0 text-left", className)}
       onKeyDown={handleKeyDown}
       {...comboboxProps}
@@ -102,6 +118,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
             {customButton ? (
               <Combobox.Button as={React.Fragment}>
                 <button
+                  id={id}
                   ref={setReferenceElement}
                   type="button"
                   className={cn(
@@ -120,6 +137,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
             ) : (
               <Combobox.Button as={React.Fragment}>
                 <button
+                  id={id}
                   ref={setReferenceElement}
                   type="button"
                   className={cn(
@@ -143,7 +161,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
             )}
             {isOpen &&
               createPortal(
-                <Combobox.Options data-prevent-outside-click static>
+                <Combobox.Options id={optionsId} data-prevent-outside-click static>
                   <div
                     className={cn(
                       "z-30 my-1 min-w-48 overflow-y-scroll rounded-md border-[0.5px] border-subtle-1 bg-surface-1 py-2.5 text-11 whitespace-nowrap focus:outline-none",
@@ -158,8 +176,8 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                       <Combobox.Input
                         className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search"
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={searchPlaceholder}
                         displayValue={(assigned: any) => assigned?.name}
                       />
                     </div>

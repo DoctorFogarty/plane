@@ -67,6 +67,7 @@ export const WorkItemAdditionalWidgetModals = observer(function WorkItemAddition
         repositories={data?.repositories ?? EMPTY_GITHUB_REPOSITORIES}
         isRepositoriesLoading={isLoading && !data}
         repositoriesError={Boolean(error)}
+        githubConnected={data?.github_connected}
         defaultBranchName={defaultBranchName}
         linkedBranches={data?.branches ?? EMPTY_GITHUB_BRANCHES}
         defaultPrTitle={defaultPrTitle}

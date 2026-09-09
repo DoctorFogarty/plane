@@ -73,7 +73,25 @@ export type TIssueGithubRemotePullRequest = {
   base_branch: string;
 };
 
+export type TGithubInstallationRepository = {
+  id: number;
+  name: string;
+  full_name: string;
+  html_url: string;
+  default_branch?: string;
+  private?: boolean;
+  owner?: {
+    login?: string;
+  };
+};
+
+export type TGithubInstallationRepositories = {
+  total_count: number;
+  repositories: TGithubInstallationRepository[];
+};
+
 export type TIssueGithubDevelopment = {
+  github_connected?: boolean;
   repositories: TIssueGithubRepository[];
   branches: TIssueGithubBranch[];
   pull_requests: TIssueGithubPullRequest[];

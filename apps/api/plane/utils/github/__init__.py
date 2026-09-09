@@ -7,6 +7,7 @@ from .client import (
     GitHubAPIError,
     normalize_github_app_name,
     normalize_private_key,
+    sanitize_github_search_query,
     validate_private_key,
 )
 from .identifier import (
@@ -24,6 +25,7 @@ __all__ = [
     "GitHubAPIError",
     "normalize_github_app_name",
     "normalize_private_key",
+    "sanitize_github_search_query",
     "validate_private_key",
     "build_branch_name",
     "build_pull_request_body",

@@ -10,6 +10,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from plane.app.views.integration.github_issue import (
     IssueGithubDevelopmentEndpoint,
+    _installation_id_for_project,
     _pull_request_create_error_message,
     _resolve_repository,
     _slim_branch,
@@ -32,6 +33,27 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.utils.github import GitHubAPIError, GitHubAppClient
+
+
+def _github_repository_payload(repo=None, **overrides):
+    owner = getattr(repo, "owner", "makeplane")
+    name = getattr(repo, "name", "plane")
+    payload = {
+        "id": getattr(repo, "repository_id", 999002),
+        "name": name,
+        "html_url": getattr(repo, "url", None) or f"https://github.com/{owner}/{name}",
+        "default_branch": "main",
+        "full_name": f"{owner}/{name}",
+        "private": False,
+        "owner": {"login": owner},
+    }
+    payload.update(overrides)
+    return payload
+
+
+def _attach_repository_lookup(mock_client, repo=None, **overrides):
+    mock_client.get_repository_by_id.return_value = _github_repository_payload(repo, **overrides)
+    return mock_client
 
 
 @pytest.fixture
@@ -64,7 +86,11 @@ def github_dev_context(db, create_user):
         integration=integration,
         actor=bot,
         api_token=token,
-        config={"installation_id": "123"},
+        config={
+            "installation_id": "123",
+            "account_login": "makeplane",
+            "account_type": "Organization",
+        },
     )
     repo = GithubRepository.objects.create(
         project=project,
@@ -180,6 +206,76 @@ class TestGithubClientListMethods:
             assert client.list_branches("o", "r") == []
             assert client.list_pull_requests("o", "r") == []
 
+    def test_list_account_repositories_sorts_by_pushed(self):
+        with patch(
+            "plane.utils.github.client._get_github_app_config",
+            return_value={
+                "app_id": "1",
+                "private_key": "",
+                "client_id": "",
+                "client_secret": "",
+                "webhook_secret": "",
+                "app_name": "test",
+            },
+        ):
+            client = GitHubAppClient(installation_id="1")
+        with patch.object(client, "request", return_value=[{"id": 1, "name": "plane"}]) as mock_req:
+            result = client.list_account_repositories("makeplane", "Organization", per_page=100)
+        mock_req.assert_called_once_with(
+            "GET",
+            "/orgs/makeplane/repos?sort=pushed&direction=desc&per_page=100",
+        )
+        assert result["total_count"] == 1
+        assert result["repositories"][0]["name"] == "plane"
+
+    def test_search_account_repositories_scopes_and_sanitizes(self):
+        with patch(
+            "plane.utils.github.client._get_github_app_config",
+            return_value={
+                "app_id": "1",
+                "private_key": "",
+                "client_id": "",
+                "client_secret": "",
+                "webhook_secret": "",
+                "app_name": "test",
+            },
+        ):
+            client = GitHubAppClient(installation_id="1")
+        with patch.object(
+            client,
+            "request",
+            return_value={"total_count": 1, "items": [{"id": 456, "name": "website"}]},
+        ) as mock_req:
+            result = client.search_account_repositories(
+                "makeplane",
+                "Organization",
+                "org:evil website",
+            )
+        path = mock_req.call_args[0][1]
+        assert "sort=updated" in path
+        assert "org%3Amakeplane" in path or "org:makeplane" in path
+        assert "website" in path
+        assert "evil" not in path
+        assert result["repositories"][0]["id"] == 456
+
+    def test_search_account_repositories_skips_empty_sanitized_query(self):
+        with patch(
+            "plane.utils.github.client._get_github_app_config",
+            return_value={
+                "app_id": "1",
+                "private_key": "",
+                "client_id": "",
+                "client_secret": "",
+                "webhook_secret": "",
+                "app_name": "test",
+            },
+        ):
+            client = GitHubAppClient(installation_id="1")
+        with patch.object(client, "request") as mock_req:
+            result = client.search_account_repositories("makeplane", "Organization", "org:evil")
+        mock_req.assert_not_called()
+        assert result == {"total_count": 0, "repositories": []}
+
 
 @pytest.mark.unit
 class TestGithubIssueHelpers:
@@ -214,15 +310,22 @@ class TestGithubIssueHelpers:
     def test_resolve_repository_wrong_id(self, github_dev_context):
         repo, error = _resolve_repository(github_dev_context["project"].id, "00000000-0000-0000-0000-000000000099")
         assert repo is None
-        assert error == "Repository not linked to this project"
+        assert error == "Repository not found"
 
     def test_resolve_repository_success(self, github_dev_context):
-        repo, error = _resolve_repository(github_dev_context["project"].id, str(github_dev_context["repo"].id))
+        ctx = github_dev_context
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            repo, error = _resolve_repository(ctx["project"].id, str(ctx["repo"].id))
         assert error is None
         assert repo is not None
         assert repo.name == "plane"
+        mock_client.get_repository_by_id.assert_called_once_with(ctx["repo"].repository_id)
 
-    def test_resolve_repository_rejects_unsynced_repository(self, github_dev_context):
+    def test_resolve_repository_allows_unsynced_repository(self, github_dev_context):
         ctx = github_dev_context
         stale_repository = GithubRepository.objects.create(
             project=ctx["project"],
@@ -231,11 +334,57 @@ class TestGithubIssueHelpers:
             repository_id=999003,
             url="https://github.com/makeplane/stale",
         )
+        mock_client = _attach_repository_lookup(MagicMock(), stale_repository)
 
-        repository, error = _resolve_repository(ctx["project"].id, stale_repository.id)
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            repository, error = _resolve_repository(ctx["project"].id, stale_repository.id)
 
+        assert error is None
+        assert repository is not None
+        assert repository.id == stale_repository.id
+        mock_client.get_repository_by_id.assert_called_once_with(999003)
+
+    def test_resolve_repository_refreshes_stale_metadata(self, github_dev_context):
+        ctx = github_dev_context
+        mock_client = _attach_repository_lookup(
+            MagicMock(),
+            ctx["repo"],
+            name="plane-renamed",
+            html_url="https://github.com/makeplane/plane-renamed",
+            full_name="makeplane/plane-renamed",
+        )
+
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            repository, error = _resolve_repository(ctx["project"].id, str(ctx["repo"].id))
+
+        assert error is None
+        ctx["repo"].refresh_from_db()
+        assert repository.name == "plane-renamed"
+        assert ctx["repo"].name == "plane-renamed"
+        assert ctx["repo"].url == "https://github.com/makeplane/plane-renamed"
+
+    def test_resolve_repository_rejects_inaccessible_existing(self, github_dev_context):
+        ctx = github_dev_context
+        mock_client = MagicMock()
+        mock_client.get_repository_by_id.side_effect = GitHubAPIError("missing", status_code=404, response="{}")
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            repository, error = _resolve_repository(ctx["project"].id, str(ctx["repo"].id))
         assert repository is None
-        assert error == "Repository not linked to this project"
+        assert "not accessible" in error
+
+    def test_installation_id_falls_back_to_workspace_integration(self, github_dev_context):
+        ctx = github_dev_context
+        GithubRepositorySync.objects.filter(project=ctx["project"]).delete()
+        assert _installation_id_for_project(ctx["project"].id) == "123"
 
 
 @pytest.mark.unit
@@ -269,7 +418,7 @@ class TestIssueGithubDevelopmentLink:
         view = IssueGithubDevelopmentEndpoint.as_view()
         return view(request, slug=workspace.slug, project_id=str(project.id), issue_id=str(issue.id))
 
-    def test_get_development_only_returns_active_repository_links(self, github_dev_context):
+    def test_get_development_returns_unsynced_repository_branches(self, github_dev_context):
         ctx = github_dev_context
         active_branch = IssueGithubBranch.objects.create(
             issue=ctx["issue"],
@@ -284,7 +433,7 @@ class TestIssueGithubDevelopmentLink:
             repository_id=999003,
             url="https://github.com/makeplane/stale",
         )
-        IssueGithubBranch.objects.create(
+        stale_branch = IssueGithubBranch.objects.create(
             issue=ctx["issue"],
             repository=stale_repository,
             name="stale",
@@ -299,12 +448,13 @@ class TestIssueGithubDevelopmentLink:
         )
 
         assert response.status_code == status.HTTP_200_OK
+        assert response.data["github_connected"] is True
         assert [repository["id"] for repository in response.data["repositories"]] == [ctx["repo"].id]
-        assert [branch["id"] for branch in response.data["branches"]] == [active_branch.id]
+        assert {branch["id"] for branch in response.data["branches"]} == {active_branch.id, stale_branch.id}
 
     def test_create_branch_success(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.get_ref.return_value = {"object": {"sha": "deadbeef"}}
         with (
             patch(
@@ -336,6 +486,170 @@ class TestIssueGithubDevelopmentLink:
             "feature/connect-code",
             "deadbeef",
         )
+
+    def test_create_branch_without_project_sync(self, github_dev_context):
+        ctx = github_dev_context
+        GithubRepositorySync.objects.filter(project=ctx["project"]).delete()
+        GithubRepository.objects.filter(project=ctx["project"]).delete()
+        mock_client = MagicMock()
+        mock_client.get_repository_by_id.return_value = {
+            "id": 888001,
+            "name": "website",
+            "html_url": "https://github.com/frc/website",
+            "default_branch": "master",
+            "full_name": "frc/website",
+            "private": False,
+            "owner": {"login": "frc"},
+        }
+        mock_client.get_ref.return_value = {"object": {"sha": "abc123"}}
+        with (
+            patch(
+                "plane.app.views.integration.github_issue._get_client_for_project",
+                return_value=mock_client,
+            ),
+            patch("plane.app.views.integration.github_issue._emit_activity"),
+        ):
+            response = self._post(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                {
+                    "action": "create_branch",
+                    "repository_id": 888001,
+                    "base_branch": "master",
+                    "branch_name": "PROJ-12-stop-shooting",
+                },
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        repository = GithubRepository.objects.get(project=ctx["project"], repository_id=888001)
+        assert repository.owner == "frc"
+        assert repository.name == "website"
+        mock_client.get_repository_by_id.assert_called_once_with(888001)
+        mock_client.create_branch.assert_called_once_with(
+            "frc",
+            "website",
+            "PROJ-12-stop-shooting",
+            "abc123",
+        )
+
+    def test_create_branch_rejects_inaccessible_repository(self, github_dev_context):
+        ctx = github_dev_context
+        GithubRepositorySync.objects.filter(project=ctx["project"]).delete()
+        GithubRepository.objects.filter(project=ctx["project"]).delete()
+        mock_client = MagicMock()
+        mock_client.get_repository_by_id.side_effect = GitHubAPIError("missing", status_code=404, response="{}")
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            response = self._post(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                {
+                    "action": "create_branch",
+                    "repository_id": 777001,
+                    "branch_name": "feature/x",
+                },
+            )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "not accessible" in response.data["error"]
+        assert GithubRepository.objects.filter(project=ctx["project"]).count() == 0
+
+    def test_list_installation_repositories(self, github_dev_context):
+        ctx = github_dev_context
+        mock_client = MagicMock()
+        mock_client.list_account_repositories.return_value = {
+            "total_count": 1,
+            "repositories": [{"id": 1, "name": "plane"}],
+        }
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            response = self._get(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                "?list=repositories",
+            )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["total_count"] == 1
+        mock_client.list_account_repositories.assert_called_once_with("makeplane", "Organization", per_page=100)
+        mock_client.list_repositories.assert_not_called()
+
+    def test_list_installation_repositories_searches_account(self, github_dev_context):
+        ctx = github_dev_context
+        mock_client = MagicMock()
+        mock_client.search_account_repositories.return_value = {
+            "total_count": 1,
+            "repositories": [{"id": 456, "name": "website"}],
+        }
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            response = self._get(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                "?list=repositories&q=website",
+            )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["repositories"][0]["name"] == "website"
+        mock_client.search_account_repositories.assert_called_once_with("makeplane", "Organization", "website")
+
+    def test_list_installation_repositories_falls_back_to_installation(self, github_dev_context):
+        ctx = github_dev_context
+        workspace_integration = WorkspaceIntegration.objects.get(workspace=ctx["workspace"])
+        workspace_integration.config = {"installation_id": "123"}
+        workspace_integration.save(update_fields=["config"])
+        mock_client = MagicMock()
+        mock_client.get_installation.return_value = {
+            "account": {"login": "frc", "id": 99, "type": "Organization"},
+            "target_type": "Organization",
+        }
+        mock_client.list_account_repositories.return_value = {
+            "total_count": 0,
+            "repositories": [],
+        }
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=mock_client,
+        ):
+            response = self._get(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                "?list=repositories",
+            )
+        assert response.status_code == status.HTTP_200_OK
+        mock_client.get_installation.assert_called_once()
+        mock_client.list_account_repositories.assert_called_once_with("frc", "Organization", per_page=100)
+        workspace_integration.refresh_from_db()
+        assert workspace_integration.config["account_login"] == "frc"
+
+    def test_list_installation_repositories_requires_install(self, github_dev_context):
+        ctx = github_dev_context
+        with patch(
+            "plane.app.views.integration.github_issue._get_client_for_project",
+            return_value=None,
+        ):
+            response = self._get(
+                ctx["user"],
+                ctx["workspace"],
+                ctx["project"],
+                ctx["issue"],
+                "?list=repositories",
+            )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "not installed" in response.data["error"]
 
     def test_unlink_branch(self, github_dev_context):
         ctx = github_dev_context
@@ -381,7 +695,7 @@ class TestIssueGithubDevelopmentLink:
 
     def test_link_branch_success(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.get_branch.return_value = {"commit": {"sha": "deadbeef"}}
         with (
             patch(
@@ -409,7 +723,7 @@ class TestIssueGithubDevelopmentLink:
 
     def test_link_branch_not_found_on_github(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.get_branch.side_effect = GitHubAPIError("missing", status_code=404, response="{}")
         with patch(
             "plane.app.views.integration.github_issue._get_client_for_project",
@@ -431,7 +745,7 @@ class TestIssueGithubDevelopmentLink:
 
     def test_link_pull_request_success(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.get_pull_request.return_value = {
             "id": 55,
             "title": "Fix crash",
@@ -467,7 +781,7 @@ class TestIssueGithubDevelopmentLink:
 
     def test_list_branches_remote(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.list_branches.return_value = [
             {"name": "main", "protected": True, "commit": {"sha": "aaa"}},
             {"name": "feat-login", "protected": False, "commit": {"sha": "bbb"}},
@@ -505,7 +819,7 @@ class TestIssueGithubDevelopmentLink:
 
     def test_create_pull_request_success(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.create_pull_request.return_value = {
             "id": 88,
             "number": 42,
@@ -591,7 +905,7 @@ class TestIssueGithubDevelopmentLink:
 
     def test_create_pull_request_already_exists(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.create_pull_request.side_effect = GitHubAPIError(
             "failed",
             status_code=422,
@@ -617,7 +931,7 @@ class TestIssueGithubDevelopmentLink:
 
     def test_create_pull_request_no_commits(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.create_pull_request.side_effect = GitHubAPIError(
             "failed",
             status_code=422,
@@ -643,7 +957,7 @@ class TestIssueGithubDevelopmentLink:
 
     def test_create_pull_request_defaults_title_and_body(self, github_dev_context):
         ctx = github_dev_context
-        mock_client = MagicMock()
+        mock_client = _attach_repository_lookup(MagicMock(), ctx["repo"])
         mock_client.create_pull_request.return_value = {
             "id": 1,
             "number": 7,

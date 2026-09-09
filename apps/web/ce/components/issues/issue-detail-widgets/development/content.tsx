@@ -179,16 +179,10 @@ export function DevelopmentCollapsibleContent(props: Props) {
     commits: [],
   };
 
-  if (development.repositories.length === 0 && development.branches.length === 0) {
+  if (development.branches.length === 0 && development.pull_requests.length === 0) {
     return (
       <div className="px-1 py-2">
         <p className="text-13 text-secondary">No branches yet</p>
-        <a
-          href={`/${workspaceSlug}/settings/projects/${projectId}/integrations`}
-          className="mt-1 inline-block text-13 text-accent-primary hover:underline"
-        >
-          Link a repository in project settings
-        </a>
       </div>
     );
   }

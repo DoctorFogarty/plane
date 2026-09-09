@@ -5,13 +5,28 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote
 
 import jwt
 import requests
 
 from plane.license.utils.instance_value import get_configuration_value
+
+
+_SEARCH_DISALLOWED = re.compile(r"[^A-Za-z0-9._/-]+")
+
+
+def sanitize_github_search_query(raw: str) -> str:
+    """Strip GitHub search qualifiers and characters that are not part of a repo name."""
+    remaining = " ".join(token for token in str(raw or "").split() if ":" not in token)
+    return _SEARCH_DISALLOWED.sub("", remaining).strip()[:256]
+
+
+def _account_is_user(account_type: str | None) -> bool:
+    return str(account_type or "").strip().lower() == "user"
 
 
 class GitHubAPIError(Exception):
@@ -214,6 +229,46 @@ class GitHubAppClient:
             "GET",
             f"/installation/repositories?page={page}&per_page={per_page}",
         )
+
+    def list_account_repositories(
+        self,
+        login: str,
+        account_type: str | None = None,
+        per_page: int = 100,
+    ) -> Dict[str, Any]:
+        encoded = quote(login, safe="")
+        if _account_is_user(account_type):
+            path = f"/users/{encoded}/repos?sort=pushed&direction=desc&type=all&per_page={per_page}"
+        else:
+            path = f"/orgs/{encoded}/repos?sort=pushed&direction=desc&per_page={per_page}"
+        data = self.request("GET", path)
+        repositories = data if isinstance(data, list) else []
+        return {"total_count": len(repositories), "repositories": repositories}
+
+    def search_account_repositories(
+        self,
+        login: str,
+        account_type: str | None,
+        q: str,
+        per_page: int = 30,
+    ) -> Dict[str, Any]:
+        sanitized = sanitize_github_search_query(q)
+        if not sanitized:
+            return {"total_count": 0, "repositories": []}
+        qualifier = "user" if _account_is_user(account_type) else "org"
+        safe_login = sanitize_github_search_query(login) or login
+        query = f"{sanitized} {qualifier}:{safe_login}"
+        data = self.request(
+            "GET",
+            f"/search/repositories?q={quote(query)}&sort=updated&per_page={per_page}",
+        )
+        if not isinstance(data, dict):
+            return {"total_count": 0, "repositories": []}
+        items = data.get("items") or []
+        return {
+            "total_count": data.get("total_count", len(items)),
+            "repositories": items,
+        }
 
     def get_repository(self, owner: str, repo: str) -> Dict[str, Any]:
         return self.request("GET", f"/repos/{owner}/{repo}")

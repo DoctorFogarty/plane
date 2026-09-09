@@ -7,6 +7,7 @@ import re
 
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
@@ -26,6 +27,7 @@ from plane.db.models import (
     IssueGithubBranch,
     IssueGithubPullRequest,
     Project,
+    WorkspaceIntegration,
 )
 from plane.utils.github import (
     GitHubAPIError,
@@ -37,13 +39,26 @@ from plane.utils.github import (
 from plane.utils.host import base_host
 
 
+def _workspace_integration_for_project(project_id) -> WorkspaceIntegration | None:
+    project = Project.objects.filter(pk=project_id).first()
+    if not project:
+        return None
+    return WorkspaceIntegration.objects.filter(
+        workspace_id=project.workspace_id,
+        integration__provider="github",
+    ).first()
+
+
 def _installation_id_for_project(project_id) -> str | None:
     sync = GithubRepositorySync.objects.filter(project_id=project_id).select_related("workspace_integration").first()
-    if not sync:
+    if sync:
+        return (sync.credentials or {}).get("installation_id") or (sync.workspace_integration.config or {}).get(
+            "installation_id"
+        )
+    workspace_integration = _workspace_integration_for_project(project_id)
+    if not workspace_integration:
         return None
-    return (sync.credentials or {}).get("installation_id") or (sync.workspace_integration.config or {}).get(
-        "installation_id"
-    )
+    return (workspace_integration.config or {}).get("installation_id")
 
 
 def _get_client_for_project(project_id) -> GitHubAppClient | None:
@@ -53,6 +68,49 @@ def _get_client_for_project(project_id) -> GitHubAppClient | None:
     return GitHubAppClient(installation_id=installation_id)
 
 
+def _persist_installation_account(workspace_integration: WorkspaceIntegration, installation: dict) -> tuple[str, str]:
+    account = installation.get("account") or {}
+    login = account.get("login") or ""
+    account_type = account.get("type") or installation.get("target_type") or "Organization"
+    if not login:
+        return "", account_type
+    config = dict(workspace_integration.config or {})
+    config.update(
+        {
+            "account_login": login,
+            "account_id": account.get("id"),
+            "account_type": account.get("type"),
+            "target_type": installation.get("target_type"),
+        }
+    )
+    workspace_integration.config = config
+    workspace_integration.save(update_fields=["config", "updated_at"])
+    return login, account_type
+
+
+def _installation_account_for_project(project_id) -> tuple[str | None, str | None]:
+    workspace_integration = _workspace_integration_for_project(project_id)
+    if not workspace_integration:
+        return None, None
+    config = workspace_integration.config or {}
+    login = config.get("account_login")
+    account_type = config.get("account_type") or config.get("target_type")
+    if login:
+        return login, account_type or "Organization"
+
+    client = _get_client_for_project(project_id)
+    if not client:
+        return None, None
+    try:
+        installation = client.get_installation()
+    except GitHubAPIError:
+        return None, None
+    login, account_type = _persist_installation_account(workspace_integration, installation)
+    if not login:
+        return None, None
+    return login, account_type
+
+
 def _active_repository_ids(project_id):
     return GithubRepositorySync.objects.filter(
         project_id=project_id,
@@ -60,36 +118,137 @@ def _active_repository_ids(project_id):
     ).values_list("repository_id", flat=True)
 
 
-def _resolve_repository(project_id, repository_id) -> tuple[GithubRepository | None, str | None]:
-    """Resolve a linked project repository by Plane UUID or GitHub numeric id.
+def _parse_github_repository_id(repository_id) -> int | None:
+    try:
+        value = int(repository_id)
+    except (TypeError, ValueError):
+        return None
+    if value < 1:
+        return None
+    return value
 
-    Returns (repository, error_message). error_message is set when resolution fails.
+
+def _existing_project_repository(project_id, repository_id) -> GithubRepository | None:
+    try:
+        repository = GithubRepository.objects.filter(project_id=project_id, pk=repository_id).first()
+        if repository:
+            return repository
+    except (TypeError, ValueError, ValidationError):
+        pass
+    github_repo_id = _parse_github_repository_id(repository_id)
+    if github_repo_id is None:
+        return None
+    return GithubRepository.objects.filter(project_id=project_id, repository_id=github_repo_id).first()
+
+
+def _fields_from_github_repository(data: dict) -> dict | None:
+    if not isinstance(data, dict):
+        return None
+    owner = (data.get("owner") or {}).get("login")
+    name = data.get("name")
+    try:
+        github_repo_id = int(data.get("id"))
+    except (TypeError, ValueError):
+        github_repo_id = None
+    if not owner or not name or github_repo_id is None:
+        return None
+    return {
+        "name": name,
+        "owner": owner,
+        "repository_id": github_repo_id,
+        "url": data.get("html_url") or f"https://github.com/{owner}/{name}",
+        "config": {
+            "default_branch": data.get("default_branch") or "",
+            "full_name": data.get("full_name") or f"{owner}/{name}",
+            "private": bool(data.get("private")),
+        },
+    }
+
+
+def _apply_repository_fields(repository: GithubRepository, fields: dict) -> GithubRepository:
+    update_fields = []
+    for key in ("name", "owner", "url", "config"):
+        if getattr(repository, key) != fields[key]:
+            setattr(repository, key, fields[key])
+            update_fields.append(key)
+    if update_fields:
+        repository.save(update_fields=[*update_fields, "updated_at"])
+    return repository
+
+
+def _persist_repository(project_id, fields: dict) -> GithubRepository | None:
+    project = Project.objects.filter(pk=project_id).first()
+    if not project:
+        return None
+    defaults = {
+        "project": project,
+        "name": fields["name"],
+        "owner": fields["owner"],
+        "url": fields["url"],
+        "config": fields["config"],
+    }
+    try:
+        with transaction.atomic():
+            repository, created = GithubRepository.objects.get_or_create(
+                project_id=project_id,
+                repository_id=fields["repository_id"],
+                defaults=defaults,
+            )
+    except IntegrityError:
+        repository = GithubRepository.objects.filter(
+            project_id=project_id,
+            repository_id=fields["repository_id"],
+        ).first()
+        if not repository:
+            return None
+        created = False
+    if not created:
+        return _apply_repository_fields(repository, fields)
+    return repository
+
+
+def _fetch_installation_repository(project_id, github_repo_id: int) -> tuple[dict | None, str | None]:
+    client = _get_client_for_project(project_id)
+    if not client:
+        return None, "GitHub App is not installed for this project"
+    try:
+        data = client.get_repository_by_id(github_repo_id)
+    except GitHubAPIError:
+        return None, "Repository is not accessible to this GitHub App installation"
+    fields = _fields_from_github_repository(data)
+    if not fields or fields["repository_id"] != github_repo_id:
+        return None, "GitHub returned invalid repository metadata"
+    return fields, None
+
+
+def _resolve_repository(
+    project_id, repository_id, persist: bool = True
+) -> tuple[GithubRepository | None, str | None]:
+    """Resolve a project repository by Plane UUID or GitHub numeric id.
+
+    Always verifies the current installation can access the GitHub repo, then
+    optionally persists or refreshes the local GithubRepository row.
+    persist=False is for remote list lookups.
     """
     if not repository_id:
         return None, "repository_id is required"
 
-    syncs = GithubRepositorySync.objects.filter(
-        project_id=project_id,
-        repository__deleted_at__isnull=True,
-    ).select_related("repository")
-    if not syncs.exists():
-        return None, "No repositories linked. Link a repository in project settings."
+    existing = _existing_project_repository(project_id, repository_id)
+    github_repo_id = existing.repository_id if existing else _parse_github_repository_id(repository_id)
+    if github_repo_id is None:
+        return None, "Repository not found"
 
-    sync = None
-    try:
-        sync = syncs.filter(repository_id=repository_id).first()
-    except (TypeError, ValueError, ValidationError):
-        sync = None
-    if not sync:
-        try:
-            github_repo_id = int(repository_id)
-        except (TypeError, ValueError):
-            github_repo_id = None
-        if github_repo_id is not None:
-            sync = syncs.filter(repository__repository_id=github_repo_id).first()
-    if not sync:
-        return None, "Repository not linked to this project"
-    return sync.repository, None
+    fields, error = _fetch_installation_repository(project_id, github_repo_id)
+    if error:
+        return None, error
+
+    if persist:
+        repository = _persist_repository(project_id, fields)
+        if not repository:
+            return None, "Project not found"
+        return repository, None
+
+    return GithubRepository(**fields), None
 
 
 def _emit_activity(request, *, activity_type: str, issue_id, project_id, data, current=None):
@@ -206,21 +365,21 @@ class IssueGithubDevelopmentEndpoint(BaseAPIView):
             return Response({"error": "Work item not found"}, status=status.HTTP_404_NOT_FOUND)
 
         list_kind = request.GET.get("list")
+        if list_kind == "repositories":
+            return self._list_installation_repositories(request, project_id)
         if list_kind in ("branches", "pull_requests"):
             return self._list_remote(request, project_id, list_kind)
 
-        active_repository_ids = _active_repository_ids(project_id)
+        default_repository_ids = _active_repository_ids(project_id)
         branches = IssueGithubBranch.objects.filter(
             issue_id=issue_id,
             project_id=project_id,
-            repository_id__in=active_repository_ids,
         ).select_related("repository")
         pull_requests = IssueGithubPullRequest.objects.filter(
             issue_id=issue_id,
             project_id=project_id,
-            repository_id__in=active_repository_ids,
         ).select_related("repository")
-        linked_repos = GithubRepository.objects.filter(project_id=project_id, id__in=active_repository_ids)
+        linked_repos = GithubRepository.objects.filter(project_id=project_id, id__in=default_repository_ids)
 
         include_commits = request.GET.get("include_commits") == "1"
         branch_id = request.GET.get("branch_id")
@@ -244,6 +403,7 @@ class IssueGithubDevelopmentEndpoint(BaseAPIView):
                 commits_error = "GitHub App is not installed for this project"
 
         payload = {
+            "github_connected": bool(_installation_id_for_project(project_id)),
             "repositories": GithubRepositorySerializer(linked_repos, many=True).data,
             "branches": IssueGithubBranchSerializer(branches, many=True).data,
             "pull_requests": IssueGithubPullRequestSerializer(pull_requests, many=True).data,
@@ -254,9 +414,44 @@ class IssueGithubDevelopmentEndpoint(BaseAPIView):
 
         return Response(payload, status=status.HTTP_200_OK)
 
+    def _list_installation_repositories(self, request, project_id):
+        client = _get_client_for_project(project_id)
+        if not client:
+            return Response(
+                {"error": "GitHub App is not installed for this workspace"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        login, account_type = _installation_account_for_project(project_id)
+        if not login:
+            return Response(
+                {"error": "GitHub App is not installed for this workspace"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        query = (request.GET.get("q") or "").strip()
+        try:
+            if query:
+                data = client.search_account_repositories(login, account_type, query)
+            else:
+                data = client.list_account_repositories(login, account_type, per_page=100)
+        except GitHubAPIError as exc:
+            return Response(
+                {"error": str(exc), "detail": exc.response},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "total_count": data.get("total_count", 0),
+                "repositories": data.get("repositories", []),
+            },
+            status=status.HTTP_200_OK,
+        )
+
     def _list_remote(self, request, project_id, list_kind: str):
         repository_id = request.GET.get("repository_id")
-        repository, error = _resolve_repository(project_id, repository_id)
+        repository, error = _resolve_repository(project_id, repository_id, persist=False)
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -324,7 +519,6 @@ class IssueGithubDevelopmentEndpoint(BaseAPIView):
                 workspace__slug=slug,
                 project_id=project_id,
                 issue_id=issue_id,
-                repository_id__in=_active_repository_ids(project_id),
                 pk=pk,
             ).first()
             if not obj:
@@ -345,7 +539,6 @@ class IssueGithubDevelopmentEndpoint(BaseAPIView):
                 workspace__slug=slug,
                 project_id=project_id,
                 issue_id=issue_id,
-                repository_id__in=_active_repository_ids(project_id),
                 pk=pk,
             ).first()
             if not obj:

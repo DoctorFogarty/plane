@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@headlessui/react";
 import useSWR, { mutate } from "swr";
 import { ISSUE_GITHUB_DEVELOPMENT } from "@plane/constants";
@@ -12,15 +12,38 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type {
   TConnectCodeMode,
+  TGithubInstallationRepository,
   TIssueGithubBranch,
   TIssueGithubPullRequest,
   TIssueGithubRepository,
 } from "@plane/types";
 import { EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
 import { copyTextToClipboard, cn } from "@plane/utils";
-import { EMPTY_GITHUB_BRANCHES, EMPTY_GITHUB_REPOSITORIES } from "@/plane-web/hooks/use-issue-github-development";
+import { useGithubInstallationRepositories } from "@/plane-web/hooks/use-github-installation-repositories";
+import { EMPTY_GITHUB_BRANCHES } from "@/plane-web/hooks/use-issue-github-development";
 import { IssueGithubService } from "@/services/issue";
 import { CreatePullRequestForm } from "./create-pull-request-form";
+import { ConnectCodeRepositoryPicker, type TConnectCodePickerRepository } from "./repository-picker";
+
+function toPickerRepository(repository: TIssueGithubRepository): TConnectCodePickerRepository {
+  return {
+    id: repository.repository_id,
+    owner: repository.owner,
+    name: repository.name,
+    default_branch: repository.config?.default_branch,
+  };
+}
+
+function toPickerFromInstallation(repository: TGithubInstallationRepository): TConnectCodePickerRepository | null {
+  const owner = repository.owner?.login;
+  if (!repository.id || repository.id <= 0 || !owner || !repository.name) return null;
+  return {
+    id: repository.id,
+    owner,
+    name: repository.name,
+    default_branch: repository.default_branch,
+  };
+}
 
 type Props = {
   isOpen: boolean;
@@ -33,6 +56,7 @@ type Props = {
   repositories: TIssueGithubRepository[];
   isRepositoriesLoading: boolean;
   repositoriesError?: boolean;
+  githubConnected?: boolean;
   defaultBranchName: string;
   linkedBranches?: TIssueGithubBranch[];
   defaultPrTitle?: string;
@@ -58,15 +82,16 @@ export function ConnectCodeModal(props: Props) {
     projectId,
     issueId,
     repositories,
-    isRepositoriesLoading,
-    repositoriesError,
+    githubConnected,
     defaultBranchName,
     linkedBranches = EMPTY_GITHUB_BRANCHES,
     defaultPrTitle = "",
     defaultPrBody = "",
   } = props;
 
-  const [repositoryId, setRepositoryId] = useState("");
+  const [repositoryId, setRepositoryId] = useState(() =>
+    repositories[0]?.repository_id ? String(repositories[0].repository_id) : ""
+  );
   const [baseBranch, setBaseBranch] = useState("main");
   const [branchName, setBranchName] = useState(defaultBranchName);
   const [prNumber, setPrNumber] = useState("");
@@ -76,11 +101,44 @@ export function ConnectCodeModal(props: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [created, setCreated] = useState<TIssueGithubBranch | null>(null);
   const [linkedPr, setLinkedPr] = useState<TIssueGithubPullRequest | null>(null);
+  const [repoQuery, setRepoQuery] = useState("");
   const ignoreCloseRef = useRef(false);
 
-  const repos = repositories.length > 0 ? repositories : EMPTY_GITHUB_REPOSITORIES;
-  const selectedRepository = repos.find((repo) => repo.id === repositoryId) ?? repos[0];
-  const defaultBaseFromRepo = selectedRepository?.config?.default_branch || "";
+  const defaultRepositoryId = repositories[0]?.repository_id;
+  const defaultRepoDefaultBranch = repositories[0]?.config?.default_branch || "main";
+  const fetchInstallationRepos = useCallback(
+    (q: string) => issueGithubService.listInstallationRepositories(workspaceSlug, projectId, issueId, q),
+    [issueId, projectId, workspaceSlug]
+  );
+  const {
+    repositories: installationRepos,
+    errorMessage: installationErrorMessage,
+    isNotConnected,
+    isLoading: isInstallationLoading,
+    isSearching,
+    retry: retryInstallation,
+  } = useGithubInstallationRepositories(issueId, isOpen, fetchInstallationRepos, repoQuery);
+
+  const pickerRepos: TConnectCodePickerRepository[] = [];
+  const seenRepositoryIds = new Set<number>();
+  if (repositories[0]) {
+    const defaultRepo = toPickerRepository(repositories[0]);
+    pickerRepos.push(defaultRepo);
+    seenRepositoryIds.add(defaultRepo.id);
+  }
+  for (const repository of installationRepos) {
+    const pickerRepo = toPickerFromInstallation(repository);
+    if (!pickerRepo || seenRepositoryIds.has(pickerRepo.id)) continue;
+    seenRepositoryIds.add(pickerRepo.id);
+    pickerRepos.push(pickerRepo);
+  }
+
+  const repoById = new Map(pickerRepos.map((repository) => [repository.id, repository]));
+  const selectedGithubId = repositoryId ? Number(repositoryId) : null;
+  const selectedRepository = selectedGithubId != null ? (repoById.get(selectedGithubId) ?? null) : null;
+  const defaultBaseFromRepo = selectedRepository?.default_branch || "";
+  const hasPickerRepos = pickerRepos.length > 0;
+  const isDisconnected = isNotConnected || githubConnected === false;
 
   const {
     data: remoteBranches,
@@ -126,16 +184,21 @@ export function ConnectCodeModal(props: Props) {
     setCreated(null);
     setLinkedPr(null);
     setBranchName(defaultBranchName);
-    setBaseBranch(repositories[0]?.config?.default_branch || "main");
+    setBaseBranch(defaultRepoDefaultBranch);
     setPrNumber("");
     setPrTitle(defaultPrTitle);
     setPrBody(defaultPrBody);
     setDraft(false);
-    setRepositoryId(repositories[0]?.id || "");
+    setRepositoryId(defaultRepositoryId ? String(defaultRepositoryId) : "");
     ignoreCloseRef.current = false;
-    // Reset when modal opens, mode changes, or first repo becomes available
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally key off first repo id
-  }, [defaultBranchName, defaultPrBody, defaultPrTitle, isOpen, mode, repositories[0]?.id]);
+    setRepoQuery("");
+  }, [defaultBranchName, defaultPrBody, defaultPrTitle, defaultRepoDefaultBranch, defaultRepositoryId, isOpen]);
+
+  const firstPickerRepoId = pickerRepos[0]?.id;
+  useEffect(() => {
+    if (!isOpen || repositoryId) return;
+    if (firstPickerRepoId) setRepositoryId(String(firstPickerRepoId));
+  }, [firstPickerRepoId, isOpen, repositoryId]);
 
   useEffect(() => {
     if (!isOpen || (mode !== "create_branch" && mode !== "create_pull_request")) return;
@@ -516,29 +579,46 @@ export function ConnectCodeModal(props: Props) {
               </Button>
             </div>
           </div>
-        ) : isRepositoriesLoading && repos.length === 0 ? (
+        ) : isInstallationLoading && !hasPickerRepos ? (
           <div className="space-y-3">
             <div className="h-9 animate-pulse rounded bg-surface-2" />
             <div className="h-9 animate-pulse rounded bg-surface-2" />
             <div className="h-9 animate-pulse rounded bg-surface-2" />
           </div>
-        ) : repositoriesError ? (
+        ) : isDisconnected ? (
           <div className="space-y-3">
-            <p className="text-sm text-secondary">Could not load GitHub repositories. Try again.</p>
+            <p className="text-sm text-secondary">GitHub is not connected to this workspace.</p>
+            <a href={`/${workspaceSlug}/settings/integrations`} className="text-sm text-accent-primary hover:underline">
+              Open workspace integrations
+            </a>
             <div className="flex justify-end">
               <Button variant="secondary" size="sm" onClick={handleClose}>
                 Close
               </Button>
             </div>
           </div>
-        ) : repos.length === 0 ? (
+        ) : installationErrorMessage && !hasPickerRepos ? (
           <div className="space-y-3">
-            <p className="text-sm text-secondary">No repositories linked. Link a repository in project settings.</p>
+            <p className="text-sm text-secondary">Could not load repositories from GitHub.</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={handleClose}>
+                Close
+              </Button>
+              <Button variant="primary" size="sm" onClick={() => retryInstallation()}>
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : !hasPickerRepos ? (
+          <div className="space-y-3">
+            <p className="text-sm text-secondary">No repositories granted to this GitHub App.</p>
             <a
-              href={`/${workspaceSlug}/settings/projects/${projectId}/integrations`}
+              href="https://github.com/settings/installations"
+              target="_blank"
+              rel="noreferrer"
               className="text-sm text-accent-primary hover:underline"
             >
-              Open project integrations
+              Open GitHub App installation settings
             </a>
             <div className="flex justify-end">
               <Button variant="secondary" size="sm" onClick={handleClose}>
@@ -548,23 +628,23 @@ export function ConnectCodeModal(props: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            <div>
-              <label htmlFor={`connect-code-repository-${issueId}`} className="text-sm mb-1 block text-secondary">
-                Repository
-              </label>
-              <select
-                id={`connect-code-repository-${issueId}`}
-                className="text-sm focus:ring-accent-primary w-full rounded border border-subtle bg-surface-1 px-2 py-1.5 text-primary focus:ring-1 focus:outline-none"
-                value={repositoryId}
-                onChange={(e) => setRepositoryId(e.target.value)}
-              >
-                {repos.map((repo) => (
-                  <option key={repo.id} value={repo.id}>
-                    {repo.owner}/{repo.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {installationErrorMessage ? (
+              <div className="flex items-center justify-between gap-3 rounded border border-danger-subtle bg-danger-subtle px-3 py-2">
+                <p className="text-12 text-danger-primary">Could not load the full repository list.</p>
+                <Button variant="secondary" size="sm" onClick={() => retryInstallation()}>
+                  Retry
+                </Button>
+              </div>
+            ) : null}
+            <ConnectCodeRepositoryPicker
+              issueId={issueId}
+              repositories={pickerRepos}
+              value={selectedGithubId}
+              defaultRepositoryId={defaultRepositoryId}
+              onChange={(nextId) => setRepositoryId(String(nextId))}
+              onSearchChange={setRepoQuery}
+              isSearching={isSearching}
+            />
 
             {mode === "create_branch" ? (
               <>

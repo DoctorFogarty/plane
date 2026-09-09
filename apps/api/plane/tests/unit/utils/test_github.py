@@ -17,6 +17,7 @@ from plane.utils.github import (
     normalize_github_app_name,
     normalize_private_key,
     parse_work_item_identifier,
+    sanitize_github_search_query,
     validate_private_key,
     verify_github_webhook_signature,
 )
@@ -101,3 +102,10 @@ class TestGithubConfigSanitization:
     def test_validate_private_key_accepts_pem(self):
         pem = _sample_pem()
         assert "BEGIN" in validate_private_key(pem)
+
+    def test_sanitize_github_search_query_strips_qualifiers(self):
+        assert sanitize_github_search_query("website") == "website"
+        assert sanitize_github_search_query("org:evil website") == "website"
+        assert sanitize_github_search_query("user:foo repo:bar") == ""
+        assert sanitize_github_search_query("owner/name") == "owner/name"
+        assert sanitize_github_search_query("my-repo.v2") == "my-repo.v2"

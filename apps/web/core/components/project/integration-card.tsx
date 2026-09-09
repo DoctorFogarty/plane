@@ -26,7 +26,8 @@ type Props = {
 const integrationDetails: { [key: string]: any } = {
   github: {
     logo: GithubLogo,
-    description: "Select GitHub repository to enable sync. Unlink anytime if this project does not need a repository.",
+    description:
+      "Optional default repository for this project. You can still pick any repository when creating a branch.",
   },
   slack: {
     logo: SlackLogo,

@@ -6,6 +6,7 @@
 
 import { API_BASE_URL } from "@plane/constants";
 import type {
+  TGithubInstallationRepositories,
   TIssueGithubBranch,
   TIssueGithubDevelopment,
   TIssueGithubPullRequest,
@@ -29,6 +30,24 @@ export class IssueGithubService extends APIService {
       params: {
         include_commits: params?.include_commits ? "1" : undefined,
         branch_id: params?.branch_id,
+      },
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async listInstallationRepositories(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    q = ""
+  ): Promise<TGithubInstallationRepositories> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/github/`, {
+      params: {
+        list: "repositories",
+        q: q || undefined,
       },
     })
       .then((response) => response?.data)

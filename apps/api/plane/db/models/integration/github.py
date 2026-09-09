@@ -6,6 +6,7 @@
 
 # Django imports
 from django.db import models
+from django.db.models import Q
 
 # Module imports
 from plane.db.models.project import ProjectBaseModel
@@ -27,6 +28,13 @@ class GithubRepository(ProjectBaseModel):
         verbose_name_plural = "Repositories"
         db_table = "github_repositories"
         ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "repository_id"],
+                condition=Q(deleted_at__isnull=True),
+                name="github_repository_unique_project_repository_id_when_deleted_at_null",
+            )
+        ]
 
 
 class GithubRepositorySync(ProjectBaseModel):
