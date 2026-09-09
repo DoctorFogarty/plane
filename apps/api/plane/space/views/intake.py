@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 # Module imports
 from .base import BaseViewSet
-from plane.db.models import IntakeIssue, Issue, IssueLink, FileAsset, DeployBoard, State, StateGroup
+from plane.db.models import IntakeIssue, Issue, IssueLink, FileAsset, DeployBoard, Project
 from plane.app.serializers import (
     IssueSerializer,
     IntakeIssueSerializer,
@@ -25,6 +25,7 @@ from plane.app.serializers import (
 )
 from plane.utils.content_validator import validate_html_content
 from plane.utils.issue_filters import apply_issue_filters, issue_filters
+from plane.utils.work_item import WorkItemCreateError, create_work_item, ensure_triage_state
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models.intake import SourceType
 
@@ -71,6 +72,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
                     project_id=project_deploy_board.project_id,
                 ),
                 filters,
+                query_params=request.query_params,
             )
             .annotate(bridge_id=F("issue_intake__id"))
             .select_related("workspace", "project", "state", "parent")
@@ -128,53 +130,50 @@ class IntakeIssuePublicViewSet(BaseViewSet):
         ]:
             return Response({"error": "Invalid priority"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # get the triage state
-        triage_state = State.triage_objects.filter(
-            project_id=project_deploy_board.project_id, workspace_id=project_deploy_board.workspace_id
-        ).first()
+        project = Project.objects.get(pk=project_deploy_board.project_id)
+        triage_state = ensure_triage_state(project)
 
-        if not triage_state:
-            triage_state = State.objects.create(
-                name="Triage",
-                group=StateGroup.TRIAGE.value,
-                project_id=project_deploy_board.project_id,
-                workspace_id=project_deploy_board.workspace_id,
-                color="#4E5355",
-                sequence=65000,
-                default=False,
-            )
-
-        # Sanitize description_html before saving to prevent stored XSS (GHSA-hh2r-3hwp-mvq3)
         raw_description_html = request.data.get("issue", {}).get("description_html", "<p></p>")
         _, _, sanitized_description_html = validate_html_content(raw_description_html)
         safe_description_html = sanitized_description_html if sanitized_description_html is not None else "<p></p>"
 
-        # create an issue
-        issue = Issue.objects.create(
-            name=request.data.get("issue", {}).get("name"),
-            description_json=request.data.get("issue", {}).get("description_json", {}),
-            description_html=safe_description_html,
-            priority=request.data.get("issue", {}).get("priority", "low"),
-            project_id=project_deploy_board.project_id,
-            state_id=triage_state.id,
-        )
+        issue_payload = request.data.get("issue") or {}
+        issue_data = {
+            "name": issue_payload.get("name"),
+            "description_json": issue_payload.get("description_json", {}),
+            "description_html": safe_description_html,
+            "priority": issue_payload.get("priority", "low"),
+            "state_id": str(triage_state.id),
+        }
 
-        # Create an Issue Activity
+        def attach_intake(created_issue):
+            IntakeIssue.objects.create(
+                intake_id=intake_id,
+                project_id=project.id,
+                issue=created_issue,
+                source=SourceType.IN_APP,
+            )
+
+        try:
+            issue = create_work_item(
+                project=project,
+                actor=request.user,
+                data=issue_data,
+                allow_triage_state=True,
+                validate_property_required=False,
+                in_transaction=attach_intake,
+            )
+        except WorkItemCreateError as exc:
+            return Response(exc.payload, status=exc.status_code)
+
         issue_activity.delay(
             type="issue.activity.created",
             requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
             actor_id=str(request.user.id),
             issue_id=str(issue.id),
-            project_id=str(project_deploy_board.project_id),
+            project_id=str(project.id),
             current_instance=None,
             epoch=int(timezone.now().timestamp()),
-        )
-        # create an intake issue
-        IntakeIssue.objects.create(
-            intake_id=intake_id,
-            project_id=project_deploy_board.project_id,
-            issue=issue,
-            source=SourceType.IN_APP,
         )
 
         serializer = IssueStateIntakeSerializer(issue)

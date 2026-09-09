@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
+import { useLocation } from "react-router";
 import useSWR from "swr";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
@@ -59,6 +60,8 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   const { fetchAllCycles } = useCycle();
   const { fetchModulesSlim, fetchModules } = useModule();
   const { initGantt } = useTimeLineChart(GANTT_TIMELINE_TYPE.MODULE);
+  const { pathname } = useLocation();
+  const isTimelineRoute = pathname.includes("/timeline") || pathname.includes("/gantt");
   const { fetchViews } = useProjectView();
   const {
     project: { fetchProjectMembers, fetchProjectUserProperties },
@@ -78,11 +81,10 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   const hasResolvedProjectRole = currentProjectRole !== undefined && currentProjectRole !== null;
   const cachedProjectDetails = getProjectById(projectId);
   const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE, workspaceSlug);
-  // Initialize module timeline chart
   useEffect(() => {
-    initGantt();
+    if (isTimelineRoute) initGantt();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isTimelineRoute]);
 
   useEffect(() => {
     const task = runIdleTask(() => setLoadDeferredMeta(true));

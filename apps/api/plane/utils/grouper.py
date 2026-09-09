@@ -32,7 +32,99 @@ from plane.db.models import (
     ModuleIssue,
     IssueLabel,
 )
-from typing import Optional, Dict, Tuple, Any, Union, List
+from typing import Optional, Dict, Any, Union, List, Iterable
+
+
+ISSUE_BOARD_FIELDS = [
+    "id",
+    "name",
+    "state_id",
+    "sort_order",
+    "completed_at",
+    "estimate_point",
+    "priority",
+    "start_date",
+    "target_date",
+    "sequence_id",
+    "project_id",
+    "parent_id",
+    "cycle_id",
+    "sub_issues_count",
+    "created_at",
+    "updated_at",
+    "created_by",
+    "updated_by",
+    "attachment_count",
+    "link_count",
+    "is_draft",
+    "archived_at",
+    "state__group",
+    "type_id",
+    "is_epic",
+    "assignee_ids",
+    "label_ids",
+    "module_ids",
+]
+
+_GROUP_FIELD_TO_RELATION = {
+    "label_ids": "labels__id",
+    "assignee_ids": "assignees__id",
+    "module_ids": "issue_module__module_id",
+}
+
+_RELATION_TO_GROUP_FIELD = {value: key for key, value in _GROUP_FIELD_TO_RELATION.items()}
+
+
+def annotate_issue_relation_ids(queryset: QuerySet[Issue], skip: Optional[Iterable[str]] = None) -> QuerySet[Issue]:
+    """Canonical assignee / label / module id annotations for board and detail."""
+    skip = set(skip or ())
+    annotations = {}
+
+    if "assignee_ids" not in skip:
+        annotations["assignee_ids"] = Coalesce(
+            Subquery(
+                IssueAssignee.objects.filter(issue_id=OuterRef("pk"), deleted_at__isnull=True)
+                .values("issue_id")
+                .annotate(arr=ArrayAgg("assignee_id", distinct=True))
+                .values("arr")
+            ),
+            Value([], output_field=ArrayField(UUIDField())),
+        )
+    if "label_ids" not in skip:
+        annotations["label_ids"] = Coalesce(
+            Subquery(
+                IssueLabel.objects.filter(issue_id=OuterRef("pk"), deleted_at__isnull=True)
+                .values("issue_id")
+                .annotate(arr=ArrayAgg("label_id", distinct=True))
+                .values("arr")
+            ),
+            Value([], output_field=ArrayField(UUIDField())),
+        )
+    if "module_ids" not in skip:
+        annotations["module_ids"] = Coalesce(
+            Subquery(
+                ModuleIssue.objects.filter(
+                    issue_id=OuterRef("pk"),
+                    deleted_at__isnull=True,
+                    module__archived_at__isnull=True,
+                )
+                .values("issue_id")
+                .annotate(arr=ArrayAgg("module_id", distinct=True))
+                .values("arr")
+            ),
+            Value([], output_field=ArrayField(UUIDField())),
+        )
+    return queryset.annotate(**annotations) if annotations else queryset
+
+
+def board_row_value_fields(group_by: Optional[str] = None, sub_group_by: Optional[str] = None) -> List[str]:
+    fields = list(ISSUE_BOARD_FIELDS)
+    for grouped in (group_by, sub_group_by):
+        mapped = _RELATION_TO_GROUP_FIELD.get(grouped)
+        if mapped and mapped in fields:
+            fields.remove(mapped)
+            fields.append(grouped)
+    return fields
 
 
 def issue_queryset_grouper(
@@ -40,64 +132,21 @@ def issue_queryset_grouper(
     group_by: Optional[str],
     sub_group_by: Optional[str],
 ) -> QuerySet[Issue]:
-    FIELD_MAPPER: Dict[str, str] = {
-        "label_ids": "labels__id",
-        "assignee_ids": "assignees__id",
-        "module_ids": "issue_module__module_id",
-    }
-
-    GROUP_FILTER_MAPPER: Dict[str, Q] = {
+    group_filters = {
         "assignees__id": Q(issue_assignee__deleted_at__isnull=True),
         "labels__id": Q(label_issue__deleted_at__isnull=True),
         "issue_module__module_id": Q(issue_module__deleted_at__isnull=True),
     }
-
     for group_key in [group_by, sub_group_by]:
-        if group_key in GROUP_FILTER_MAPPER:
-            queryset = queryset.filter(GROUP_FILTER_MAPPER[group_key])
+        if group_key in group_filters:
+            queryset = queryset.filter(group_filters[group_key])
 
-    issue_assignee_subquery = Subquery(
-        IssueAssignee.objects.filter(
-            issue_id=OuterRef("pk"),
-            deleted_at__isnull=True,
-        )
-        .values("issue_id")
-        .annotate(arr=ArrayAgg("assignee_id", distinct=True))
-        .values("arr")
-    )
-
-    issue_module_subquery = Subquery(
-        ModuleIssue.objects.filter(
-            issue_id=OuterRef("pk"),
-            deleted_at__isnull=True,
-            module__archived_at__isnull=True,
-        )
-        .values("issue_id")
-        .annotate(arr=ArrayAgg("module_id", distinct=True))
-        .values("arr")
-    )
-
-    issue_label_subquery = Subquery(
-        IssueLabel.objects.filter(issue_id=OuterRef("pk"), deleted_at__isnull=True)
-        .values("issue_id")
-        .annotate(arr=ArrayAgg("label_id", distinct=True))
-        .values("arr")
-    )
-
-    annotations_map: Dict[str, Tuple[str, Q]] = {
-        "assignee_ids": Coalesce(issue_assignee_subquery, Value([], output_field=ArrayField(UUIDField()))),
-        "label_ids": Coalesce(issue_label_subquery, Value([], output_field=ArrayField(UUIDField()))),
-        "module_ids": Coalesce(issue_module_subquery, Value([], output_field=ArrayField(UUIDField()))),
+    skip = {
+        key
+        for key, grouped_name in _GROUP_FIELD_TO_RELATION.items()
+        if grouped_name in {group_by, sub_group_by}
     }
-
-    default_annotations: Dict[str, Any] = {}
-
-    for key, expression in annotations_map.items():
-        if FIELD_MAPPER.get(key) in {group_by, sub_group_by}:
-            continue
-        default_annotations[key] = expression
-
-    return queryset.annotate(**default_annotations)
+    return annotate_issue_relation_ids(queryset, skip=skip)
 
 
 def issue_on_results(
@@ -105,51 +154,6 @@ def issue_on_results(
     group_by: Optional[str],
     sub_group_by: Optional[str],
 ) -> List[Dict[str, Any]]:
-    FIELD_MAPPER: Dict[str, str] = {
-        "labels__id": "label_ids",
-        "assignees__id": "assignee_ids",
-        "issue_module__module_id": "module_ids",
-    }
-
-    original_list: List[str] = ["assignee_ids", "label_ids", "module_ids"]
-
-    required_fields: List[str] = [
-        "id",
-        "name",
-        "state_id",
-        "sort_order",
-        "completed_at",
-        "estimate_point",
-        "priority",
-        "start_date",
-        "target_date",
-        "sequence_id",
-        "project_id",
-        "parent_id",
-        "cycle_id",
-        "sub_issues_count",
-        "created_at",
-        "updated_at",
-        "created_by",
-        "updated_by",
-        "attachment_count",
-        "link_count",
-        "is_draft",
-        "archived_at",
-        "state__group",
-        "type_id",
-        "is_epic",
-    ]
-
-    if group_by in FIELD_MAPPER:
-        original_list.remove(FIELD_MAPPER[group_by])
-        original_list.append(group_by)
-
-    if sub_group_by in FIELD_MAPPER:
-        original_list.remove(FIELD_MAPPER[sub_group_by])
-        original_list.append(sub_group_by)
-
-    required_fields.extend(original_list)
     issues = issues.annotate(
         is_epic=Case(
             When(type__is_epic=True, then=Value(True)),
@@ -157,7 +161,7 @@ def issue_on_results(
             output_field=BooleanField(),
         )
     )
-    return list(issues.values(*required_fields))
+    return list(issues.values(*board_row_value_fields(group_by, sub_group_by)))
 
 
 def issue_group_values(

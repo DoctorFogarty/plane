@@ -47,6 +47,7 @@ import {
   getSubGroupIssueKeyActions,
 } from "./base-issues-utils";
 import { filterHierarchyRootIssueIds, isHierarchyLayout } from "@/components/issues/issue-layouts/hierarchy.helpers";
+import { collectionIdentityFromListKey } from "./collection-ref";
 import type { IBaseIssueFilterStore } from "./issue-filter-helper.store";
 
 export type TIssueDisplayFilterOptions = Exclude<TIssueGroupByOptions, null> | "target_date";
@@ -91,6 +92,8 @@ export interface IBaseIssuesStore {
   removeCycleFromIssue: (workspaceSlug: string, projectId: string, issueId: string) => Promise<void>;
 
   beginIssuesFetch: (listKey: string, loadType: TLoader, shouldClearPaginationOptions: boolean) => TLoader;
+  readonly isInitialLoading: boolean;
+  readonly isCollectionEmpty: boolean;
   addIssueToList: (issueId: string) => void;
   removeIssueFromList: (issueId: string) => void;
   addIssuesToModule: (
@@ -211,6 +214,8 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   issueFilterStore;
   // API Abort controller
   controller: AbortController;
+  protected fetchPromises = new Map<string, Promise<TIssuesResponse>>();
+  protected lastCompletedRequestKey: string | undefined;
 
   constructor(
     _rootStore: IIssueRootStore,
@@ -236,6 +241,8 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       orderByKey: computed,
       issueGroupKey: computed,
       issueSubGroupKey: computed,
+      isInitialLoading: computed,
+      isCollectionEmpty: computed,
       // action
       storePreviousPaginationValues: action.bound,
 
@@ -292,6 +299,47 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   // current Cycle Id from url
   get cycleId() {
     return this.rootIssueStore.cycleId;
+  }
+
+  get isInitialLoading() {
+    const loader = this.getIssueLoader();
+    if (loader === "mutation" || loader === "pagination") return false;
+    if (loader === "init-loader") return true;
+    return this.getGroupIssueCount(undefined, undefined, false) === undefined;
+  }
+
+  get isCollectionEmpty() {
+    return this.getGroupIssueCount(undefined, undefined, false) === 0;
+  }
+
+  protected fetchIssuesWithDedupe(
+    requestKey: string,
+    loadType: TLoader,
+    shouldClearPaginationOptions: boolean,
+    request: () => Promise<TIssuesResponse>
+  ): Promise<TIssuesResponse> {
+    const inFlightRequest = this.fetchPromises.get(requestKey);
+    if (inFlightRequest) return inFlightRequest;
+
+    const hasWarmCollection =
+      loadType === "init-loader" &&
+      this.lastCompletedRequestKey === requestKey &&
+      this.getGroupIssueCount(undefined, undefined, false) !== undefined;
+    if (hasWarmCollection) {
+      return Promise.resolve(undefined as unknown as TIssuesResponse);
+    }
+
+    this.beginIssuesFetch(requestKey, loadType, shouldClearPaginationOptions);
+    const promise = request()
+      .then((response) => {
+        this.lastCompletedRequestKey = requestKey;
+        return response;
+      })
+      .finally(() => {
+        this.fetchPromises.delete(requestKey);
+      });
+    this.fetchPromises.set(requestKey, promise);
+    return promise;
   }
 
   // current Order by value
@@ -1202,12 +1250,19 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       this.controller.abort();
       this.controller = new AbortController();
       const snapshot = this.listSnapshots[listKey];
+      const sameCollection =
+        !!this.listKey && collectionIdentityFromListKey(this.listKey) === collectionIdentityFromListKey(listKey);
       this.listKey = listKey;
       if (snapshot) {
         this.restoreListSnapshot(snapshot);
         const nextLoader = loadType === "init-loader" ? "mutation" : loadType;
         this.setLoader(nextLoader);
         return nextLoader;
+      }
+      // Layout/param changes on the same entity keep chrome populated (stale-while-revalidate).
+      if (sameCollection && hasCurrentData && loadType === "init-loader") {
+        this.setLoader("mutation");
+        return "mutation";
       }
       this.clear(shouldClearPaginationOptions);
       this.setLoader(loadType);
@@ -1236,6 +1291,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         this.paginationOptions = undefined;
       }
     });
+    this.lastCompletedRequestKey = undefined;
     this.controller.abort();
     this.controller = new AbortController();
   }

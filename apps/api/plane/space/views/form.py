@@ -13,7 +13,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from plane.app.serializers import IssueCreateSerializer
+from plane.utils.work_item import WorkItemCreateError, create_work_item, ensure_triage_state
 from plane.authentication.rate_limit import IntakeFormSubmitThrottle, IntakeFormUploadThrottle
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
@@ -25,8 +25,6 @@ from plane.db.models import (
     IssueProperty,
     Label,
     Project,
-    State,
-    StateGroup,
 )
 from plane.db.models.intake import IntakeFormAccess, SourceType
 from plane.db.models.issue_property import IssuePropertyType
@@ -43,7 +41,6 @@ from plane.utils.intake_form import (
     is_valid_email,
     pending_form_attachments,
 )
-from plane.utils.issue_property import upsert_property_values
 from plane.utils.attachment import is_allowed_attachment, resolve_attachment_mime_type
 from plane.utils.path_validator import sanitize_filename
 
@@ -183,21 +180,6 @@ def _pending_form_asset(form, pk):
     ).first()
 
 
-def _ensure_triage_state(project: Project):
-    triage_state = State.triage_objects.filter(project_id=project.id, workspace_id=project.workspace_id).first()
-    if triage_state:
-        return triage_state
-    return State.objects.create(
-        name="Triage",
-        group=StateGroup.TRIAGE.value,
-        project_id=project.id,
-        workspace_id=project.workspace_id,
-        color="#4E5355",
-        sequence=65000,
-        default=False,
-    )
-
-
 class IntakeFormPublicEndpoint(BaseAPIView):
     permission_classes = [AllowAny]
 
@@ -317,7 +299,7 @@ class IntakeFormSubmitEndpoint(BaseAPIView):
         if errors:
             return Response({"error": "Validation failed", "errors": errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        triage_state = _ensure_triage_state(project)
+        triage_state = ensure_triage_state(project)
         issue_data = {
             "name": name,
             "description_html": safe_description_html,
@@ -330,57 +312,43 @@ class IntakeFormSubmitEndpoint(BaseAPIView):
         if form.issue_type_id:
             issue_data["type_id"] = str(form.issue_type_id)
 
-        serializer = IssueCreateSerializer(
-            data=issue_data,
-            context={
-                "project_id": project.id,
-                "workspace_id": project.workspace_id,
-                "default_assignee_id": project.default_assignee_id,
-                "allow_triage_state": True,
-            },
-        )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        issue = serializer.save()
+        actor = request.user if request.user.is_authenticated else None
+        actor_id = str(request.user.id) if actor else None
 
-        actor_id = str(request.user.id) if request.user.is_authenticated else None
-        if not request.user.is_authenticated:
-            issue.created_by = None
-            issue.updated_by = None
-            issue.save(update_fields=["created_by", "updated_by"], disable_auto_set_user=True)
-
-        if filtered_properties:
-            _values, property_errors = upsert_property_values(
-                issue=issue,
+        def finish_form_issue(created_issue):
+            if not request.user.is_authenticated:
+                created_issue.created_by = None
+                created_issue.updated_by = None
+                created_issue.save(update_fields=["created_by", "updated_by"], disable_auto_set_user=True)
+            intake = Intake.objects.filter(project_id=project.id, is_default=True).first()
+            if not intake:
+                intake = Intake.objects.create(name=f"{project.name} Intake", project=project, is_default=True)
+            IntakeIssue.objects.create(
+                intake_id=intake.id,
                 project_id=project.id,
-                workspace_id=project.workspace_id,
-                property_values=filtered_properties,
-                actor_id=actor_id,
-                validate_required=False,
+                issue=created_issue,
+                source=SourceType.FORM,
+                source_email=submitter_email or None,
+                extra={"form_id": str(form.id), "submitter_name": submitter_name or None},
+                created_by_id=actor_id,
             )
-            if property_errors:
-                issue.delete(soft=False)
-                return Response(
-                    {"error": "Validation failed", "errors": property_errors},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            if attachments_field:
+                attachment_queryset.filter(issue_id__isnull=True).update(issue_id=created_issue.id)
 
-        intake = Intake.objects.filter(project_id=project.id, is_default=True).first()
-        if not intake:
-            intake = Intake.objects.create(name=f"{project.name} Intake", project=project, is_default=True)
-
-        IntakeIssue.objects.create(
-            intake_id=intake.id,
-            project_id=project.id,
-            issue=issue,
-            source=SourceType.FORM,
-            source_email=submitter_email or None,
-            extra={"form_id": str(form.id), "submitter_name": submitter_name or None},
-            created_by_id=actor_id,
-        )
-
-        if attachments_field:
-            attachment_queryset.filter(issue_id__isnull=True).update(issue_id=issue.id)
+        try:
+            issue = create_work_item(
+                project=project,
+                actor=actor,
+                data={**issue_data, "property_values": filtered_properties},
+                allow_triage_state=True,
+                validate_property_required=False,
+                in_transaction=finish_form_issue,
+            )
+        except WorkItemCreateError as exc:
+            return Response(
+                {"error": "Validation failed", "errors": exc.payload},
+                status=exc.status_code,
+            )
 
         issue_activity.delay(
             type="issue.activity.created",

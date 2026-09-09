@@ -11,50 +11,11 @@ from django.db import models
 
 # Module imports
 from .project import ProjectBaseModel
-
-
-def get_default_filters():
-    return {
-        "priority": None,
-        "state": None,
-        "state_group": None,
-        "assignees": None,
-        "created_by": None,
-        "labels": None,
-        "start_date": None,
-        "target_date": None,
-        "subscriber": None,
-    }
-
-
-def get_default_display_filters():
-    return {
-        "group_by": None,
-        "order_by": "-created_at",
-        "type": None,
-        "sub_issue": True,
-        "show_empty_groups": True,
-        "layout": "list",
-        "calendar_date_range": "",
-    }
-
-
-def get_default_display_properties():
-    return {
-        "assignee": True,
-        "attachment_count": True,
-        "created_on": True,
-        "due_date": True,
-        "estimate": True,
-        "key": True,
-        "labels": True,
-        "link": True,
-        "priority": True,
-        "start_date": True,
-        "state": True,
-        "sub_issue_count": True,
-        "updated_on": True,
-    }
+from plane.utils.view_preferences import (
+    get_default_display_filters,
+    get_default_display_properties,
+    get_default_filters,
+)
 
 
 class Cycle(ProjectBaseModel):

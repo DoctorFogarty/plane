@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { useParams, usePathname } from "next/navigation";
+import { useLocation, useParams } from "react-router";
 import { Circle } from "lucide-react";
 import {
   EUserPermissions,
@@ -39,10 +39,8 @@ import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/com
 export const IssuesHeader = observer(function IssuesHeader() {
   const router = useAppRouter();
   const { workspaceSlug, projectId } = useParams();
-  const pathname = usePathname();
-  const {
-    issues: { getGroupIssueCount },
-  } = useIssues(EIssuesStoreType.PROJECT);
+  const { pathname } = useLocation();
+  const { issues } = useIssues(EIssuesStoreType.PROJECT);
   const { t } = useTranslation();
   const { currentProjectDetails, loader } = useProject();
   const { toggleCreateIssueModal } = useCommandPalette();
@@ -52,13 +50,18 @@ export const IssuesHeader = observer(function IssuesHeader() {
   const SPACE_APP_URL = (SPACE_BASE_URL.trim() === "" ? window.location.origin : SPACE_BASE_URL) + SPACE_BASE_PATH;
   const publishedURL = `${SPACE_APP_URL}/issues/${currentProjectDetails?.anchor}`;
 
-  const issuesCount = getGroupIssueCount(undefined, undefined, false);
+  const workspaceSlugValue = workspaceSlug?.toString();
+  const projectIdValue = projectId?.toString();
+  const listBelongsToProject =
+    !!workspaceSlugValue &&
+    !!projectIdValue &&
+    typeof issues.listKey === "string" &&
+    issues.listKey.startsWith(`${workspaceSlugValue}:${projectIdValue}`);
+  const issuesCount = listBelongsToProject ? issues.getGroupIssueCount(undefined, undefined, false) : undefined;
   const canUserCreateIssue = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.PROJECT
   );
-  const workspaceSlugValue = workspaceSlug?.toString();
-  const projectIdValue = projectId?.toString();
   const layout = getIssueLayoutFromPathSlug(getIssueLayoutSlugFromPathname(pathname)) ?? EIssueLayoutTypes.LIST;
   const layoutMeta = ISSUE_LAYOUT_MAP[layout];
   const layoutHref =

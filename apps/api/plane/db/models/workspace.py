@@ -16,6 +16,12 @@ from django.db import models
 from .base import BaseModel
 from plane.utils.constants import RESTRICTED_WORKSPACE_SLUGS
 from plane.utils.color import get_random_color
+from plane.utils.view_preferences import (
+    get_default_display_filters as _canonical_display_filters,
+    get_default_display_properties as _canonical_display_properties,
+    get_default_filters,
+    get_default_workspace_view_props,
+)
 
 ROLE_CHOICES = ((20, "Admin"), (15, "Member"), (5, "Guest"))
 # Shareable invite links cannot grant Admin
@@ -27,91 +33,16 @@ def get_workspace_invite_link_anchor():
 
 
 def get_default_props():
-    return {
-        "filters": {
-            "priority": None,
-            "state": None,
-            "state_group": None,
-            "assignees": None,
-            "created_by": None,
-            "labels": None,
-            "start_date": None,
-            "target_date": None,
-            "subscriber": None,
-        },
-        "display_filters": {
-            "group_by": None,
-            "order_by": "-created_at",
-            "type": None,
-            "sub_issue": True,
-            "show_empty_groups": True,
-            "layout": "list",
-            "calendar_date_range": "",
-        },
-        "display_properties": {
-            "assignee": True,
-            "attachment_count": True,
-            "created_on": True,
-            "due_date": True,
-            "estimate": True,
-            "key": True,
-            "labels": True,
-            "link": True,
-            "priority": True,
-            "start_date": True,
-            "state": True,
-            "sub_issue_count": True,
-            "updated_on": True,
-        },
-    }
-
-
-def get_default_filters():
-    return {
-        "priority": None,
-        "state": None,
-        "state_group": None,
-        "assignees": None,
-        "created_by": None,
-        "labels": None,
-        "start_date": None,
-        "target_date": None,
-        "subscriber": None,
-    }
+    return get_default_workspace_view_props()
 
 
 def get_default_display_filters():
-    return {
-        "display_filters": {
-            "group_by": None,
-            "order_by": "-created_at",
-            "type": None,
-            "sub_issue": True,
-            "show_empty_groups": True,
-            "layout": "list",
-            "calendar_date_range": "",
-        }
-    }
+    # WorkspaceUserProperties historically wraps the canonical dict.
+    return {"display_filters": _canonical_display_filters()}
 
 
 def get_default_display_properties():
-    return {
-        "display_properties": {
-            "assignee": True,
-            "attachment_count": True,
-            "created_on": True,
-            "due_date": True,
-            "estimate": True,
-            "key": True,
-            "labels": True,
-            "link": True,
-            "priority": True,
-            "start_date": True,
-            "state": True,
-            "sub_issue_count": True,
-            "updated_on": True,
-        }
-    }
+    return {"display_properties": _canonical_display_properties()}
 
 
 def get_issue_props():

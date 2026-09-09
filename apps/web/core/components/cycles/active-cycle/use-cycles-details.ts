@@ -5,7 +5,7 @@
  */
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import useSWR from "swr";
 // plane imports
 import type { TWorkItemFilterCondition } from "@plane/shared-state";
@@ -27,7 +27,7 @@ const useCyclesDetails = (props: IActiveCycleDetails) => {
   // props
   const { workspaceSlug, projectId, cycleId } = props;
   // router
-  const router = useRouter();
+  const navigate = useNavigate();
   // store hooks
   const {
     issuesFilter: { updateFilterExpression },
@@ -82,14 +82,14 @@ const useCyclesDetails = (props: IActiveCycleDetails) => {
         updateFilterExpression.bind(updateFilterExpression, workspaceSlug, projectId, cycleId)
       );
 
-      router.push(`/${workspaceSlug}/projects/${projectId}/cycles/${cycleId}`);
+      navigate(`/${workspaceSlug}/projects/${projectId}/cycles/${cycleId}`);
     },
-    [workspaceSlug, projectId, cycleId, updateFilterExpressionFromConditions, updateFilterExpression, router]
+    [workspaceSlug, projectId, cycleId, updateFilterExpressionFromConditions, updateFilterExpression, navigate]
   );
   return {
     cycle,
     cycleId,
-    router,
+    router: { push: navigate },
     handleFiltersUpdate,
     cycleIssueDetails,
   };

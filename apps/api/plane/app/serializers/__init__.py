@@ -49,7 +49,7 @@ from .project import (
     ProjectDuplicateSerializer,
 )
 from .state import StateSerializer, StateLiteSerializer, ProjectStateGroupSerializer
-from .view import IssueViewSerializer, ViewIssueListSerializer
+from .view import IssueViewSerializer
 from .cycle import (
     CycleSerializer,
     CycleIssueSerializer,

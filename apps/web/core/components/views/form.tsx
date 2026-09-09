@@ -13,14 +13,8 @@ import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
 import { ViewsIcon } from "@plane/propel/icons";
-import type {
-  IIssueDisplayFilterOptions,
-  IIssueDisplayProperties,
-  IProjectView,
-  EIssueLayoutTypes,
-  IIssueFilters,
-} from "@plane/types";
-import { EViewAccess, EIssuesStoreType } from "@plane/types";
+import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, IProjectView, IIssueFilters } from "@plane/types";
+import { EIssueLayoutTypes, EViewAccess, EIssuesStoreType } from "@plane/types";
 import { Input, TextArea } from "@plane/ui";
 import { getComputedDisplayFilters, getComputedDisplayProperties, getTabIndex } from "@plane/utils";
 // components
@@ -130,17 +124,17 @@ export const ProjectViewForm = observer(function ProjectViewForm(props: Props) {
               }
               // TODO: fix types
               onChange={(val: any) => {
-                let logoValue = {};
+                let nextLogoValue = {};
 
                 if (val?.type === "emoji")
-                  logoValue = {
+                  nextLogoValue = {
                     value: val.value,
                   };
-                else if (val?.type === "icon") logoValue = val.value;
+                else if (val?.type === "icon") nextLogoValue = val.value;
 
                 setValue("logo_props", {
                   in_use: val?.type,
-                  [val?.type]: logoValue,
+                  [val?.type]: nextLogoValue,
                 });
                 setIsOpen(false);
               }}
@@ -173,7 +167,6 @@ export const ProjectViewForm = observer(function ProjectViewForm(props: Props) {
                     placeholder={t("common.title")}
                     className="w-full text-14"
                     tabIndex={getIndex("name")}
-                    autoFocus
                   />
                 )}
               />
@@ -213,7 +206,7 @@ export const ProjectViewForm = observer(function ProjectViewForm(props: Props) {
                         layout: selectedValue,
                       })
                     }
-                    value={displayFilters.layout}
+                    value={displayFilters.layout ?? EIssueLayoutTypes.LIST}
                   />
                   {/* display filters dropdown */}
                   <Controller
@@ -223,7 +216,9 @@ export const ProjectViewForm = observer(function ProjectViewForm(props: Props) {
                       <FiltersDropdown title={t("common.display")}>
                         <DisplayFiltersSelection
                           layoutDisplayFiltersOptions={
-                            ISSUE_DISPLAY_FILTERS_BY_PAGE.issues.layoutOptions[displayFilters.layout]
+                            ISSUE_DISPLAY_FILTERS_BY_PAGE.issues.layoutOptions[
+                              displayFilters.layout ?? EIssueLayoutTypes.LIST
+                            ]
                           }
                           displayFilters={displayFilters ?? {}}
                           handleDisplayFiltersUpdate={(updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {

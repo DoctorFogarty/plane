@@ -4,17 +4,20 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useParams } from "react-router";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, SIDEBAR_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { AddWorkItemIcon } from "@plane/propel/icons";
 import type { TIssue } from "@plane/types";
 // components
-import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 import { SidebarAddButton } from "@/components/sidebar/add-button";
+
+const CreateUpdateIssueModal = lazy(() =>
+  import("@/components/issues/issue-modal/modal").then((module) => ({ default: module.CreateUpdateIssueModal }))
+);
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
@@ -69,14 +72,18 @@ export const SidebarQuickActions = observer(function SidebarQuickActions() {
 
   return (
     <>
-      <CreateUpdateIssueModal
-        isOpen={isDraftIssueModalOpen}
-        onClose={() => setIsDraftIssueModalOpen(false)}
-        data={workspaceDraftIssue ?? {}}
-        onSubmit={() => removeWorkspaceDraftIssue()}
-        fetchIssueDetails={false}
-        isDraft
-      />
+      {isDraftIssueModalOpen && (
+        <Suspense fallback={null}>
+          <CreateUpdateIssueModal
+            isOpen={isDraftIssueModalOpen}
+            onClose={() => setIsDraftIssueModalOpen(false)}
+            data={workspaceDraftIssue ?? {}}
+            onSubmit={() => removeWorkspaceDraftIssue()}
+            fetchIssueDetails={false}
+            isDraft
+          />
+        </Suspense>
+      )}
       <div className="flex cursor-pointer items-center justify-between gap-2">
         <SidebarAddButton
           label={

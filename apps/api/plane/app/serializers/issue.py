@@ -6,8 +6,6 @@
 from django.utils import timezone
 from django.core.validators import URLValidator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.db import IntegrityError
-
 # Third Party imports
 from rest_framework import serializers
 
@@ -120,10 +118,8 @@ class IssueCreateSerializer(BaseSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        assignee_ids = self.initial_data.get("assignee_ids")
-        data["assignee_ids"] = assignee_ids if assignee_ids else []
-        label_ids = self.initial_data.get("label_ids")
-        data["label_ids"] = label_ids if label_ids else []
+        data["assignee_ids"] = list(instance.assignees.values_list("id", flat=True))
+        data["label_ids"] = list(instance.labels.values_list("id", flat=True))
         data["type_id"] = str(instance.type_id) if instance.type_id else None
         data["is_epic"] = bool(instance.type.is_epic) if instance.type_id and instance.type else False
         return data
@@ -230,23 +226,21 @@ class IssueCreateSerializer(BaseSerializer):
         updated_by_id = issue.updated_by_id
 
         if assignees is not None and len(assignees):
-            try:
-                IssueAssignee.objects.bulk_create(
-                    [
-                        IssueAssignee(
-                            assignee_id=assignee_id,
-                            issue=issue,
-                            project_id=project_id,
-                            workspace_id=workspace_id,
-                            created_by_id=created_by_id,
-                            updated_by_id=updated_by_id,
-                        )
-                        for assignee_id in assignees
-                    ],
-                    batch_size=10,
-                )
-            except IntegrityError:
-                pass
+            IssueAssignee.objects.bulk_create(
+                [
+                    IssueAssignee(
+                        assignee_id=assignee_id,
+                        issue=issue,
+                        project_id=project_id,
+                        workspace_id=workspace_id,
+                        created_by_id=created_by_id,
+                        updated_by_id=updated_by_id,
+                    )
+                    for assignee_id in assignees
+                ],
+                batch_size=10,
+                ignore_conflicts=True,
+            )
         else:
             # Then assign it to default assignee, if it is a valid assignee
             if (
@@ -258,36 +252,33 @@ class IssueCreateSerializer(BaseSerializer):
                     is_active=True,
                 ).exists()
             ):
-                try:
-                    IssueAssignee.objects.create(
-                        assignee_id=default_assignee_id,
+                IssueAssignee.objects.get_or_create(
+                    assignee_id=default_assignee_id,
+                    issue=issue,
+                    defaults={
+                        "project_id": project_id,
+                        "workspace_id": workspace_id,
+                        "created_by_id": created_by_id,
+                        "updated_by_id": updated_by_id,
+                    },
+                )
+
+        if labels is not None and len(labels):
+            IssueLabel.objects.bulk_create(
+                [
+                    IssueLabel(
+                        label_id=label_id,
                         issue=issue,
                         project_id=project_id,
                         workspace_id=workspace_id,
                         created_by_id=created_by_id,
                         updated_by_id=updated_by_id,
                     )
-                except IntegrityError:
-                    pass
-
-        if labels is not None and len(labels):
-            try:
-                IssueLabel.objects.bulk_create(
-                    [
-                        IssueLabel(
-                            label_id=label_id,
-                            issue=issue,
-                            project_id=project_id,
-                            workspace_id=workspace_id,
-                            created_by_id=created_by_id,
-                            updated_by_id=updated_by_id,
-                        )
-                        for label_id in labels
-                    ],
-                    batch_size=10,
-                )
-            except IntegrityError:
-                pass
+                    for label_id in labels
+                ],
+                batch_size=10,
+                ignore_conflicts=True,
+            )
 
         return issue
 
@@ -303,45 +294,39 @@ class IssueCreateSerializer(BaseSerializer):
 
         if assignees is not None:
             IssueAssignee.objects.filter(issue=instance).delete()
-            try:
-                IssueAssignee.objects.bulk_create(
-                    [
-                        IssueAssignee(
-                            assignee_id=assignee_id,
-                            issue=instance,
-                            project_id=project_id,
-                            workspace_id=workspace_id,
-                            created_by_id=created_by_id,
-                            updated_by_id=updated_by_id,
-                        )
-                        for assignee_id in assignees
-                    ],
-                    batch_size=10,
-                    ignore_conflicts=True,
-                )
-            except IntegrityError:
-                pass
+            IssueAssignee.objects.bulk_create(
+                [
+                    IssueAssignee(
+                        assignee_id=assignee_id,
+                        issue=instance,
+                        project_id=project_id,
+                        workspace_id=workspace_id,
+                        created_by_id=created_by_id,
+                        updated_by_id=updated_by_id,
+                    )
+                    for assignee_id in assignees
+                ],
+                batch_size=10,
+                ignore_conflicts=True,
+            )
 
         if labels is not None:
             IssueLabel.objects.filter(issue=instance).delete()
-            try:
-                IssueLabel.objects.bulk_create(
-                    [
-                        IssueLabel(
-                            label_id=label_id,
-                            issue=instance,
-                            project_id=project_id,
-                            workspace_id=workspace_id,
-                            created_by_id=created_by_id,
-                            updated_by_id=updated_by_id,
-                        )
-                        for label_id in labels
-                    ],
-                    batch_size=10,
-                    ignore_conflicts=True,
-                )
-            except IntegrityError:
-                pass
+            IssueLabel.objects.bulk_create(
+                [
+                    IssueLabel(
+                        label_id=label_id,
+                        issue=instance,
+                        project_id=project_id,
+                        workspace_id=workspace_id,
+                        created_by_id=created_by_id,
+                        updated_by_id=updated_by_id,
+                    )
+                    for label_id in labels
+                ],
+                batch_size=10,
+                ignore_conflicts=True,
+            )
 
         # Time updation occues even when other related models are updated
         instance.updated_at = timezone.now()
@@ -865,26 +850,32 @@ class IssueSerializer(DynamicBaseSerializer):
         return data
 
 
+def _issue_relation_payload(issue, relation_type):
+    return {
+        "id": issue.id,
+        "project_id": issue.project_id,
+        "sequence_id": issue.sequence_id,
+        "name": issue.name,
+        "relation_type": relation_type,
+        "state_id": issue.state_id,
+        "priority": issue.priority,
+        "created_by": issue.created_by_id,
+        "created_at": issue.created_at,
+        "updated_at": issue.updated_at,
+        "updated_by": issue.updated_by_id,
+    }
+
+
 class IssueListDetailSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
-        # Extract expand parameter and store it as instance variable
         self.expand = kwargs.pop("expand", []) or []
-        # Extract fields parameter and store it as instance variable
         self.fields = kwargs.pop("fields", []) or []
         super().__init__(*args, **kwargs)
 
-    def get_module_ids(self, obj):
-        return [module.module_id for module in obj.issue_module.all()]
-
-    def get_label_ids(self, obj):
-        return [label.label_id for label in obj.label_issue.all()]
-
-    def get_assignee_ids(self, obj):
-        return [assignee.assignee_id for assignee in obj.issue_assignee.all()]
-
     def to_representation(self, instance):
+        state = getattr(instance, "state", None)
+        issue_type = getattr(instance, "type", None)
         data = {
-            # Basic fields
             "id": instance.id,
             "name": instance.name,
             "state_id": instance.state_id,
@@ -903,70 +894,30 @@ class IssueListDetailSerializer(serializers.Serializer):
             "updated_by": instance.updated_by_id,
             "is_draft": instance.is_draft,
             "archived_at": instance.archived_at,
-            # Computed fields
-            "cycle_id": instance.cycle_id,
-            "module_ids": self.get_module_ids(instance),
-            "label_ids": self.get_label_ids(instance),
-            "assignee_ids": self.get_assignee_ids(instance),
-            "sub_issues_count": instance.sub_issues_count,
-            "attachment_count": instance.attachment_count,
-            "link_count": instance.link_count,
+            "cycle_id": getattr(instance, "cycle_id", None),
+            "module_ids": list(getattr(instance, "module_ids", None) or []),
+            "label_ids": list(getattr(instance, "label_ids", None) or []),
+            "assignee_ids": list(getattr(instance, "assignee_ids", None) or []),
+            "sub_issues_count": getattr(instance, "sub_issues_count", 0),
+            "attachment_count": getattr(instance, "attachment_count", 0),
+            "link_count": getattr(instance, "link_count", 0),
+            "state__group": getattr(instance, "state__group", None) or (state.group if state else None),
             "type_id": instance.type_id,
-            "is_epic": bool(instance.type.is_epic) if instance.type_id and instance.type else False,
+            "is_epic": bool(issue_type.is_epic) if instance.type_id and issue_type else False,
         }
 
-        # Handle expanded fields only when requested - using direct field access
-        if self.expand:
-            if "issue_relation" in self.expand:
-                relations = []
-                for relation in instance.issue_relation.all():
-                    related_issue = relation.related_issue
-                    # If the related issue is deleted, skip it
-                    if not related_issue:
-                        continue
-                    # Add the related issue to the relations list
-                    relations.append(
-                        {
-                            "id": related_issue.id,
-                            "project_id": related_issue.project_id,
-                            "sequence_id": related_issue.sequence_id,
-                            "name": related_issue.name,
-                            "relation_type": relation.relation_type,
-                            "state_id": related_issue.state_id,
-                            "priority": related_issue.priority,
-                            "created_by": related_issue.created_by_id,
-                            "created_at": related_issue.created_at,
-                            "updated_at": related_issue.updated_at,
-                            "updated_by": related_issue.updated_by_id,
-                        }
-                    )
-                data["issue_relation"] = relations
-
-            if "issue_related" in self.expand:
-                related = []
-                for relation in instance.issue_related.all():
-                    issue = relation.issue
-                    # If the related issue is deleted, skip it
-                    if not issue:
-                        continue
-                    # Add the related issue to the related list
-                    related.append(
-                        {
-                            "id": issue.id,
-                            "project_id": issue.project_id,
-                            "sequence_id": issue.sequence_id,
-                            "name": issue.name,
-                            "relation_type": relation.relation_type,
-                            "state_id": issue.state_id,
-                            "priority": issue.priority,
-                            "created_by": issue.created_by_id,
-                            "created_at": issue.created_at,
-                            "updated_at": issue.updated_at,
-                            "updated_by": issue.updated_by_id,
-                        }
-                    )
-                data["issue_related"] = related
-
+        if "issue_relation" in self.expand:
+            data["issue_relation"] = [
+                _issue_relation_payload(relation.related_issue, relation.relation_type)
+                for relation in instance.issue_relation.all()
+                if relation.related_issue
+            ]
+        if "issue_related" in self.expand:
+            data["issue_related"] = [
+                _issue_relation_payload(relation.issue, relation.relation_type)
+                for relation in instance.issue_related.all()
+                if relation.issue
+            ]
         return data
 
 

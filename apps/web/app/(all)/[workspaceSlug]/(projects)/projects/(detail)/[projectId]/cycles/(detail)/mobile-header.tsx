@@ -12,13 +12,14 @@ import { useParams } from "next/navigation";
 import { EIssueFilterType, ISSUE_LAYOUTS, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { CalendarLayoutIcon, BoardLayoutIcon, ListLayoutIcon, ChevronDownIcon } from "@plane/propel/icons";
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, EIssueLayoutTypes } from "@plane/types";
+import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { CustomMenu } from "@plane/ui";
 // components
 import { WorkItemsModal } from "@/components/analytics/work-items/modal";
 import { DisplayFiltersSelection, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";
+import { useCollectionLayoutSelection } from "@/components/issues/issue-layouts/use-collection-layout-route";
 // hooks
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useIssues } from "@/hooks/store/use-issues";
@@ -47,22 +48,12 @@ export const CycleIssuesMobileHeader = observer(function CycleIssuesMobileHeader
   // derived values
   const cycleIdStr = cycleId?.toString();
   const issueFilters = cycleIdStr ? issuesFilter.getIssueFilters(cycleIdStr) : undefined;
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const { activeLayout, handleLayoutChange } = useCollectionLayoutSelection({
+    kind: "cycles",
+    entityId: cycleIdStr,
+    storedLayout: issueFilters?.displayFilters?.layout,
+  });
   const cycleDetails = cycleId ? getCycleById(cycleId.toString()) : undefined;
-
-  const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
-      if (!workspaceSlug || !projectId || !cycleId) return;
-      updateFilters(
-        workspaceSlug.toString(),
-        projectId.toString(),
-        EIssueFilterType.DISPLAY_FILTERS,
-        { layout: layout },
-        cycleId.toString()
-      );
-    },
-    [workspaceSlug, projectId, cycleId, updateFilters]
-  );
 
   const handleDisplayFilters = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {

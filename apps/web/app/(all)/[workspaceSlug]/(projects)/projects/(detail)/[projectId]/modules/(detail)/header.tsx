@@ -34,6 +34,7 @@ import {
   LayoutSelection,
   MobileLayoutSelection,
 } from "@/components/issues/issue-layouts/filters";
+import { useCollectionLayoutSelection } from "@/components/issues/issue-layouts/use-collection-layout-route";
 import { ModuleQuickActions } from "@/components/modules";
 import { WorkItemFiltersToggle } from "@/components/work-item-filters/filters-toggle";
 // hooks
@@ -76,7 +77,11 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
   // derived values
   const isSidebarCollapsed = storedValue === "true";
   const issueFilters = moduleId ? issuesFilter.getIssueFilters(moduleId) : undefined;
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const { activeLayout, handleLayoutChange } = useCollectionLayoutSelection({
+    kind: "modules",
+    entityId: moduleId,
+    storedLayout: issueFilters?.displayFilters?.layout,
+  });
   const moduleDetails = moduleId ? getModuleById(moduleId) : undefined;
   const canUserCreateIssue = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
@@ -87,14 +92,6 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
   const toggleSidebar = () => {
     setValue(`${!isSidebarCollapsed}`);
   };
-
-  const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
-      if (!projectId) return;
-      updateFilters(projectId.toString(), EIssueFilterType.DISPLAY_FILTERS, { layout: layout });
-    },
-    [projectId, updateFilters]
-  );
 
   const handleDisplayFilters = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {

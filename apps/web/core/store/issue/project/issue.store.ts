@@ -19,6 +19,7 @@ import type {
 // base class
 import type { IBaseIssuesStore } from "../helpers/base-issues.store";
 import { BaseIssuesStore } from "../helpers/base-issues.store";
+import { issueListRequestKey } from "../helpers/collection-ref";
 // services
 import type { IIssueRootStore } from "../root.store";
 import type { IProjectIssuesFilter } from "./filter.store";
@@ -63,7 +64,6 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
 
   // filter store
   issueFilterStore: IProjectIssuesFilter;
-  private fetchPromises = new Map<string, Promise<TIssuesResponse>>();
 
   constructor(_rootStore: IIssueRootStore, issueFilterStore: IProjectIssuesFilter) {
     super(_rootStore, issueFilterStore);
@@ -110,30 +110,19 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
     // with identical filters should share one request instead of aborting and
     // restarting each other.
     const params = this.issueFilterStore?.getFilterParams(options, projectId, undefined, undefined, undefined);
-    const requestKey = `${workspaceSlug}:${projectId}:${JSON.stringify(params)}`;
-    const inFlightRequest = this.fetchPromises.get(requestKey);
-    if (inFlightRequest) return inFlightRequest;
-
-    const request = (async () => {
-      try {
-        this.beginIssuesFetch(requestKey, loadType, !isExistingPaginationOptions);
-
+    const requestKey = issueListRequestKey({ workspaceSlug, projectId, params });
+    try {
+      return await this.fetchIssuesWithDedupe(requestKey, loadType, !isExistingPaginationOptions, async () => {
         const response = await this.issueService.getIssues(workspaceSlug, projectId, params, {
           signal: this.controller.signal,
         });
-
         this.onfetchIssues(response, options, workspaceSlug, projectId, undefined, !isExistingPaginationOptions, false);
         return response;
-      } catch (error) {
-        this.setLoader(undefined);
-        throw error;
-      }
-    })().finally(() => {
-      this.fetchPromises.delete(requestKey);
-    });
-
-    this.fetchPromises.set(requestKey, request);
-    return request;
+      });
+    } catch (error) {
+      this.setLoader(undefined);
+      throw error;
+    }
   };
 
   /**

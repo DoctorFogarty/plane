@@ -15,6 +15,13 @@ from django.db.models import Q
 
 # Module imports
 from plane.db.mixins import AuditModel
+from plane.utils.view_preferences import (
+    get_default_display_filters,
+    get_default_display_properties,
+    get_default_filters,
+    get_default_preferences,
+    get_default_view_props,
+)
 
 from .base import BaseModel
 
@@ -37,32 +44,7 @@ class ProjectNetwork(Enum):
 
 
 def get_default_props():
-    return {
-        "filters": {
-            "priority": None,
-            "state": None,
-            "state_group": None,
-            "assignees": None,
-            "created_by": None,
-            "labels": None,
-            "start_date": None,
-            "target_date": None,
-            "subscriber": None,
-        },
-        "display_filters": {
-            "group_by": None,
-            "order_by": "-created_at",
-            "type": None,
-            "sub_issue": True,
-            "show_empty_groups": True,
-            "layout": "list",
-            "calendar_date_range": "",
-        },
-    }
-
-
-def get_default_preferences():
-    return {"pages": {"block_display": True}, "navigation": {"default_tab": "list", "hide_in_more_menu": []}}
+    return get_default_view_props()
 
 
 class Project(BaseModel):
@@ -340,8 +322,6 @@ class ProjectPublicMember(ProjectBaseModel):
 
 
 class ProjectUserProperty(ProjectBaseModel):
-    from .issue import get_default_filters, get_default_display_filters, get_default_display_properties
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { observer } from "mobx-react";
@@ -25,15 +25,18 @@ import type {
 import { MultipleSelectGroup } from "@/components/core/multiple-select";
 // hooks
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
-// plane web components
-import { IssueBulkOperationsRoot } from "@/plane-web/components/issues/bulk-operations";
-// plane web hooks
 import { useBulkOperationStatus } from "@/hooks/use-bulk-operation-status";
 // utils
 import type { GroupDropLocation } from "../utils";
 import { getGroupByColumns, isWorkspaceLevel, isSubGrouped } from "../utils";
 import { ListGroup } from "./list-group";
 import type { TRenderQuickActions } from "./list-view-types";
+
+const IssueBulkOperationsRoot = lazy(() =>
+  import("@/plane-web/components/issues/bulk-operations").then((module) => ({
+    default: module.IssueBulkOperationsRoot,
+  }))
+);
 
 export interface IList {
   groupedIssueIds: TGroupedIssues;
@@ -168,7 +171,9 @@ export const List = observer(function List(props: IList) {
                 ))}
               </div>
 
-              <IssueBulkOperationsRoot selectionHelpers={helpers} />
+              <Suspense fallback={null}>
+                <IssueBulkOperationsRoot selectionHelpers={helpers} />
+              </Suspense>
             </>
           )}
         </MultipleSelectGroup>

@@ -30,7 +30,7 @@ import { WorkItemVersionService } from "@/services/issue";
 // local imports
 import { IssueDetailWidgets } from "../issue-detail-widgets";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
-import { PeekOverviewProperties } from "../peek-overview/properties";
+import { WorkItemPropertyEditor } from "../work-item-property-editor";
 import { IssueTitleInput } from "../title-input";
 import { IssueActivity } from "./issue-activity";
 import { IssueParentDetail } from "./parent";
@@ -176,10 +176,15 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
                 isRestoreDisabled: !isEditable || isArchived,
               }}
               fetchHandlers={{
-                listDescriptionVersions: (issueId) =>
-                  workItemVersionService.listDescriptionVersions(workspaceSlug, projectId, issueId),
-                retrieveDescriptionVersion: (issueId, versionId) =>
-                  workItemVersionService.retrieveDescriptionVersion(workspaceSlug, projectId, issueId, versionId),
+                listDescriptionVersions: (versionIssueId) =>
+                  workItemVersionService.listDescriptionVersions(workspaceSlug, projectId, versionIssueId),
+                retrieveDescriptionVersion: (versionIssueId, versionId) =>
+                  workItemVersionService.retrieveDescriptionVersion(
+                    workspaceSlug,
+                    projectId,
+                    versionIssueId,
+                    versionId
+                  ),
               }}
               handleRestore={(descriptionHTML) => editorRef.current?.setEditorValue(descriptionHTML, true)}
               projectId={projectId}
@@ -199,12 +204,13 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
       />
 
       {windowSize[0] < 768 && (
-        <PeekOverviewProperties
+        <WorkItemPropertyEditor
           workspaceSlug={workspaceSlug}
           projectId={projectId}
           issueId={issueId}
           issueOperations={issueOperations}
           disabled={!isEditable || isArchived}
+          variant="peek"
         />
       )}
 

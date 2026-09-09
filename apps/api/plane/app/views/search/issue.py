@@ -11,7 +11,8 @@ from rest_framework.response import Response
 
 # Module imports
 from .base import BaseAPIView
-from plane.db.models import Issue, ProjectMember, IssueRelation
+from plane.db.models import Issue, IssueRelation
+from plane.utils.issue_query import is_restricted_guest
 from plane.utils.issue_search import search_issues
 
 
@@ -144,9 +145,7 @@ class IssueSearchEndpoint(BaseAPIView):
         if target_date == "none":
             issues = self.filter_issues_without_target_date(issues)
 
-        if ProjectMember.objects.filter(
-            project_id=project_id, member=self.request.user, is_active=True, role=5
-        ).exists():
+        if is_restricted_guest(slug=slug, project_id=project_id, user=self.request.user):
             issues = issues.filter(created_by=self.request.user)
 
         return Response(

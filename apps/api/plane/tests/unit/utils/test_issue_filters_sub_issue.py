@@ -16,44 +16,46 @@ from plane.utils.issue_filters import (
 
 @pytest.mark.unit
 class TestSubIssueFilterHelpers:
-    def test_sub_issue_false_sets_epic_child_marker_not_parent_isnull(self):
+    def test_sub_issue_false_is_not_written_as_kwargs(self):
         filters = issue_filters({"sub_issue": "false"}, "GET")
-        assert SUB_ISSUE_ROOT_OR_EPIC_CHILD in filters
-        assert filters[SUB_ISSUE_ROOT_OR_EPIC_CHILD] == ""
+        assert SUB_ISSUE_ROOT_OR_EPIC_CHILD not in filters
         assert "parent__isnull" not in filters
 
-    def test_sub_issue_false_with_prefix_stores_prefix_on_marker(self):
-        filters = issue_filters({"sub_issue": "false"}, "GET", "issue__")
-        assert filters[SUB_ISSUE_ROOT_OR_EPIC_CHILD] == "issue__"
-
-    def test_sub_issue_true_does_not_set_marker(self):
+    def test_sub_issue_true_does_not_set_field_lookups(self):
         filters = issue_filters({"sub_issue": "true"}, "GET")
         assert SUB_ISSUE_ROOT_OR_EPIC_CHILD not in filters
+        assert "parent__isnull" not in filters
 
-    def test_legacy_filter_kwargs_strips_marker(self):
-        filters = issue_filters({"sub_issue": "false", "priority": "urgent,high"}, "GET")
+    def test_legacy_filter_kwargs_strips_old_markers(self):
+        filters = issue_filters({"priority": "urgent,high"}, "GET")
+        filters[SUB_ISSUE_ROOT_OR_EPIC_CHILD] = ""
         kwargs = legacy_filter_kwargs(filters)
         assert SUB_ISSUE_ROOT_OR_EPIC_CHILD not in kwargs
         assert kwargs["priority__in"] == ["urgent", "high"]
 
-    def test_exclude_epics_true_sets_marker(self):
+    def test_exclude_epics_is_not_written_as_kwargs(self):
         filters = issue_filters({"exclude_epics": "true"}, "GET")
-        assert EXCLUDE_EPIC_TYPES in filters
-        assert filters[EXCLUDE_EPIC_TYPES] == ""
+        assert EXCLUDE_EPIC_TYPES not in filters
 
-    def test_exclude_epics_true_with_prefix_stores_prefix_on_marker(self):
-        filters = issue_filters({"exclude_epics": "true"}, "GET", "issue__")
-        assert filters[EXCLUDE_EPIC_TYPES] == "issue__"
-
-    def test_exclude_epics_false_does_not_set_marker(self):
+    def test_exclude_epics_false_does_not_set_field_lookups(self):
         filters = issue_filters({"exclude_epics": "false"}, "GET")
         assert EXCLUDE_EPIC_TYPES not in filters
 
     def test_legacy_filter_kwargs_strips_exclude_epics_marker(self):
-        filters = issue_filters({"exclude_epics": "true", "priority": "urgent"}, "GET")
+        filters = issue_filters({"priority": "urgent"}, "GET")
+        filters[EXCLUDE_EPIC_TYPES] = ""
         kwargs = legacy_filter_kwargs(filters)
         assert EXCLUDE_EPIC_TYPES not in kwargs
         assert kwargs["priority__in"] == ["urgent"]
+
+    def test_updated_at_uses_updated_at_field(self):
+        filters = issue_filters({"updated_at": "2024-01-01;after"}, "GET")
+        assert "updated_at__date__gte" in filters
+        assert "created_at__date__gte" not in filters
+
+    def test_intake_status_post_reads_intake_status(self):
+        filters = issue_filters({"intake_status": [1, 2]}, "POST")
+        assert filters["issue_intake__status__in"] == [1, 2]
 
 
 @pytest.fixture
@@ -148,10 +150,10 @@ def epic_child_filter_context(db, create_user):
 class TestApplyIssueFiltersSubIssue:
     def test_sub_issue_false_keeps_roots_and_epic_children(self, epic_child_filter_context):
         ctx = epic_child_filter_context
-        filters = issue_filters({"sub_issue": "false"}, "GET")
         qs = apply_issue_filters(
             Issue.issue_objects.filter(project=ctx["project"]),
-            filters,
+            {},
+            query_params={"sub_issue": "false"},
         )
         ids = set(qs.values_list("id", flat=True))
 
@@ -163,10 +165,10 @@ class TestApplyIssueFiltersSubIssue:
 
     def test_exclude_epics_with_sub_issue_false_keeps_tasks_and_epic_children(self, epic_child_filter_context):
         ctx = epic_child_filter_context
-        filters = issue_filters({"sub_issue": "false", "exclude_epics": "true"}, "GET")
         qs = apply_issue_filters(
             Issue.issue_objects.filter(project=ctx["project"]),
-            filters,
+            {},
+            query_params={"sub_issue": "false", "exclude_epics": "true"},
         )
         ids = set(qs.values_list("id", flat=True))
 
@@ -178,10 +180,10 @@ class TestApplyIssueFiltersSubIssue:
 
     def test_exclude_epics_with_sub_issue_true_hides_epics_keeps_nested_tasks(self, epic_child_filter_context):
         ctx = epic_child_filter_context
-        filters = issue_filters({"sub_issue": "true", "exclude_epics": "true"}, "GET")
         qs = apply_issue_filters(
             Issue.issue_objects.filter(project=ctx["project"]),
-            filters,
+            {},
+            query_params={"sub_issue": "true", "exclude_epics": "true"},
         )
         ids = set(qs.values_list("id", flat=True))
 
@@ -193,10 +195,10 @@ class TestApplyIssueFiltersSubIssue:
 
     def test_type_filter_task_with_sub_issue_false_returns_epic_child_tasks(self, epic_child_filter_context):
         ctx = epic_child_filter_context
-        filters = issue_filters({"sub_issue": "false"}, "GET")
         qs = apply_issue_filters(
             Issue.issue_objects.filter(project=ctx["project"], type_id=ctx["task_type"].id),
-            filters,
+            {},
+            query_params={"sub_issue": "false"},
         )
         ids = set(qs.values_list("id", flat=True))
 
@@ -207,10 +209,10 @@ class TestApplyIssueFiltersSubIssue:
 
     def test_sub_issue_true_includes_all_parented_issues(self, epic_child_filter_context):
         ctx = epic_child_filter_context
-        filters = issue_filters({"sub_issue": "true"}, "GET")
         qs = apply_issue_filters(
             Issue.issue_objects.filter(project=ctx["project"]),
-            filters,
+            {},
+            query_params={"sub_issue": "true"},
         )
         ids = set(qs.values_list("id", flat=True))
 
@@ -218,3 +220,34 @@ class TestApplyIssueFiltersSubIssue:
         assert ctx["epic"].id in ids
         assert ctx["epic_child"].id in ids
         assert ctx["nested_task"].id in ids
+
+    def test_legacy_marker_blobs_still_apply(self, epic_child_filter_context):
+        ctx = epic_child_filter_context
+        qs = apply_issue_filters(
+            Issue.issue_objects.filter(project=ctx["project"]),
+            {SUB_ISSUE_ROOT_OR_EPIC_CHILD: "", EXCLUDE_EPIC_TYPES: ""},
+        )
+        ids = set(qs.values_list("id", flat=True))
+        assert ctx["epic"].id not in ids
+        assert ctx["nested_task"].id not in ids
+        assert ctx["epic_child"].id in ids
+
+    def test_show_sub_issues_false_matches_sub_issue_false(self, epic_child_filter_context):
+        ctx = epic_child_filter_context
+        hidden = set(
+            apply_issue_filters(
+                Issue.issue_objects.filter(project=ctx["project"]),
+                {},
+                query_params={"show_sub_issues": "false"},
+            ).values_list("id", flat=True)
+        )
+        explicit = set(
+            apply_issue_filters(
+                Issue.issue_objects.filter(project=ctx["project"]),
+                {},
+                query_params={"sub_issue": "false"},
+            ).values_list("id", flat=True)
+        )
+        assert hidden == explicit
+        assert ctx["nested_task"].id not in hidden
+        assert ctx["epic_child"].id in hidden

@@ -21,7 +21,7 @@ import {
   ViewsIcon,
 } from "@plane/propel/icons";
 // components
-import type { TNavigationItem } from "@/components/workspace/sidebar/project-navigation";
+import type { TNavigationItem } from "@/components/navigation/navigation-item";
 
 const ISSUE_LAYOUT_NAV_ICONS: Record<TIssueLayoutPathSlug, ElementType> = {
   list: ListLayoutIcon,

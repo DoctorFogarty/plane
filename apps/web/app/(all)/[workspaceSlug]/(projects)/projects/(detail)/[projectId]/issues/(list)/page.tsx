@@ -10,7 +10,6 @@ import { ISSUE_LAYOUT_MAP, getIssueLayoutFromPathSlug, getIssueLayoutSlugFromPat
 import { useTranslation } from "@plane/i18n";
 import { EIssueLayoutTypes } from "@plane/types";
 import { PageHead } from "@/components/core/page-title";
-import { ProjectLayoutRoot } from "@/components/issues/issue-layouts/roots/project-layout-root";
 import { useProject } from "@/hooks/store/use-project";
 import type { Route } from "./+types/page";
 
@@ -24,14 +23,7 @@ function ProjectIssuesPage({ params }: Route.ComponentProps) {
   const layout = getIssueLayoutFromPathSlug(getIssueLayoutSlugFromPathname(pathname)) ?? EIssueLayoutTypes.LIST;
   const pageTitle = project?.name ? `${project.name} - ${t(ISSUE_LAYOUT_MAP[layout].i18n_label)}` : undefined;
 
-  return (
-    <>
-      <PageHead title={pageTitle} />
-      <div className="h-full w-full">
-        <ProjectLayoutRoot />
-      </div>
-    </>
-  );
+  return <PageHead title={pageTitle} />;
 }
 
 export default observer(ProjectIssuesPage);

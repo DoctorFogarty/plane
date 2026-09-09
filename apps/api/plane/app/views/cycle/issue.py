@@ -3,12 +3,11 @@
 # See the LICENSE file for details.
 
 # Python imports
-import copy
 import json
 
 # Django imports
 from django.core import serializers
-from django.db.models import F, Func, OuterRef, Q, Subquery
+from django.db.models import F, Func, OuterRef, Q
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.gzip import gzip_page
@@ -22,19 +21,12 @@ from rest_framework.response import Response
 from .. import BaseViewSet
 from plane.app.serializers import CycleIssueSerializer
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.db.models import Cycle, CycleIssue, Issue, FileAsset, IssueLink
-from plane.utils.grouper import (
-    issue_group_values,
-    issue_on_results,
-    issue_queryset_grouper,
-)
-from plane.utils.issue_filters import apply_issue_filters, issue_filters
-from plane.utils.order_queryset import order_issue_queryset
-from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
+from plane.db.models import Cycle, CycleIssue, Issue
 from plane.app.permissions import allow_permission, ROLE
 from plane.utils.host import base_host
 from plane.utils.filters import IssueComplexFilterBackend
 from plane.utils.filters import IssueFilterSet
+from plane.utils.issue_query import INTAKE_BOARD_COUNT_FILTER, list_issue_board
 
 
 class CycleIssueViewSet(BaseViewSet):
@@ -74,151 +66,23 @@ class CycleIssueViewSet(BaseViewSet):
             .distinct()
         )
 
-    def apply_annotations(self, issues):
-        return (
-            issues.annotate(
-                cycle_id=Subquery(
-                    CycleIssue.objects.filter(issue=OuterRef("id"), deleted_at__isnull=True).values("cycle_id")[:1]
-                )
-            )
-            .annotate(
-                link_count=IssueLink.objects.filter(issue=OuterRef("id"))
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                attachment_count=FileAsset.objects.filter(
-                    issue_id=OuterRef("id"),
-                    entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
-                )
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                sub_issues_count=Issue.issue_objects.filter(parent=OuterRef("id"))
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .prefetch_related("assignees", "labels", "issue_module__module", "issue_cycle__cycle")
-        )
-
     @method_decorator(gzip_page)
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def list(self, request, slug, project_id, cycle_id):
-        filters = issue_filters(request.query_params, "GET")
         issue_queryset = (
             Issue.issue_objects.filter(issue_cycle__cycle_id=cycle_id, issue_cycle__deleted_at__isnull=True)
             .filter(project_id=project_id)
             .filter(workspace__slug=slug)
         )
-
-        # Apply filtering from filterset
-        issue_queryset = self.filter_queryset(issue_queryset)
-
-        # Apply legacy filters
-        issue_queryset = apply_issue_filters(issue_queryset, filters)
-
-        # Total count queryset
-        total_issue_queryset = copy.deepcopy(issue_queryset)
-
-        # Applying annotations to the issue queryset
-        issue_queryset = self.apply_annotations(issue_queryset)
-
-        order_by_param = request.GET.get("order_by", "-created_at")
-        # Issue queryset
-        issue_queryset, order_by_param = order_issue_queryset(
-            issue_queryset=issue_queryset, order_by_param=order_by_param
+        return list_issue_board(
+            self,
+            request,
+            slug=slug,
+            project_id=project_id,
+            queryset=issue_queryset,
+            prefetch=("assignees", "labels", "issue_module__module", "issue_cycle__cycle"),
+            count_filter=INTAKE_BOARD_COUNT_FILTER,
         )
-
-        # Group by
-        group_by = request.GET.get("group_by", False)
-        sub_group_by = request.GET.get("sub_group_by", False)
-
-        # issue queryset
-        issue_queryset = issue_queryset_grouper(queryset=issue_queryset, group_by=group_by, sub_group_by=sub_group_by)
-
-        if group_by:
-            # Check group and sub group value paginate
-            if sub_group_by:
-                if group_by == sub_group_by:
-                    return Response(
-                        {"error": "Group by and sub group by cannot have same parameters"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                else:
-                    # group and sub group pagination
-                    return self.paginate(
-                        request=request,
-                        order_by=order_by_param,
-                        queryset=issue_queryset,
-                        total_count_queryset=total_issue_queryset,
-                        on_results=lambda issues: issue_on_results(
-                            group_by=group_by, issues=issues, sub_group_by=sub_group_by
-                        ),
-                        paginator_cls=SubGroupedOffsetPaginator,
-                        group_by_fields=issue_group_values(
-                            field=group_by,
-                            slug=slug,
-                            project_id=project_id,
-                            filters=filters,
-                        ),
-                        sub_group_by_fields=issue_group_values(
-                            field=sub_group_by,
-                            slug=slug,
-                            project_id=project_id,
-                            filters=filters,
-                        ),
-                        group_by_field_name=group_by,
-                        sub_group_by_field_name=sub_group_by,
-                        count_filter=Q(
-                            Q(issue_intake__status=1)
-                            | Q(issue_intake__status=-1)
-                            | Q(issue_intake__status=2)
-                            | Q(issue_intake__isnull=True),
-                            archived_at__isnull=True,
-                            is_draft=False,
-                        ),
-                    )
-            # Group Paginate
-            else:
-                # Group paginate
-                return self.paginate(
-                    request=request,
-                    order_by=order_by_param,
-                    queryset=issue_queryset,
-                    total_count_queryset=total_issue_queryset,
-                    on_results=lambda issues: issue_on_results(
-                        group_by=group_by, issues=issues, sub_group_by=sub_group_by
-                    ),
-                    paginator_cls=GroupedOffsetPaginator,
-                    group_by_fields=issue_group_values(
-                        field=group_by,
-                        slug=slug,
-                        project_id=project_id,
-                        filters=filters,
-                    ),
-                    group_by_field_name=group_by,
-                    count_filter=Q(
-                        Q(issue_intake__status=1)
-                        | Q(issue_intake__status=-1)
-                        | Q(issue_intake__status=2)
-                        | Q(issue_intake__isnull=True),
-                        archived_at__isnull=True,
-                        is_draft=False,
-                    ),
-                )
-        else:
-            # List Paginate
-            return self.paginate(
-                order_by=order_by_param,
-                request=request,
-                queryset=issue_queryset,
-                total_count_queryset=total_issue_queryset,
-                on_results=lambda issues: issue_on_results(group_by=group_by, issues=issues, sub_group_by=sub_group_by),
-            )
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def create(self, request, slug, project_id, cycle_id):

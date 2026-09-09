@@ -6,14 +6,14 @@
 
 import { observer } from "mobx-react";
 import useSWR from "swr";
-// plane imports
+import { EIssuesStoreType } from "@plane/types";
 import { cn } from "@plane/utils";
 // assets
 import emptyModule from "@/app/assets/empty-state/module.svg?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHead } from "@/components/core/page-title";
-import { ModuleLayoutRoot } from "@/components/issues/issue-layouts/roots/module-layout-root";
+import { IssueCollectionLayoutRoot } from "@/components/issues/issue-layouts/issue-collection-layout-root";
 import { ModuleAnalyticsSidebar } from "@/components/modules";
 // hooks
 import { useModule } from "@/hooks/store/use-module";
@@ -32,7 +32,7 @@ function ModuleIssuesPage({ params }: Route.ComponentProps) {
   // const { issuesFilter } = useIssues(EIssuesStoreType.MODULE);
   // local storage
   const { setValue, storedValue } = useLocalStorage("module_sidebar_collapsed", "false");
-  const isSidebarCollapsed = storedValue ? (storedValue === "true" ? true : false) : false;
+  const isSidebarCollapsed = storedValue === "true";
   // fetching module details
   const { error } = useSWR(`CURRENT_MODULE_DETAILS_${moduleId}`, () =>
     fetchModuleDetails(workspaceSlug, projectId, moduleId)
@@ -63,7 +63,7 @@ function ModuleIssuesPage({ params }: Route.ComponentProps) {
       ) : (
         <div className="flex h-full w-full">
           <div className="h-full w-full overflow-hidden">
-            <ModuleLayoutRoot />
+            <IssueCollectionLayoutRoot storeType={EIssuesStoreType.MODULE} />
           </div>
           {!isSidebarCollapsed && (
             <div

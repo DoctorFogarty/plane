@@ -20,8 +20,14 @@ from plane.utils.html_processor import strip_tags
 from plane.utils.path_validator import sanitize_filename
 from plane.db.mixins import SoftDeletionManager, ChangeTrackerMixin
 from plane.utils.exception_logger import log_exception
-from .project import ProjectBaseModel
 from plane.utils.uuid import convert_uuid_to_integer
+# Re-exported for historical migrations (plane.db.models.issue.get_default_*).
+from plane.utils.view_preferences import (
+    get_default_display_filters,
+    get_default_display_properties,
+    get_default_filters,
+)
+from .project import ProjectBaseModel
 from .description import Description
 from .state import StateGroup
 
@@ -40,50 +46,6 @@ def get_default_properties():
         "attachment_count": True,
         "estimate": True,
         "created_on": True,
-        "updated_on": True,
-    }
-
-
-def get_default_filters():
-    return {
-        "priority": None,
-        "state": None,
-        "state_group": None,
-        "assignees": None,
-        "created_by": None,
-        "labels": None,
-        "start_date": None,
-        "target_date": None,
-        "subscriber": None,
-    }
-
-
-def get_default_display_filters():
-    return {
-        "group_by": None,
-        "order_by": "-created_at",
-        "type": None,
-        "sub_issue": True,
-        "show_empty_groups": True,
-        "layout": "list",
-        "calendar_date_range": "",
-    }
-
-
-def get_default_display_properties():
-    return {
-        "assignee": True,
-        "attachment_count": True,
-        "created_on": True,
-        "due_date": True,
-        "estimate": True,
-        "key": True,
-        "labels": True,
-        "link": True,
-        "priority": True,
-        "start_date": True,
-        "state": True,
-        "sub_issue_count": True,
         "updated_on": True,
     }
 

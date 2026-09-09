@@ -104,6 +104,26 @@ export const getTabUrl = (workspaceSlug: string, projectId: string, tabKey: stri
 export const isNavHrefActive = (pathname: string, href: string): boolean =>
   pathname === href || pathname === `${href}/` || pathname.startsWith(`${href}/`);
 
+export const isNavigationItemActive = (args: {
+  item: { key: string; href: string };
+  pathname: string;
+  projectId: string;
+  workItemId?: string;
+  workItem?: { is_epic?: boolean; project_id?: string | null };
+  workItemLayoutNavKey?: string;
+}): boolean => {
+  const { item, pathname, projectId, workItemId, workItem, workItemLayoutNavKey } = args;
+  const workItemCondition = workItemId && workItem && !workItem.is_epic && workItem.project_id === projectId;
+  const epicCondition = workItemId && workItem && workItem.is_epic && workItem.project_id === projectId;
+  const isLayoutActiveForWorkItem =
+    !!workItemCondition && isIssueLayoutPathSlug(item.key) && item.key === workItemLayoutNavKey;
+  const isEpicActive = item.key === "epics" && epicCondition;
+  if (item.key === "views") {
+    return pathname === item.href || pathname === `${item.href}/`;
+  }
+  return isLayoutActiveForWorkItem || isEpicActive || isNavHrefActive(pathname, item.href);
+};
+
 /**
  * Get the default tab URL for a project
  * @param workspaceSlug - The workspace slug
@@ -111,6 +131,17 @@ export const isNavHrefActive = (pathname: string, href: string): boolean =>
  * @param availableTabKeys - Optional array of available tab keys for validation
  * @returns Full URL path for the default tab (validated if availableTabKeys provided)
  */
+/**
+ * Destination project owns the switch URL. Never reuse the source project's tab.
+ */
+export const getProjectSwitchUrl = (
+  workspaceSlug: string,
+  destinationProjectId: string,
+  destinationDefaultTab?: string,
+  availableTabKeys?: string[]
+): string =>
+  getTabUrl(workspaceSlug, destinationProjectId, resolveDefaultTabKey(destinationDefaultTab, availableTabKeys));
+
 export const getDefaultTabUrl = (workspaceSlug: string, projectId: string, availableTabKeys?: string[]): string => {
   const preferences = getTabPreferences(projectId);
   const tabKey = availableTabKeys?.length

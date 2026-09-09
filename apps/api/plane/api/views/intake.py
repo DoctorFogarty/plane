@@ -27,9 +27,10 @@ from plane.api.serializers import (
 )
 from plane.app.permissions import ProjectLitePermission
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.db.models import Intake, IntakeIssue, Issue, Project, ProjectMember, State, StateGroup
+from plane.db.models import Intake, IntakeIssue, Issue, Project, ProjectMember
 from plane.utils.host import base_host
 from plane.utils.content_validator import validate_html_content
+from plane.utils.work_item import WorkItemCreateError, create_work_item, ensure_triage_state
 from .base import BaseAPIView
 from plane.db.models.intake import SourceType
 from plane.utils.openapi import (
@@ -170,45 +171,42 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
         ]:
             return Response({"error": "Invalid priority"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # get the triage state
-        triage_state = State.triage_objects.filter(project_id=project_id, workspace__slug=slug).first()
-
-        if not triage_state:
-            triage_state = State.objects.create(
-                name="Triage",
-                group=StateGroup.TRIAGE.value,
-                project_id=project_id,
-                workspace_id=project.workspace_id,
-                color="#4E5355",
-                sequence=65000,
-                default=False,
-            )
-
-        # create an issue
+        triage_state = ensure_triage_state(project)
         issue_data = request.data.get("issue", {})
-        # Accept both "description" and "description_json" keys for the description_json field
         description_json = issue_data.get("description") or issue_data.get("description_json") or {}
-        # Sanitize description_html before saving to prevent stored XSS (GHSA-hh2r-3hwp-mvq3)
         raw_description_html = issue_data.get("description_html", "<p></p>")
         _, _, sanitized_description_html = validate_html_content(raw_description_html)
         safe_description_html = sanitized_description_html if sanitized_description_html is not None else "<p></p>"
-        issue = Issue.objects.create(
-            name=issue_data.get("name"),
-            description_json=description_json,
-            description_html=safe_description_html,
-            priority=issue_data.get("priority", "none"),
-            project_id=project_id,
-            state_id=triage_state.id,
-        )
 
-        # create an intake issue
-        intake_issue = IntakeIssue.objects.create(
-            intake_id=intake.id,
-            project_id=project_id,
-            issue=issue,
-            source=SourceType.IN_APP,
-        )
-        # Create an Issue Activity
+        create_data = {
+            "name": issue_data.get("name"),
+            "description_json": description_json,
+            "description_html": safe_description_html,
+            "priority": issue_data.get("priority", "none"),
+            "state_id": str(triage_state.id),
+        }
+
+        def attach_intake(created_issue):
+            IntakeIssue.objects.create(
+                intake_id=intake.id,
+                project_id=project_id,
+                issue=created_issue,
+                source=SourceType.IN_APP,
+            )
+
+        try:
+            issue = create_work_item(
+                project=project,
+                actor=request.user,
+                data=create_data,
+                allow_triage_state=True,
+                validate_property_required=False,
+                in_transaction=attach_intake,
+            )
+        except WorkItemCreateError as exc:
+            return Response(exc.payload, status=exc.status_code)
+
+        intake_issue = IntakeIssue.objects.get(intake_id=intake.id, issue_id=issue.id, project_id=project_id)
         issue_activity.delay(
             type="issue.activity.created",
             requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),

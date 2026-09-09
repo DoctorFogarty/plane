@@ -12,12 +12,9 @@ from django.utils import timezone
 # The date from pattern
 pattern = re.compile(r"\d+_(weeks|months)$")
 
-# Marker set by filter_sub_issue_toggle — must be applied via apply_issue_filters
-# (OR cannot be expressed as plain kwargs for queryset.filter(**filters)).
+# Legacy sentinel keys persisted on older IssueView.query blobs. apply_issue_filters
+# still honors them; new compilations apply Q objects instead of writing these keys.
 SUB_ISSUE_ROOT_OR_EPIC_CHILD = "_sub_issue_root_or_epic_child"
-
-# Marker set by filter_exclude_epics — hide Epic-type rows while keeping untyped
-# and non-epic work items (including children of Epics).
 EXCLUDE_EPIC_TYPES = "_exclude_epic_types"
 
 
@@ -240,14 +237,14 @@ def filter_updated_at(params, issue_filter, method, prefix=""):
         if len(updated_ats) and "" not in updated_ats:
             date_filter(
                 issue_filter=issue_filter,
-                date_term=f"{prefix}created_at__date",
+                date_term=f"{prefix}updated_at__date",
                 queries=updated_ats,
             )
     else:
         if params.get("updated_at", None) and len(params.get("updated_at")):
             date_filter(
                 issue_filter=issue_filter,
-                date_term=f"{prefix}created_at__date",
+                date_term=f"{prefix}updated_at__date",
                 queries=params.get("updated_at", []),
             )
     return issue_filter
@@ -367,77 +364,77 @@ def filter_intake_status(params, issue_filter, method, prefix=""):
             and len(params.get("intake_status"))
             and params.get("intake_status") != "null"
         ):
-            issue_filter[f"{prefix}issue_intake__status__in"] = params.get("inbox_status")
+            issue_filter[f"{prefix}issue_intake__status__in"] = params.get("intake_status")
     return issue_filter
 
 
 def filter_inbox_status(params, issue_filter, method, prefix=""):
-    if method == "GET":
-        status = [item for item in params.get("inbox_status").split(",") if item != "null"]
-        if len(status) and "" not in status:
-            issue_filter[f"{prefix}issue_intake__status__in"] = status
-    else:
-        if (
-            params.get("inbox_status", None)
-            and len(params.get("inbox_status"))
-            and params.get("inbox_status") != "null"
-        ):
-            issue_filter[f"{prefix}issue_intake__status__in"] = params.get("inbox_status")
-    return issue_filter
+    """Alias for legacy inbox_status query keys — same lookup as intake_status."""
+    return filter_intake_status({"intake_status": params.get("inbox_status")}, issue_filter, method, prefix=prefix)
 
 
-def filter_sub_issue_toggle(params, issue_filter, method, prefix=""):
-    """When sub_issue is false, keep root issues and children of Epics (WEB-4069)."""
-    sub_issue = params.get("sub_issue", "false")
-    if sub_issue == "false":
-        issue_filter[SUB_ISSUE_ROOT_OR_EPIC_CHILD] = prefix
-    return issue_filter
+def sub_issue_root_or_epic_child_q(prefix=""):
+    """Roots and children of Epics (WEB-4069)."""
+    return Q(**{f"{prefix}parent__isnull": True}) | Q(**{f"{prefix}parent__type__is_epic": True})
 
 
-def filter_exclude_epics(params, issue_filter, method, prefix=""):
-    """When exclude_epics is true, drop Epic-type rows (Kanban work-item boards)."""
-    exclude_epics = params.get("exclude_epics", "false")
-    if exclude_epics is True or exclude_epics == "true":
-        issue_filter[EXCLUDE_EPIC_TYPES] = prefix
-    return issue_filter
+def exclude_epics_q(prefix=""):
+    """Hide Epic-type rows while keeping untyped and non-epic work items."""
+    return Q(**{f"{prefix}type__isnull": True}) | Q(**{f"{prefix}type__is_epic": False})
+
+
+def _truthy(value):
+    return value is True or value in ("true", "True", 1, "1")
+
+
+def _falsey(value):
+    return value is False or value in ("false", "False", 0, "0")
+
+
+def hierarchy_filters_q(params, prefix=""):
+    """Single Q for sub-issue / epic visibility from query params or filter JSON."""
+    q = Q()
+    if params is None:
+        return q
+    hide_nested = False
+    if "sub_issue" in params and _falsey(params.get("sub_issue")):
+        hide_nested = True
+    # Archive used to send show_sub_issues; treat it as the same hierarchy rule.
+    if "show_sub_issues" in params and _falsey(params.get("show_sub_issues")):
+        hide_nested = True
+    if hide_nested:
+        q &= sub_issue_root_or_epic_child_q(prefix)
+    if "exclude_epics" in params and _truthy(params.get("exclude_epics")):
+        q &= exclude_epics_q(prefix)
+    return q
 
 
 def legacy_filter_kwargs(filters):
-    """Return kwargs safe for queryset.filter(**kwargs), stripping sub_issue markers."""
+    """Return kwargs safe for queryset.filter(**kwargs), stripping hierarchy sentinels."""
     filters = dict(filters or {})
     filters.pop(SUB_ISSUE_ROOT_OR_EPIC_CHILD, None)
     filters.pop(EXCLUDE_EPIC_TYPES, None)
     return filters
 
 
-def apply_issue_filters(queryset, filters, extra_filters=None):
+def apply_issue_filters(queryset, filters, extra_filters=None, query_params=None, prefix=""):
     """
-    Apply legacy issue_filters() output to a queryset.
+    Apply legacy issue_filters() output plus hierarchy Q objects.
 
-    Handles the sub_issue marker as:
-    Q(parent__isnull=True) | Q(parent__type__is_epic=True)
-    and the exclude_epics marker as:
-    Q(type__isnull=True) | Q(type__is_epic=False)
-    (with optional field prefix, e.g. issue__).
+    `sub_issue=false` (or `show_sub_issues=false`) keeps roots and children of Epics.
+    `exclude_epics=true` drops Epic-type rows.
+    Older saved `query` blobs that stored sentinel keys are still honored.
     """
     filters = dict(filters or {})
-    prefix = None
+
     if SUB_ISSUE_ROOT_OR_EPIC_CHILD in filters:
-        prefix = filters.pop(SUB_ISSUE_ROOT_OR_EPIC_CHILD)
-
-    if prefix is not None:
-        queryset = queryset.filter(
-            Q(**{f"{prefix}parent__isnull": True}) | Q(**{f"{prefix}parent__type__is_epic": True})
-        )
-
-    exclude_prefix = None
+        queryset = queryset.filter(sub_issue_root_or_epic_child_q(filters.pop(SUB_ISSUE_ROOT_OR_EPIC_CHILD) or ""))
     if EXCLUDE_EPIC_TYPES in filters:
-        exclude_prefix = filters.pop(EXCLUDE_EPIC_TYPES)
+        queryset = queryset.filter(exclude_epics_q(filters.pop(EXCLUDE_EPIC_TYPES) or ""))
 
-    if exclude_prefix is not None:
-        queryset = queryset.filter(
-            Q(**{f"{exclude_prefix}type__isnull": True}) | Q(**{f"{exclude_prefix}type__is_epic": False})
-        )
+    hierarchy_q = hierarchy_filters_q(query_params, prefix)
+    if hierarchy_q:
+        queryset = queryset.filter(hierarchy_q)
 
     combined = {**filters, **(extra_filters or {})}
     if combined:
@@ -507,8 +504,6 @@ def issue_filters(query_params, method, prefix=""):
         "module": filter_module,
         "intake_status": filter_intake_status,
         "inbox_status": filter_inbox_status,
-        "sub_issue": filter_sub_issue_toggle,
-        "exclude_epics": filter_exclude_epics,
         "subscriber": filter_subscribed_issues,
         "start_target_date": filter_start_target_date_issues,
     }

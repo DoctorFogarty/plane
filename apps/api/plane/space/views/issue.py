@@ -37,16 +37,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 # Module imports
 from .base import BaseAPIView, BaseViewSet
 
-# fetch the space app grouper function separately
-from plane.space.utils.grouper import (
-    issue_group_values,
-    issue_on_results,
-    issue_queryset_grouper,
-)
-
-
-from plane.utils.order_queryset import order_issue_queryset
-from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
+from plane.space.utils.grouper import issue_on_results
+from plane.utils.issue_query import INTAKE_BOARD_COUNT_FILTER, list_issue_board, parse_group_param
 from plane.app.serializers import (
     CommentReactionSerializer,
     IssueCommentSerializer,
@@ -67,16 +59,12 @@ from plane.db.models import (
     CycleIssue,
 )
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.utils.issue_filters import apply_issue_filters, issue_filters
 
 
 class ProjectIssuesPublicEndpoint(BaseAPIView):
     permission_classes = [AllowAny]
 
     def get(self, request, anchor):
-        filters = issue_filters(request.query_params, "GET")
-        order_by_param = request.GET.get("order_by", "-created_at")
-
         deploy_board = DeployBoard.objects.filter(anchor=anchor, entity_name="project").first()
         if not deploy_board:
             return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
@@ -95,120 +83,20 @@ class ProjectIssuesPublicEndpoint(BaseAPIView):
                 )
             )
             .prefetch_related(Prefetch("votes", queryset=IssueVote.objects.select_related("actor")))
-            .annotate(
-                cycle_id=Subquery(
-                    CycleIssue.objects.filter(issue=OuterRef("id"), deleted_at__isnull=True).values("cycle_id")[:1]
-                )
-            )
-            .annotate(
-                link_count=IssueLink.objects.filter(issue=OuterRef("id"))
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                attachment_count=FileAsset.objects.filter(
-                    issue_id=OuterRef("id"),
-                    entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
-                )
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                sub_issues_count=Issue.issue_objects.filter(parent=OuterRef("id"))
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-        ).distinct()
-
-        issue_queryset = apply_issue_filters(issue_queryset, filters)
-
-        # Issue queryset
-        issue_queryset, order_by_param = order_issue_queryset(
-            issue_queryset=issue_queryset, order_by_param=order_by_param
         )
-
-        # Group by
-        group_by = request.GET.get("group_by", False)
-        sub_group_by = request.GET.get("sub_group_by", False)
-
-        # issue queryset
-        issue_queryset = issue_queryset_grouper(queryset=issue_queryset, group_by=group_by, sub_group_by=sub_group_by)
-
-        if group_by:
-            if sub_group_by:
-                if group_by == sub_group_by:
-                    return Response(
-                        {"error": "Group by and sub group by cannot have same parameters"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                else:
-                    return self.paginate(
-                        request=request,
-                        order_by=order_by_param,
-                        queryset=issue_queryset,
-                        on_results=lambda issues: issue_on_results(
-                            group_by=group_by, issues=issues, sub_group_by=sub_group_by
-                        ),
-                        paginator_cls=SubGroupedOffsetPaginator,
-                        group_by_fields=issue_group_values(
-                            field=group_by,
-                            slug=slug,
-                            project_id=project_id,
-                            filters=filters,
-                        ),
-                        sub_group_by_fields=issue_group_values(
-                            field=sub_group_by,
-                            slug=slug,
-                            project_id=project_id,
-                            filters=filters,
-                        ),
-                        group_by_field_name=group_by,
-                        sub_group_by_field_name=sub_group_by,
-                        count_filter=Q(
-                            Q(issue_intake__status=1)
-                            | Q(issue_intake__status=-1)
-                            | Q(issue_intake__status=2)
-                            | Q(issue_intake__isnull=True),
-                            archived_at__isnull=True,
-                            is_draft=False,
-                        ),
-                    )
-            else:
-                # Group paginate
-                return self.paginate(
-                    request=request,
-                    order_by=order_by_param,
-                    queryset=issue_queryset,
-                    on_results=lambda issues: issue_on_results(
-                        group_by=group_by, issues=issues, sub_group_by=sub_group_by
-                    ),
-                    paginator_cls=GroupedOffsetPaginator,
-                    group_by_fields=issue_group_values(
-                        field=group_by,
-                        slug=slug,
-                        project_id=project_id,
-                        filters=filters,
-                    ),
-                    group_by_field_name=group_by,
-                    count_filter=Q(
-                        Q(issue_intake__status=1)
-                        | Q(issue_intake__status=-1)
-                        | Q(issue_intake__status=2)
-                        | Q(issue_intake__isnull=True),
-                        archived_at__isnull=True,
-                        is_draft=False,
-                    ),
-                )
-        else:
-            return self.paginate(
-                order_by=order_by_param,
-                request=request,
-                queryset=issue_queryset,
-                on_results=lambda issues: issue_on_results(group_by=group_by, issues=issues, sub_group_by=sub_group_by),
-            )
+        return list_issue_board(
+            self,
+            request,
+            slug=slug,
+            project_id=project_id,
+            queryset=issue_queryset,
+            count_filter=INTAKE_BOARD_COUNT_FILTER,
+            on_results=lambda issues: issue_on_results(
+                group_by=parse_group_param(request.GET.get("group_by")),
+                issues=issues,
+                sub_group_by=parse_group_param(request.GET.get("sub_group_by")),
+            ),
+        )
 
 
 class IssueCommentPublicViewSet(BaseViewSet):

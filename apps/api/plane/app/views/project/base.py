@@ -9,6 +9,7 @@ import json
 # Django imports
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Exists, F, OuterRef, Prefetch, Q, Subquery, Count
+from django.db import transaction
 from django.utils import timezone
 
 # Third Party imports
@@ -43,6 +44,7 @@ from plane.db.models import (
 )
 from plane.db.models.intake import IntakeIssueStatus
 from plane.utils.host import base_host
+from plane.utils.view_preferences import apply_view_props_to_user_property
 from plane.utils.order_queryset import PROJECT_ORDER_BY_ALLOWLIST, sanitize_order_by
 from plane.utils.project_duplicate import duplicate_project_setup
 
@@ -542,17 +544,30 @@ class ProjectUserViewsEndpoint(BaseAPIView):
         if project_member is None:
             return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
-        view_props = project_member.view_props
-        default_props = project_member.default_props
-        preferences = project_member.preferences
-        sort_order = project_member.sort_order
+        view_props = request.data.get("view_props", project_member.view_props)
+        default_props = request.data.get("default_props", project_member.default_props)
+        preferences = request.data.get("preferences", project_member.preferences)
+        sort_order = request.data.get("sort_order", project_member.sort_order)
 
-        project_member.view_props = request.data.get("view_props", view_props)
-        project_member.default_props = request.data.get("default_props", default_props)
-        project_member.preferences = request.data.get("preferences", preferences)
-        project_member.sort_order = request.data.get("sort_order", sort_order)
-
-        project_member.save()
+        with transaction.atomic():
+            user_property, _ = ProjectUserProperty.objects.get_or_create(
+                user=request.user,
+                project_id=project_id,
+                defaults={"workspace_id": project.workspace_id},
+            )
+            apply_view_props_to_user_property(
+                user_property,
+                view_props=view_props,
+                preferences=preferences,
+                sort_order=sort_order,
+            )
+            user_property.save()
+            # Compatibility blob for ProjectMember serializers. Live reads use ProjectUserProperty.
+            project_member.view_props = view_props
+            project_member.default_props = default_props
+            project_member.preferences = preferences
+            project_member.sort_order = sort_order
+            project_member.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

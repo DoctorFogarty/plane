@@ -6,12 +6,13 @@
 
 import { observer } from "mobx-react";
 import useSWR from "swr";
+import { EIssuesStoreType } from "@plane/types";
 // assets
 import emptyView from "@/app/assets/empty-state/view.svg?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHead } from "@/components/core/page-title";
-import { ProjectViewLayoutRoot } from "@/components/issues/issue-layouts/roots/project-view-layout-root";
+import { IssueCollectionLayoutRoot } from "@/components/issues/issue-layouts/issue-collection-layout-root";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectView } from "@/hooks/store/use-project-view";
@@ -49,7 +50,7 @@ function ProjectViewIssuesPage({ params }: Route.ComponentProps) {
   return (
     <>
       <PageHead title={pageTitle} />
-      <ProjectViewLayoutRoot />
+      <IssueCollectionLayoutRoot storeType={EIssuesStoreType.PROJECT_VIEW} />
     </>
   );
 }

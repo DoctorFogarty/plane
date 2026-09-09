@@ -41,7 +41,7 @@ from .. import BaseViewSet
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.issue_filters import apply_issue_filters, issue_filters
 from plane.utils.host import base_host
-from plane.utils.issue_property import upsert_property_values
+from plane.utils.work_item import WorkItemCreateError, create_work_item
 
 
 class WorkspaceDraftIssueViewSet(BaseViewSet):
@@ -101,7 +101,7 @@ class WorkspaceDraftIssueViewSet(BaseViewSet):
         filters = issue_filters(request.query_params, "GET")
         issues = self.get_queryset().filter(created_by=request.user).order_by("-created_at")
 
-        issues = apply_issue_filters(issues, filters)
+        issues = apply_issue_filters(issues, filters, query_params=request.query_params)
         # List Paginate
         return self.paginate(
             request=request,
@@ -213,116 +213,73 @@ class WorkspaceDraftIssueViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = IssueCreateSerializer(
-            data=request.data,
-            context={
-                "project_id": draft_issue.project_id,
-                "workspace_id": draft_issue.project.workspace_id,
-                "default_assignee_id": draft_issue.project.default_assignee_id,
-            },
+        payload = dict(request.data)
+        if not payload.get("property_values"):
+            payload["property_values"] = draft_issue.property_values or {}
+
+        def transfer_draft(created_issue):
+            FileAsset.objects.filter(draft_issue_id=draft_id).update(
+                issue_id=created_issue.id,
+                entity_type=FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
+                draft_issue_id=None,
+            )
+            draft_issue.delete()
+
+        try:
+            issue = create_work_item(
+                project=draft_issue.project,
+                actor=request.user,
+                data=payload,
+                validate_property_required="property_values" in payload,
+                in_transaction=transfer_draft,
+            )
+        except WorkItemCreateError as exc:
+            return Response(exc.payload, status=exc.status_code)
+
+        issue_id = str(issue.id)
+        serializer = IssueCreateSerializer(issue)
+        issue_activity.delay(
+            type="issue.activity.created",
+            requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
+            actor_id=str(request.user.id),
+            issue_id=issue_id,
+            project_id=str(draft_issue.project_id),
+            current_instance=None,
+            epoch=int(timezone.now().timestamp()),
+            notification=True,
+            origin=base_host(request=request, is_app=True),
         )
 
-        if serializer.is_valid():
-            serializer.save()
-
+        if payload.get("cycle_id"):
+            created_records = list(CycleIssue.objects.filter(issue_id=issue.id, cycle_id=payload.get("cycle_id")))
             issue_activity.delay(
-                type="issue.activity.created",
-                requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(serializer.data.get("id", None)),
+                type="cycle.activity.created",
+                requested_data=None,
+                actor_id=str(self.request.user.id),
+                issue_id=issue_id,
                 project_id=str(draft_issue.project_id),
+                current_instance=json.dumps(
+                    {
+                        "updated_cycle_issues": None,
+                        "created_cycle_issues": serializers.serialize("json", created_records),
+                    }
+                ),
+                epoch=int(timezone.now().timestamp()),
+                notification=True,
+                origin=base_host(request=request, is_app=True),
+            )
+
+        for module in payload.get("module_ids") or []:
+            issue_activity.delay(
+                type="module.activity.created",
+                requested_data=json.dumps({"module_id": str(module)}),
+                actor_id=str(request.user.id),
+                issue_id=issue_id,
+                project_id=draft_issue.project_id,
                 current_instance=None,
                 epoch=int(timezone.now().timestamp()),
                 notification=True,
                 origin=base_host(request=request, is_app=True),
             )
 
-            if request.data.get("cycle_id", None):
-                created_records = CycleIssue.objects.create(
-                    cycle_id=request.data.get("cycle_id", None),
-                    issue_id=serializer.data.get("id", None),
-                    project_id=draft_issue.project_id,
-                    workspace_id=draft_issue.workspace_id,
-                    created_by_id=draft_issue.created_by_id,
-                    updated_by_id=draft_issue.updated_by_id,
-                )
-                # Capture Issue Activity
-                issue_activity.delay(
-                    type="cycle.activity.created",
-                    requested_data=None,
-                    actor_id=str(self.request.user.id),
-                    issue_id=None,
-                    project_id=str(self.kwargs.get("project_id", None)),
-                    current_instance=json.dumps(
-                        {
-                            "updated_cycle_issues": None,
-                            "created_cycle_issues": serializers.serialize("json", [created_records]),
-                        }
-                    ),
-                    epoch=int(timezone.now().timestamp()),
-                    notification=True,
-                    origin=base_host(request=request, is_app=True),
-                )
-
-            if request.data.get("module_ids", []):
-                # bulk create the module
-                ModuleIssue.objects.bulk_create(
-                    [
-                        ModuleIssue(
-                            module_id=module,
-                            issue_id=serializer.data.get("id", None),
-                            workspace_id=draft_issue.workspace_id,
-                            project_id=draft_issue.project_id,
-                            created_by_id=draft_issue.created_by_id,
-                            updated_by_id=draft_issue.updated_by_id,
-                        )
-                        for module in request.data.get("module_ids", [])
-                    ],
-                    batch_size=10,
-                )
-                # Update the activity
-                _ = [
-                    issue_activity.delay(
-                        type="module.activity.created",
-                        requested_data=json.dumps({"module_id": str(module)}),
-                        actor_id=str(request.user.id),
-                        issue_id=serializer.data.get("id", None),
-                        project_id=draft_issue.project_id,
-                        current_instance=None,
-                        epoch=int(timezone.now().timestamp()),
-                        notification=True,
-                        origin=base_host(request=request, is_app=True),
-                    )
-                    for module in request.data.get("module_ids", [])
-                ]
-
-            # Update file assets
-            file_assets = FileAsset.objects.filter(draft_issue_id=draft_id)
-            file_assets.update(
-                issue_id=serializer.data.get("id", None),
-                entity_type=FileAsset.EntityTypeContext.ISSUE_DESCRIPTION,
-                draft_issue_id=None,
-            )
-
-            # Transfer custom property values from draft JSON onto the new issue.
-            # Required validation is enforced on the client before convert; do not
-            # fail the convert after the issue row already exists.
-            draft_property_values = draft_issue.property_values or request.data.get("property_values") or {}
-            if draft_property_values:
-                created_issue = Issue.objects.filter(pk=serializer.data.get("id")).first()
-                if created_issue:
-                    upsert_property_values(
-                        issue=created_issue,
-                        project_id=draft_issue.project_id,
-                        workspace_id=draft_issue.workspace_id,
-                        property_values=draft_property_values,
-                        actor_id=request.user.id,
-                        validate_required=False,
-                    )
-
-            # delete the draft issue
-            draft_issue.delete()
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

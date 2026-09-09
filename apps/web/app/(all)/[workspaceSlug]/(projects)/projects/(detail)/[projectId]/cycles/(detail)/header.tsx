@@ -40,6 +40,7 @@ import {
 } from "@/components/issues/issue-layouts/filters";
 import { WorkItemFiltersToggle } from "@/components/work-item-filters/filters-toggle";
 // hooks
+import { useCollectionLayoutSelection } from "@/components/issues/issue-layouts/use-collection-layout-route";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useIssues } from "@/hooks/store/use-issues";
@@ -74,7 +75,11 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
 
   const cycleIdStr = cycleId?.toString();
   const issueFilters = cycleIdStr ? issuesFilter.getIssueFilters(cycleIdStr) : undefined;
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const { activeLayout, handleLayoutChange } = useCollectionLayoutSelection({
+    kind: "cycles",
+    entityId: cycleIdStr,
+    storedLayout: issueFilters?.displayFilters?.layout,
+  });
 
   const { setValue, storedValue } = useLocalStorage("cycle_sidebar_collapsed", false);
 
@@ -82,14 +87,6 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
   const toggleSidebar = () => {
     setValue(!isSidebarCollapsed);
   };
-
-  const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
-      if (!workspaceSlug || !projectId) return;
-      updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout: layout }, cycleId);
-    },
-    [workspaceSlug, projectId, cycleId, updateFilters]
-  );
 
   const handleDisplayFilters = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {

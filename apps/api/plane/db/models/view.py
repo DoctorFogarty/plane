@@ -4,55 +4,17 @@
 
 # Django imports
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 # Module import
 from .workspace import WorkspaceBaseModel
-from plane.utils.issue_filters import issue_filters
-
-
-def get_default_filters():
-    return {
-        "priority": None,
-        "state": None,
-        "state_group": None,
-        "assignees": None,
-        "created_by": None,
-        "labels": None,
-        "start_date": None,
-        "target_date": None,
-        "subscriber": None,
-    }
-
-
-def get_default_display_filters():
-    return {
-        "group_by": None,
-        "order_by": "-created_at",
-        "type": None,
-        "sub_issue": True,
-        "show_empty_groups": True,
-        "layout": "list",
-        "calendar_date_range": "",
-    }
-
-
-def get_default_display_properties():
-    return {
-        "assignee": True,
-        "attachment_count": True,
-        "created_on": True,
-        "due_date": True,
-        "estimate": True,
-        "key": True,
-        "labels": True,
-        "link": True,
-        "priority": True,
-        "start_date": True,
-        "state": True,
-        "sub_issue_count": True,
-        "updated_on": True,
-    }
+from plane.utils.view_preferences import (
+    ViewQueryCompileError,
+    compile_issue_view_query,
+    get_default_display_filters,
+    get_default_display_properties,
+)
 
 
 class IssueView(WorkspaceBaseModel):
@@ -77,8 +39,13 @@ class IssueView(WorkspaceBaseModel):
         ordering = ("-created_at",)
 
     def save(self, *args, **kwargs):
-        query_params = self.filters
-        self.query = issue_filters(query_params, "POST") if query_params else {}
+        try:
+            compiled, rich_filters = compile_issue_view_query(self.filters, self.rich_filters)
+        except ViewQueryCompileError as exc:
+            raise ValidationError({"filters": str(exc)}) from exc
+        self.query = compiled
+        if not self.rich_filters and rich_filters:
+            self.rich_filters = rich_filters
 
         if self._state.adding:
             if self.project:

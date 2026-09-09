@@ -25,7 +25,7 @@ import type { TPeekModes } from "./header";
 import { IssuePeekOverviewHeader } from "./header";
 import { PeekOverviewIssueDetails } from "./issue-detail";
 import { IssuePeekOverviewLoader } from "./loader";
-import { PeekOverviewProperties } from "./properties";
+import { WorkItemPropertyEditor } from "../work-item-property-editor";
 
 interface IIssueView {
   workspaceSlug: string;
@@ -197,12 +197,13 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                       />
                     </div>
 
-                    <PeekOverviewProperties
+                    <WorkItemPropertyEditor
                       workspaceSlug={workspaceSlug}
                       projectId={projectId}
                       issueId={issueId}
                       issueOperations={issueOperations}
                       disabled={disabled || is_archived}
+                      variant="peek"
                     />
 
                     <IssueActivity
@@ -251,12 +252,13 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                         is_archived ? "pointer-events-none" : ""
                       }`}
                     >
-                      <PeekOverviewProperties
+                      <WorkItemPropertyEditor
                         workspaceSlug={workspaceSlug}
                         projectId={projectId}
                         issueId={issueId}
                         issueOperations={issueOperations}
                         disabled={disabled || is_archived}
+                        variant="peek"
                       />
                     </div>
                   </div>

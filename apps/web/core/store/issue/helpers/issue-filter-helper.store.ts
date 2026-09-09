@@ -7,8 +7,9 @@
 import { isEmpty, set } from "lodash-es";
 import { runInAction } from "mobx";
 // plane constants
-import type { EIssueFilterType } from "@plane/constants";
+import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
 import {
+  EIssueFilterType,
   EIssueGroupByToServerOptions,
   EServerGroupByToFilterOptions,
   ENABLE_ISSUE_DEPENDENCIES,
@@ -24,11 +25,12 @@ import type {
   TIssueKanbanFilters,
   TIssueParams,
   TStaticViewTypes,
+  TSupportedFilterForUpdate,
   TWorkItemFilterExpression,
 } from "@plane/types";
 import { EIssueLayoutTypes } from "@plane/types";
 // helpers
-import { getComputedDisplayFilters, getComputedDisplayProperties } from "@plane/utils";
+import { getComputedDisplayFilters, getComputedDisplayProperties, mergeDisplayProperties } from "@plane/utils";
 // helpers
 import { isHierarchyLayout } from "@/components/issues/issue-layouts/hierarchy.helpers";
 import { shouldExcludeEpicsFromKanbanParams } from "@/helpers/kanban-epic-filter";
@@ -71,7 +73,7 @@ export interface IIssueFilterHelperStore {
   computedDisplayProperties(filters: IIssueDisplayProperties): IIssueDisplayProperties;
 }
 
-type TFilterPropertySource =
+export type TFilterPropertySource =
   | {
       rich_filters?: TWorkItemFilterExpression;
       display_filters?: IIssueDisplayFilterOptions;
@@ -301,7 +303,7 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
           filter.viewId === viewId &&
           filter.userId === userId
       );
-      if (!currentFilterIndex && currentFilterIndex.length < 0) return undefined;
+      if (currentFilterIndex < 0) return undefined;
 
       return storageFilters[currentFilterIndex]?.filters || {};
     },
@@ -344,33 +346,166 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
     },
   };
 
-  /**
-   * This Method returns true if the display properties changed requires a server side update
-   * @param displayFilters
-   * @returns
-   */
   getShouldReFetchIssues = (displayFilters: IIssueDisplayFilterOptions) => {
-    const NON_SERVER_DISPLAY_FILTERS = ["order_by", "sub_issue", "type"];
-    const displayFilterKeys = Object.keys(displayFilters);
-
-    return NON_SERVER_DISPLAY_FILTERS.some((serverDisplayfilter: string) =>
-      displayFilterKeys.includes(serverDisplayfilter)
-    );
+    const SERVER_DISPLAY_FILTERS = ["order_by", "sub_issue", "type"];
+    return SERVER_DISPLAY_FILTERS.some((key) => Object.prototype.hasOwnProperty.call(displayFilters, key));
   };
 
   /**
-   * This Method returns true if the display properties changed requires a server side update
-   * @param displayFilters
-   * @returns
+   * Shared kanban/group_by rules used by every entity filter store.
    */
-  getShouldClearIssues = (displayFilters: IIssueDisplayFilterOptions) => {
-    const NON_SERVER_DISPLAY_FILTERS = ["layout"];
-    const displayFilterKeys = Object.keys(displayFilters);
+  normalizeKanbanDisplayFilters(
+    updated: IIssueDisplayFilterOptions,
+    defaultGroupBy: IIssueDisplayFilterOptions["group_by"] = "state"
+  ): IIssueDisplayFilterOptions {
+    const next = { ...updated };
+    if (next.group_by === null) {
+      next.sub_group_by = null;
+    }
+    if (next.layout === "kanban" && next.group_by === next.sub_group_by) {
+      next.sub_group_by = null;
+    }
+    if (next.layout === "kanban" && next.group_by === null) {
+      next.group_by = defaultGroupBy;
+    }
+    return next;
+  }
 
-    return NON_SERVER_DISPLAY_FILTERS.some((serverDisplayfilter: string) =>
-      displayFilterKeys.includes(serverDisplayfilter)
-    );
-  };
+  /**
+   * Merge a display-filter patch onto the current document without mutating the patch.
+   */
+  applyDisplayFilterUpdate(
+    current: IIssueDisplayFilterOptions,
+    patch: IIssueDisplayFilterOptions,
+    defaultGroupBy: IIssueDisplayFilterOptions["group_by"] = "state"
+  ): IIssueDisplayFilterOptions {
+    return this.normalizeKanbanDisplayFilters({ ...current, ...patch }, defaultGroupBy);
+  }
+
+  applyLocalEntityPatch(
+    filters: Record<string, IIssueFilters>,
+    entityId: string,
+    path: "displayFilters" | "displayProperties" | "kanbanFilters",
+    patch: Record<string, unknown>
+  ) {
+    runInAction(() => {
+      Object.keys(patch).forEach((key) => {
+        set(filters, [entityId, path, key], patch[key]);
+      });
+    });
+  }
+
+  /**
+   * One filter document writer: apply display / property / kanban updates
+   * onto `filters[entityId]` and return the merged document slice.
+   */
+  applyFilterTypeUpdate(args: {
+    filters: Record<string, IIssueFilters>;
+    entityId: string;
+    type: TSupportedFilterTypeForUpdate;
+    patch: TSupportedFilterForUpdate;
+    defaultKanbanGroupBy?: IIssueDisplayFilterOptions["group_by"];
+  }):
+    | {
+        displayFilters?: IIssueDisplayFilterOptions;
+        displayProperties?: IIssueDisplayProperties;
+        kanbanFilters?: TIssueKanbanFilters;
+      }
+    | undefined {
+    const { filters, entityId, type, patch, defaultKanbanGroupBy = "state" } = args;
+    if (isEmpty(filters) || isEmpty(filters[entityId])) return undefined;
+
+    switch (type) {
+      case EIssueFilterType.DISPLAY_FILTERS: {
+        const updated = patch as IIssueDisplayFilterOptions;
+        const current = filters[entityId].displayFilters as IIssueDisplayFilterOptions;
+        const displayFilters = this.applyDisplayFilterUpdate(current, updated, defaultKanbanGroupBy);
+        this.applyLocalEntityPatch(filters, entityId, "displayFilters", {
+          ...updated,
+          group_by: displayFilters.group_by,
+          sub_group_by: displayFilters.sub_group_by,
+        } as Record<string, unknown>);
+        return { displayFilters };
+      }
+      case EIssueFilterType.DISPLAY_PROPERTIES: {
+        const updated = patch as IIssueDisplayProperties;
+        const displayProperties = mergeDisplayProperties(
+          filters[entityId].displayProperties as IIssueDisplayProperties,
+          updated
+        );
+        runInAction(() => {
+          Object.keys(updated).forEach((key) => {
+            set(filters, [entityId, "displayProperties", key], displayProperties[key as keyof IIssueDisplayProperties]);
+          });
+        });
+        return { displayProperties };
+      }
+      case EIssueFilterType.KANBAN_FILTERS: {
+        const updated = patch as TIssueKanbanFilters;
+        const kanbanFilters = {
+          ...(filters[entityId].kanbanFilters as TIssueKanbanFilters),
+          ...updated,
+        };
+        this.applyLocalEntityPatch(filters, entityId, "kanbanFilters", updated as Record<string, unknown>);
+        return { kanbanFilters };
+      }
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Apply a filter patch, persist via strategy, and refetch only when the inbound patch requires it.
+   */
+  async commitFilterTypeUpdate(args: {
+    filters: Record<string, IIssueFilters>;
+    entityId: string;
+    type: TSupportedFilterTypeForUpdate;
+    patch: TSupportedFilterForUpdate;
+    defaultKanbanGroupBy?: IIssueDisplayFilterOptions["group_by"];
+    clear?: () => void;
+    refetch?: () => void;
+    persistDisplayFilters?: (filters: IIssueDisplayFilterOptions) => Promise<unknown> | unknown;
+    persistDisplayProperties?: (properties: IIssueDisplayProperties) => Promise<unknown> | unknown;
+    persistKanbanFilters?: (filters: TIssueKanbanFilters) => void;
+    forceRefetch?: boolean;
+  }): Promise<boolean> {
+    const previousGroupBy = args.filters[args.entityId]?.displayFilters?.group_by;
+    const previousSubGroupBy = args.filters[args.entityId]?.displayFilters?.sub_group_by;
+    const applied = this.applyFilterTypeUpdate({
+      filters: args.filters,
+      entityId: args.entityId,
+      type: args.type,
+      patch: args.patch,
+      defaultKanbanGroupBy: args.defaultKanbanGroupBy,
+    });
+    if (!applied) return false;
+
+    if (applied.displayFilters) {
+      const displayPatch =
+        args.type === EIssueFilterType.DISPLAY_FILTERS ? (args.patch as IIssueDisplayFilterOptions) : {};
+      const groupingChanged =
+        applied.displayFilters.group_by !== previousGroupBy ||
+        applied.displayFilters.sub_group_by !== previousSubGroupBy;
+      if (groupingChanged) {
+        args.clear?.();
+      }
+      if (args.forceRefetch || groupingChanged || this.getShouldReFetchIssues(displayPatch)) {
+        args.refetch?.();
+      }
+      await args.persistDisplayFilters?.(applied.displayFilters);
+    }
+
+    if (applied.displayProperties) {
+      await args.persistDisplayProperties?.(applied.displayProperties);
+    }
+
+    if (applied.kanbanFilters) {
+      args.persistKanbanFilters?.(applied.kanbanFilters);
+    }
+
+    return true;
+  }
 
   /**
    * This Method is used to construct the url params along with paginated values

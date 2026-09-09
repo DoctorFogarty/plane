@@ -7,7 +7,7 @@
 
 import type { CSSProperties } from "react";
 import { extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
-import { clone, isNil, pull, uniq, concat } from "lodash-es";
+import { clone, pull, uniq, concat } from "lodash-es";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
 // plane types
 import { EIconSize, ISSUE_PRIORITIES, STATE_GROUPS } from "@plane/constants";
@@ -21,12 +21,8 @@ import type {
   IIssueDisplayProperties,
   IPragmaticDropPayload,
   TIssue,
-  TIssueDisplayPropertyKey,
   TIssueGroupByOptions,
-  IIssueFilterOptions,
-  IIssueFilters,
   TGroupedIssues,
-  IIssueDisplayFilterOptions,
   TGetColumns,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
@@ -44,7 +40,6 @@ import {
 } from "@/plane-web/components/issues/issue-layouts/utils";
 // store
 import { ISSUE_FILTER_DEFAULT_DATA } from "@/store/issue/helpers/base-issues.store";
-import { DEFAULT_DISPLAY_PROPERTIES } from "@/store/issue/issue-details/sub_issues_filter.store";
 
 export const HIGHLIGHT_CLASS = "highlight";
 export const HIGHLIGHT_WITH_LINE = "highlight-with-line";
@@ -340,28 +335,13 @@ const getCreatedByColumns = (): IGroupByColumn[] | undefined => {
   });
 };
 
-export const getDisplayPropertiesCount = (
-  displayProperties: IIssueDisplayProperties,
-  ignoreFields?: TIssueDisplayPropertyKey[]
-) => {
-  const propertyKeys = Object.keys(displayProperties) as (keyof IIssueDisplayProperties)[];
-  const ignoreFieldSet = ignoreFields ? new Set(ignoreFields) : null;
-
-  let count = 0;
-
-  for (const propertyKey of propertyKeys) {
-    if (propertyKey === "custom_properties") continue;
-    if (ignoreFieldSet?.has(propertyKey as TIssueDisplayPropertyKey)) continue;
-    if (displayProperties[propertyKey]) count++;
-  }
-
-  // Count enabled custom properties separately (nested map).
-  for (const enabled of Object.values(displayProperties.custom_properties ?? {})) {
-    if (enabled) count++;
-  }
-
-  return count;
-};
+export {
+  getDisplayPropertiesCount,
+  removeNillKeys,
+  isDisplayFiltersApplied,
+  isFiltersApplied,
+  calculateIdentifierWidth,
+} from "./utils-display";
 
 /**
  * This Method finds the DOM element with elementId, scrolls to it and highlights the issue block
@@ -639,14 +619,6 @@ export const handleGroupDragDrop = async (
 };
 
 /**
- * method that removes Null or undefined Keys from object
- * @param obj
- * @returns
- */
-export const removeNillKeys = <T,>(obj: T) =>
-  Object.fromEntries(Object.entries(obj ?? {}).filter(([key, value]) => key && !isNil(value)));
-
-/**
  * This Method returns if the grouped values are subGrouped
  * @param groupedIssueIds
  * @returns
@@ -772,52 +744,3 @@ export function SpreadSheetPropertyIcon(props: ISvgIcons & { iconKey: string }) 
   if (!Icon) return null;
   return <Icon {...props} />;
 }
-
-/**
- * This method returns if the filters are applied
- * @param filters
- * @returns
- */
-export const isDisplayFiltersApplied = (filters: Partial<IIssueFilters>): boolean => {
-  const isDisplayPropertiesApplied = Object.keys(DEFAULT_DISPLAY_PROPERTIES).some(
-    (key) => !filters.displayProperties?.[key as keyof IIssueDisplayProperties]
-  );
-
-  const isDisplayFiltersApplied = Object.keys(filters.displayFilters ?? {}).some((key) => {
-    const value = filters.displayFilters?.[key as keyof IIssueDisplayFilterOptions];
-    if (!value) return false;
-    // -create_at is the default order
-    if (key === "order_by") {
-      return value !== "-created_at";
-    }
-    return true;
-  });
-
-  return isDisplayPropertiesApplied || isDisplayFiltersApplied;
-};
-
-/**
- * This method returns if the filters are applied
- * @param filters
- * @returns
- */
-export const isFiltersApplied = (filters: IIssueFilterOptions): boolean =>
-  Object.values(filters).some((value) => {
-    if (Array.isArray(value)) return value.length > 0;
-    return value !== undefined && value !== null && value !== "";
-  });
-
-/**
- * Calculates the minimum width needed for issue identifiers in list layouts
- * @param projectIdentifierLength - Length of the project identifier (e.g., "PROJ" = 4)
- * @param maxSequenceId - Maximum sequence ID in the project (e.g., 1234)
- * @returns Width in pixels needed to display the identifier
- *
- * @example
- * // For "PROJ-1234"
- * calculateIdentifierWidth(4, 1234) // Returns width for "PROJ" + "-" + "1234"
- */
-export const calculateIdentifierWidth = (projectIdentifierLength: number, maxSequenceId: number): number => {
-  const sequenceDigits = Math.max(1, Math.floor(Math.log10(maxSequenceId)) + 1);
-  return projectIdentifierLength * 7 + 7 + sequenceDigits * 7; // project identifier chars + dash + sequence digits
-};

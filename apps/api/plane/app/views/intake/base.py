@@ -25,8 +25,6 @@ from plane.db.models import (
     Intake,
     IntakeIssue,
     Issue,
-    State,
-    StateGroup,
     IssueLink,
     FileAsset,
     Project,
@@ -44,6 +42,8 @@ from plane.app.serializers import (
     IssueDescriptionVersionDetailSerializer,
 )
 from plane.utils.issue_filters import apply_issue_filters, issue_filters
+from plane.utils.issue_query import is_restricted_guest
+from plane.utils.work_item import WorkItemCreateError, create_work_item, ensure_triage_state
 from plane.utils.order_queryset import INTAKE_ISSUE_ORDER_BY_ALLOWLIST, sanitize_order_by
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.bgtasks.issue_description_version_task import issue_description_version_task
@@ -186,6 +186,8 @@ class IntakeIssueViewSet(BaseViewSet):
             apply_issue_filters(
                 IntakeIssue.objects.filter(intake_id=intake.id, project_id=project_id),
                 filters,
+                query_params=request.GET,
+                prefix="issue__",
             )
             .select_related("issue")
             .prefetch_related("issue__labels")
@@ -211,16 +213,7 @@ class IntakeIssueViewSet(BaseViewSet):
         if intake_status:
             intake_issue = intake_issue.filter(status__in=intake_status)
 
-        if (
-            ProjectMember.objects.filter(
-                workspace__slug=slug,
-                project_id=project_id,
-                member=request.user,
-                role=ROLE.GUEST.value,
-                is_active=True,
-            ).exists()
-            and not project.guest_view_all_features
-        ):
+        if is_restricted_guest(slug=slug, project_id=project_id, user=request.user, project=project):
             intake_issue = intake_issue.filter(created_by=request.user)
         return self.paginate(
             request=request,
@@ -245,94 +238,82 @@ class IntakeIssueViewSet(BaseViewSet):
 
         project = Project.objects.get(pk=project_id)
 
-        # get the triage state
-        triage_state = State.triage_objects.filter(project_id=project_id, workspace__slug=slug).first()
-        if not triage_state:
-            triage_state = State.objects.create(
-                name="Triage",
-                group=StateGroup.TRIAGE.value,
-                project_id=project_id,
-                workspace_id=project.workspace_id,
-                color="#4E5355",
-                sequence=65000,
-                default=False,
-            )
-        request.data["issue"]["state_id"] = triage_state.id
+        request.data["issue"]["state_id"] = ensure_triage_state(project).id
 
-        # create an issue
-        serializer = IssueCreateSerializer(
-            data=request.data.get("issue"),
-            context={
-                "project_id": project_id,
-                "workspace_id": project.workspace_id,
-                "default_assignee_id": project.default_assignee_id,
-                "allow_triage_state": True,
-            },
-        )
-        if serializer.is_valid():
-            serializer.save()
-            intake_id = Intake.objects.filter(workspace__slug=slug, project_id=project_id).first()
-            # create an intake issue
-            intake_issue = IntakeIssue.objects.create(
-                intake_id=intake_id.id,
+        intake = Intake.objects.filter(workspace__slug=slug, project_id=project_id).first()
+        if not intake:
+            return Response({"error": "Intake not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        def attach_intake(created_issue):
+            IntakeIssue.objects.create(
+                intake_id=intake.id,
                 project_id=project_id,
-                issue_id=serializer.data["id"],
+                issue_id=created_issue.id,
                 source=SourceType.IN_APP,
             )
-            # Create an Issue Activity
-            issue_activity.delay(
-                type="issue.activity.created",
-                requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(serializer.data["id"]),
-                project_id=str(project_id),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-                notification=True,
-                origin=base_host(request=request, is_app=True),
-                intake=str(intake_issue.id),
+
+        try:
+            issue = create_work_item(
+                project=project,
+                actor=request.user,
+                data=request.data.get("issue"),
+                allow_triage_state=True,
+                validate_property_required="property_values" in (request.data.get("issue") or {}),
+                in_transaction=attach_intake,
             )
-            # updated issue description version
-            issue_description_version_task.delay(
-                updated_issue=json.dumps(request.data, cls=DjangoJSONEncoder),
-                issue_id=str(serializer.data["id"]),
-                user_id=request.user.id,
-                is_creating=True,
-            )
-            intake_issue = (
-                IntakeIssue.objects.select_related("issue")
-                .prefetch_related("issue__labels", "issue__assignees")
-                .annotate(
-                    label_ids=Coalesce(
-                        ArrayAgg(
-                            "issue__labels__id",
-                            distinct=True,
-                            filter=Q(
-                                ~Q(issue__labels__id__isnull=True) & Q(issue__label_issue__deleted_at__isnull=True)
-                            ),
+        except WorkItemCreateError as exc:
+            return Response(exc.payload, status=exc.status_code)
+
+        intake_issue = IntakeIssue.objects.get(intake_id=intake.id, issue_id=issue.id, project_id=project_id)
+        issue_activity.delay(
+            type="issue.activity.created",
+            requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
+            actor_id=str(request.user.id),
+            issue_id=str(issue.id),
+            project_id=str(project_id),
+            current_instance=None,
+            epoch=int(timezone.now().timestamp()),
+            notification=True,
+            origin=base_host(request=request, is_app=True),
+            intake=str(intake_issue.id),
+        )
+        issue_description_version_task.delay(
+            updated_issue=json.dumps(request.data, cls=DjangoJSONEncoder),
+            issue_id=str(issue.id),
+            user_id=request.user.id,
+            is_creating=True,
+        )
+        intake_issue = (
+            IntakeIssue.objects.select_related("issue")
+            .prefetch_related("issue__labels", "issue__assignees")
+            .annotate(
+                label_ids=Coalesce(
+                    ArrayAgg(
+                        "issue__labels__id",
+                        distinct=True,
+                        filter=Q(
+                            ~Q(issue__labels__id__isnull=True) & Q(issue__label_issue__deleted_at__isnull=True)
                         ),
-                        Value([], output_field=ArrayField(UUIDField())),
                     ),
-                    assignee_ids=Coalesce(
-                        ArrayAgg(
-                            "issue__assignees__id",
-                            distinct=True,
-                            filter=~Q(issue__assignees__id__isnull=True)
-                            & Q(issue__assignees__member_project__is_active=True),
-                        ),
-                        Value([], output_field=ArrayField(UUIDField())),
+                    Value([], output_field=ArrayField(UUIDField())),
+                ),
+                assignee_ids=Coalesce(
+                    ArrayAgg(
+                        "issue__assignees__id",
+                        distinct=True,
+                        filter=~Q(issue__assignees__id__isnull=True)
+                        & Q(issue__assignees__member_project__is_active=True),
                     ),
-                )
-                .get(
-                    intake_id=intake_id.id,
-                    issue_id=serializer.data["id"],
-                    project_id=project_id,
-                )
+                    Value([], output_field=ArrayField(UUIDField())),
+                ),
             )
-            serializer = IntakeIssueDetailSerializer(intake_issue)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            .get(
+                intake_id=intake.id,
+                issue_id=issue.id,
+                project_id=project_id,
+            )
+        )
+        return Response(IntakeIssueDetailSerializer(intake_issue).data, status=status.HTTP_200_OK)
 
     @allow_permission(allowed_roles=[ROLE.ADMIN], creator=True, model=Issue)
     def partial_update(self, request, slug, project_id, pk):
@@ -534,17 +515,9 @@ class IntakeIssueViewSet(BaseViewSet):
             )
             .get(intake_id=intake_id.id, issue_id=pk, project_id=project_id)
         )
-        if (
-            ProjectMember.objects.filter(
-                workspace__slug=slug,
-                project_id=project_id,
-                member=request.user,
-                role=ROLE.GUEST.value,
-                is_active=True,
-            ).exists()
-            and not project.guest_view_all_features
-            and not intake_issue.created_by == request.user
-        ):
+        if is_restricted_guest(
+            slug=slug, project_id=project_id, user=request.user, project=project
+        ) and intake_issue.created_by != request.user:
             return Response(
                 {"error": "You are not allowed to view this issue"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -586,17 +559,9 @@ class IntakeWorkItemDescriptionVersionEndpoint(BaseAPIView):
         project = Project.objects.get(pk=project_id)
         issue = Issue.objects.get(workspace__slug=slug, project_id=project_id, pk=work_item_id)
 
-        if (
-            ProjectMember.objects.filter(
-                workspace__slug=slug,
-                project_id=project_id,
-                member=request.user,
-                role=ROLE.GUEST.value,
-                is_active=True,
-            ).exists()
-            and not project.guest_view_all_features
-            and not issue.created_by == request.user
-        ):
+        if is_restricted_guest(
+            slug=slug, project_id=project_id, user=request.user, project=project
+        ) and issue.created_by != request.user:
             return Response(
                 {"error": "You are not allowed to view this issue"},
                 status=status.HTTP_403_FORBIDDEN,

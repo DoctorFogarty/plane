@@ -18,7 +18,7 @@ import { isCustomPropertyDisplayEnabled } from "@plane/utils";
 import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProject } from "@/hooks/store/use-project";
 // components
-import { FilterHeader } from "../helpers/filter-header";
+import { FilterHeader } from "@/components/common/filters";
 
 type Props = {
   displayProperties: IIssueDisplayProperties;

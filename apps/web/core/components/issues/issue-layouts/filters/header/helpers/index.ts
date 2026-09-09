@@ -4,6 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export * from "./dropdown";
-export * from "./filter-header";
-export * from "./filter-option";
+export { FilterHeader, FilterOption, FiltersDropdown } from "@/components/common/filters";

@@ -140,8 +140,17 @@ export const ISSUE_LAYOUT_NAV_ITEMS: {
   },
 ];
 
-const ISSUE_LAYOUT_PATH_SLUG_REGEX = /\/issues\/(list|board|calendar|table|timeline)\/?$/;
+export type TIssueCollectionKind = "issues" | "cycles" | "modules" | "views";
+
+const ISSUE_LAYOUT_PATH_SLUG_REGEX =
+  /\/(?:issues|(?:cycles|modules|views)\/[^/]+)\/(list|board|calendar|table|timeline)\/?$/;
 const PROJECT_ISSUES_INDEX_REGEX = /\/projects\/[^/]+\/issues\/?$/;
+const COLLECTION_INDEX_REGEX: Record<TIssueCollectionKind, RegExp> = {
+  issues: PROJECT_ISSUES_INDEX_REGEX,
+  cycles: /\/projects\/[^/]+\/cycles\/[^/]+\/?$/,
+  modules: /\/projects\/[^/]+\/modules\/[^/]+\/?$/,
+  views: /\/projects\/[^/]+\/views\/[^/]+\/?$/,
+};
 
 export function isIssueLayoutPathSlug(value: string | null | undefined): value is TIssueLayoutPathSlug {
   return !!value && ISSUE_LAYOUT_PATH_SLUG_SET.has(value);
@@ -167,10 +176,27 @@ export function isProjectIssuesIndexPath(pathname: string): boolean {
   return PROJECT_ISSUES_INDEX_REGEX.test(pathname);
 }
 
+export function isCollectionIndexPath(pathname: string, kind: TIssueCollectionKind): boolean {
+  return COLLECTION_INDEX_REGEX[kind].test(pathname);
+}
+
+export function getCollectionLayoutHref(args: {
+  workspaceSlug: string;
+  projectId: string;
+  kind: TIssueCollectionKind;
+  entityId?: string;
+  layout: EIssueLayoutTypes | null | undefined;
+}): string {
+  const slug = getIssueLayoutPathSlug(args.layout);
+  const projectBase = `/${args.workspaceSlug}/projects/${args.projectId}`;
+  if (args.kind === "issues") return `${projectBase}/issues/${slug}`;
+  return `${projectBase}/${args.kind}/${args.entityId}/${slug}`;
+}
+
 export function getProjectIssuesLayoutHref(
   workspaceSlug: string,
   projectId: string,
   layout: EIssueLayoutTypes | null | undefined
 ): string {
-  return `/${workspaceSlug}/projects/${projectId}/issues/${getIssueLayoutPathSlug(layout)}`;
+  return getCollectionLayoutHref({ workspaceSlug, projectId, kind: "issues", layout });
 }

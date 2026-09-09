@@ -11,13 +11,14 @@ import { useParams } from "next/navigation";
 import { EIssueFilterType, ISSUE_LAYOUTS, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { CalendarLayoutIcon, BoardLayoutIcon, ListLayoutIcon, ChevronDownIcon } from "@plane/propel/icons";
-import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, EIssueLayoutTypes } from "@plane/types";
+import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { CustomMenu } from "@plane/ui";
 // components
 import { WorkItemsModal } from "@/components/analytics/work-items/modal";
 import { DisplayFiltersSelection, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";
+import { useCollectionLayoutSelection } from "@/components/issues/issue-layouts/use-collection-layout-route";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useModule } from "@/hooks/store/use-module";
@@ -46,16 +47,12 @@ export const ModuleIssuesMobileHeader = observer(function ModuleIssuesMobileHead
   // derived values
   const moduleIdStr = moduleId?.toString();
   const issueFilters = moduleIdStr ? issuesFilter.getIssueFilters(moduleIdStr) : undefined;
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const { activeLayout, handleLayoutChange } = useCollectionLayoutSelection({
+    kind: "modules",
+    entityId: moduleIdStr,
+    storedLayout: issueFilters?.displayFilters?.layout,
+  });
   const moduleDetails = moduleId ? getModuleById(moduleId.toString()) : undefined;
-
-  const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
-      if (!workspaceSlug || !projectId) return;
-      updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout: layout }, moduleId);
-    },
-    [workspaceSlug, projectId, moduleId, updateFilters]
-  );
 
   const handleDisplayFilters = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {

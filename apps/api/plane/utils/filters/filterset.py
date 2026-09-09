@@ -9,6 +9,7 @@ from django.db.models import Q
 from django_filters import FilterSet, filters
 
 from plane.db.models import Issue
+from plane.utils.issue_filters import _falsey, _truthy, exclude_epics_q, sub_issue_root_or_epic_child_q
 
 
 class UUIDInFilter(filters.BaseInFilter, filters.UUIDFilter):
@@ -160,6 +161,9 @@ class IssueFilterSet(BaseFilterSet):
     subscriber_id = filters.UUIDFilter(method="filter_subscriber_id")
     subscriber_id__in = UUIDInFilter(method="filter_subscriber_id_in", lookup_expr="in")
 
+    sub_issue = filters.BooleanFilter(method="filter_sub_issue")
+    exclude_epics = filters.BooleanFilter(method="filter_exclude_epics")
+
     # Allowlist stubs for custom property filters. Real Q-building happens in
     # IssueComplexFilterBackend; these exist so validation accepts the mapped keys.
     customproperty_value = filters.CharFilter(method="filter_customproperty_value_noop")
@@ -179,6 +183,18 @@ class IssueFilterSet(BaseFilterSet):
 
     def filter_customproperty_value_noop(self, queryset, name, value):
         """No-op stub — custom property filtering is handled by IssueComplexFilterBackend."""
+        return Q()
+
+    def filter_sub_issue(self, queryset, name, value):
+        """When false, keep root issues and children of Epics."""
+        if _falsey(value):
+            return sub_issue_root_or_epic_child_q()
+        return Q()
+
+    def filter_exclude_epics(self, queryset, name, value):
+        """When true, drop Epic-type rows from work-item boards."""
+        if _truthy(value):
+            return exclude_epics_q()
         return Q()
 
     def filter_is_archived(self, queryset, name, value):

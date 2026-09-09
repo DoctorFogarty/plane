@@ -22,6 +22,7 @@ from plane.app.permissions import allow_permission, ROLE
 from plane.db.models import IssueComment, ProjectMember, CommentReaction, Project, Issue
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.host import base_host
+from plane.utils.issue_query import is_restricted_guest
 from plane.bgtasks.webhook_task import model_activity
 
 
@@ -64,17 +65,9 @@ class IssueCommentViewSet(BaseViewSet):
     def create(self, request, slug, project_id, issue_id):
         project = Project.objects.get(pk=project_id)
         issue = Issue.objects.get(pk=issue_id)
-        if (
-            ProjectMember.objects.filter(
-                workspace__slug=slug,
-                project_id=project_id,
-                member=request.user,
-                role=5,
-                is_active=True,
-            ).exists()
-            and not project.guest_view_all_features
-            and not issue.created_by == request.user
-        ):
+        if is_restricted_guest(
+            slug=slug, project_id=project_id, user=request.user, project=project
+        ) and issue.created_by != request.user:
             return Response(
                 {"error": "You are not allowed to comment on the issue"},
                 status=status.HTTP_400_BAD_REQUEST,

@@ -5,10 +5,9 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { isIssueLayoutPathSlug } from "@plane/constants";
 import type { TIssue } from "@plane/types";
-import type { TNavigationItem } from "@/components/navigation/tab-navigation-root";
-import { isNavHrefActive } from "@/components/navigation/tab-navigation-utils";
+import type { TNavigationItem } from "@/components/navigation/navigation-item";
+import { isNavigationItemActive } from "@/components/navigation/tab-navigation-utils";
 
 type UseActiveTabProps = {
   navigationItems: TNavigationItem[];
@@ -28,17 +27,15 @@ export const useActiveTab = ({
   workItemLayoutNavKey,
 }: UseActiveTabProps) => {
   const isActive = useCallback(
-    (item: TNavigationItem) => {
-      const workItemCondition = workItemId && workItem && !workItem?.is_epic && workItem?.project_id === projectId;
-      const epicCondition = workItemId && workItem && workItem?.is_epic && workItem?.project_id === projectId;
-      const isLayoutActiveForWorkItem =
-        !!workItemCondition && isIssueLayoutPathSlug(item.key) && item.key === workItemLayoutNavKey;
-      const isEpicActive = item.key === "epics" && epicCondition;
-      if (item.key === "views") {
-        return pathname === item.href || pathname === `${item.href}/`;
-      }
-      return isLayoutActiveForWorkItem || isEpicActive || isNavHrefActive(pathname, item.href);
-    },
+    (item: TNavigationItem) =>
+      isNavigationItemActive({
+        item,
+        pathname,
+        projectId,
+        workItemId,
+        workItem,
+        workItemLayoutNavKey,
+      }),
     [pathname, workItem, workItemId, projectId, workItemLayoutNavKey]
   );
 

@@ -18,6 +18,7 @@ import type {
 // types
 import type { IBaseIssuesStore } from "../helpers/base-issues.store";
 import { BaseIssuesStore } from "../helpers/base-issues.store";
+import { issueListRequestKey } from "../helpers/collection-ref";
 import type { IIssueRootStore } from "../root.store";
 import type { IProjectViewIssuesFilter } from "./filter.store";
 
@@ -97,23 +98,16 @@ export class ProjectViewIssues extends BaseIssuesStore implements IProjectViewIs
     isExistingPaginationOptions: boolean = false
   ) => {
     try {
-      // get params from pagination options
       const params = this.issueFilterStore?.getFilterParams(options, viewId, undefined, undefined, undefined);
-      this.beginIssuesFetch(
-        `${workspaceSlug}:${projectId}:${viewId}:${JSON.stringify(params)}`,
-        loadType,
-        !isExistingPaginationOptions
-      );
-      // call the fetch issues API with the params
-      const response = await this.issueService.getIssues(workspaceSlug, projectId, params, {
-        signal: this.controller.signal,
+      const requestKey = issueListRequestKey({ workspaceSlug, projectId, entityId: viewId, params });
+      return await this.fetchIssuesWithDedupe(requestKey, loadType, !isExistingPaginationOptions, async () => {
+        const response = await this.issueService.getIssues(workspaceSlug, projectId, params, {
+          signal: this.controller.signal,
+        });
+        this.onfetchIssues(response, options, workspaceSlug, projectId, viewId, !isExistingPaginationOptions);
+        return response;
       });
-
-      // after fetching issues, call the base method to process the response further
-      this.onfetchIssues(response, options, workspaceSlug, projectId, viewId, !isExistingPaginationOptions);
-      return response;
     } catch (error) {
-      // set loader to undefined if errored out
       this.setLoader(undefined);
       throw error;
     }

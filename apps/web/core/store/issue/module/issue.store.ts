@@ -19,6 +19,7 @@ import type {
 import { getDistributionPathsPostUpdate } from "@plane/utils";
 import type { IBaseIssuesStore } from "../helpers/base-issues.store";
 import { BaseIssuesStore } from "../helpers/base-issues.store";
+import { issueListRequestKey } from "../helpers/collection-ref";
 //
 import type { IIssueRootStore } from "../root.store";
 import type { IModuleIssuesFilter } from "./filter.store";
@@ -141,23 +142,16 @@ export class ModuleIssues extends BaseIssuesStore implements IModuleIssues {
     isExistingPaginationOptions: boolean = false
   ) => {
     try {
-      // get params from pagination options
       const params = this.issueFilterStore?.getFilterParams(options, moduleId, undefined, undefined, undefined);
-      this.beginIssuesFetch(
-        `${workspaceSlug}:${projectId}:${moduleId}:${JSON.stringify(params)}`,
-        loadType,
-        !isExistingPaginationOptions
-      );
-      // call the fetch issues API with the params
-      const response = await this.issueService.getIssues(workspaceSlug, projectId, params, {
-        signal: this.controller.signal,
+      const requestKey = issueListRequestKey({ workspaceSlug, projectId, entityId: moduleId, params });
+      return await this.fetchIssuesWithDedupe(requestKey, loadType, !isExistingPaginationOptions, async () => {
+        const response = await this.issueService.getIssues(workspaceSlug, projectId, params, {
+          signal: this.controller.signal,
+        });
+        this.onfetchIssues(response, options, workspaceSlug, projectId, moduleId, !isExistingPaginationOptions);
+        return response;
       });
-
-      // after fetching issues, call the base method to process the response further
-      this.onfetchIssues(response, options, workspaceSlug, projectId, moduleId, !isExistingPaginationOptions);
-      return response;
     } catch (error) {
-      // set loader to undefined once errored out
       this.setLoader(undefined);
       throw error;
     }

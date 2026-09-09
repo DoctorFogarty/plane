@@ -8,11 +8,11 @@
 import { useEffect, useRef, useState } from "react";
 import { isEqual, xor } from "lodash-es";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useParams } from "react-router";
 // Plane imports
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TBaseIssue, TIssue, TWorkspaceDraftIssue } from "@plane/types";
+import type { TBaseIssue, TIssue } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
@@ -20,16 +20,13 @@ import { useIssueModal } from "@/hooks/context/use-issue-modal";
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
-import { useModule } from "@/hooks/store/use-module";
 import { useProject } from "@/hooks/store/use-project";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
-// services
-import { FileService } from "@/services/file.service";
-const fileService = new FileService();
 // local imports
 import type { TPendingAttachment } from "@/helpers/create-issue-attachments";
-import { addPendingAttachments, uploadPendingIssueAttachments } from "@/helpers/create-issue-attachments";
+import { addPendingAttachments } from "@/helpers/create-issue-attachments";
+import { createWorkItem } from "@/helpers/create-work-item";
 import { CreateIssueToastActionItems } from "../create-issue-toast-action-items";
 import { DraftIssueLayout } from "./draft-issue-layout";
 import { IssueFormRoot } from "./form";
@@ -73,11 +70,9 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   const { t } = useTranslation();
   const { workspaceSlug, projectId: routerProjectId, cycleId, moduleId, workItem } = useParams();
   const { fetchCycleDetails } = useCycle();
-  const { fetchModuleDetails } = useModule();
   const { issues } = useIssues(storeType);
-  const { issues: projectIssues } = useIssues(EIssuesStoreType.PROJECT);
   const { issues: draftIssues } = useIssues(EIssuesStoreType.WORKSPACE_DRAFT);
-  const { fetchIssue, addAttachments } = useIssueDetail();
+  const { fetchIssue } = useIssueDetail();
   const { allowedProjectIds, handleCreateUpdatePropertyValues, handleCreateSubWorkItem, issuePropertyValues } =
     useIssueModal();
   const { getProjectByIdentifier } = useProject();
@@ -85,7 +80,7 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   const { createIssue, updateIssue } = useIssuesActions(storeType);
   // derived values
   const routerProjectIdentifier = workItem?.toString().split("-")[0];
-  const projectIdFromRouter = getProjectByIdentifier(routerProjectIdentifier)?.id;
+  const projectIdFromRouter = routerProjectIdentifier ? getProjectByIdentifier(routerProjectIdentifier)?.id : undefined;
   const projectId = data?.project_id ?? routerProjectId?.toString() ?? projectIdFromRouter;
 
   const fetchIssueDetail = async (issueId: string | undefined) => {
@@ -150,24 +145,13 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     fetchCycleDetails(workspaceSlug.toString(), issue.project_id, cycleId);
   };
 
-  const addIssueToModule = async (issue: TIssue, moduleIds: string[]) => {
-    if (!workspaceSlug || !issue.project_id) return;
-
-    await Promise.all([
-      issues.changeModulesInIssue(workspaceSlug.toString(), issue.project_id, issue.id, moduleIds, []),
-      ...moduleIds.map(
-        (moduleId) => issue.project_id && fetchModuleDetails(workspaceSlug.toString(), issue.project_id, moduleId)
-      ),
-    ]);
-  };
-
   const handleCreateMoreToggleChange = (value: boolean) => {
     setCreateMore(value);
   };
 
-  const handleClose = (saveAsDraft?: boolean) => {
+  const handleClose = async (saveAsDraft?: boolean) => {
     if (changesMade && saveAsDraft && !data) {
-      handleCreateIssue(changesMade, true);
+      await handleCreateIssue(changesMade, true);
     }
 
     setActiveProjectId(null);
@@ -184,89 +168,18 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     if (!workspaceSlug || !payload.project_id) return;
 
     try {
-      let response: TIssue | undefined;
-      // if draft issue, use draft issue store to create issue (include custom property values as JSON)
-      if (is_draft_issue) {
-        response = (await draftIssues.createIssue(workspaceSlug.toString(), {
-          ...payload,
-          property_values: issuePropertyValues,
-        } as Partial<TWorkspaceDraftIssue>)) as TIssue;
-      }
-      // if cycle id in payload does not match the cycleId in url
-      // or if the moduleIds in Payload does not match the moduleId in url
-      // use the project issue store to create issues
-      else if (
-        (payload.cycle_id !== cycleId && storeType === EIssuesStoreType.CYCLE) ||
-        (!payload.module_ids?.includes(moduleId?.toString()) && storeType === EIssuesStoreType.MODULE)
-      ) {
-        response = await projectIssues.createIssue(workspaceSlug.toString(), payload.project_id, payload);
-      } // else just use the existing store type's create method
-      else if (createIssue) {
-        response = await createIssue(payload.project_id, payload);
-      }
-
-      // update uploaded assets' status
-      if (uploadedAssetIds.length > 0) {
-        await fileService.updateBulkProjectAssetsUploadStatus(
-          workspaceSlug?.toString() ?? "",
-          response?.project_id ?? "",
-          response?.id ?? "",
-          {
-            asset_ids: uploadedAssetIds,
-          }
-        );
-        setUploadedAssetIds([]);
-      }
-
-      if (!response) throw new Error();
-
-      // check if we should add issue to cycle/module
-      if (!is_draft_issue) {
-        if (
-          payload.cycle_id &&
-          payload.cycle_id !== "" &&
-          (payload.cycle_id !== cycleId || storeType !== EIssuesStoreType.CYCLE)
-        ) {
-          await addIssueToCycle(response, payload.cycle_id);
-        }
-        if (
-          payload.module_ids &&
-          payload.module_ids.length > 0 &&
-          (!payload.module_ids.includes(moduleId?.toString()) || storeType !== EIssuesStoreType.MODULE)
-        ) {
-          await addIssueToModule(response, payload.module_ids);
-        }
-      }
-
-      // add other property values
-      if (response.id && response.project_id) {
-        await handleCreateUpdatePropertyValues({
-          issueId: response.id,
-          issueTypeId: response.type_id,
-          projectId: response.project_id,
-          workspaceSlug: workspaceSlug?.toString(),
-          isDraft: is_draft_issue,
-        });
-
-        // create sub work item
-        await handleCreateSubWorkItem({
-          workspaceSlug: workspaceSlug?.toString(),
-          projectId: response.project_id,
-          parentId: response.id,
-        });
-      }
-
-      let failedAttachmentCount = 0;
-      if (!is_draft_issue && pendingAttachments.length > 0 && response.id && response.project_id) {
-        const { failed, attachments } = await uploadPendingIssueAttachments({
-          workspaceSlug: workspaceSlug.toString(),
-          projectId: response.project_id,
-          issueId: response.id,
-          files: pendingAttachments.map((item) => item.file),
-        });
-        failedAttachmentCount = failed;
-        if (attachments.length > 0) addAttachments(response.id, attachments);
-      }
+      const { issue: response, failedAttachmentCount } = await createWorkItem({
+        workspaceSlug: workspaceSlug.toString(),
+        payload,
+        isDraft: is_draft_issue,
+        uploadedAssetIds,
+        pendingAttachments,
+        issuePropertyValues,
+        handleCreateUpdatePropertyValues,
+        handleCreateSubWorkItem,
+        createIssue: is_draft_issue ? undefined : createIssue,
+      });
+      setUploadedAssetIds([]);
       setPendingAttachments([]);
 
       setToast({
@@ -371,17 +284,17 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
       if (isDraft) await draftIssues.updateIssue(workspaceSlug.toString(), data.id, payload);
       else if (updateIssue) await updateIssue(payload.project_id, data.id, payload);
 
-      // Run cycle, module, and property changes sequentially to avoid
-      // optimistic store writes from racing against each other.
-      await handleCycleChange(data, payload);
-      await handleModuleChange(data, payload);
-      await handleCreateUpdatePropertyValues({
-        issueId: data.id,
-        issueTypeId: payload.type_id,
-        projectId: payload.project_id,
-        workspaceSlug: workspaceSlug?.toString(),
-        isDraft: isDraft,
-      });
+      await Promise.all([
+        handleCycleChange(data, payload),
+        handleModuleChange(data, payload),
+        handleCreateUpdatePropertyValues({
+          issueId: data.id,
+          issueTypeId: payload.type_id,
+          projectId: payload.project_id,
+          workspaceSlug: workspaceSlug?.toString(),
+          isDraft: isDraft,
+        }),
+      ]);
 
       setToast({
         type: TOAST_TYPE.SUCCESS,

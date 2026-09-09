@@ -6,10 +6,12 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  getCollectionLayoutHref,
   getIssueLayoutFromPathSlug,
   getIssueLayoutPathSlug,
   getIssueLayoutSlugFromPathname,
   getProjectIssuesLayoutHref,
+  isCollectionIndexPath,
   isIssueLayoutPathSlug,
   isProjectIssuesIndexPath,
   ISSUE_LAYOUT_NAV_ITEMS,
@@ -64,6 +66,9 @@ describe("issue layout path mapping", () => {
     expect(getIssueLayoutSlugFromPathname("/acme/projects/proj-1/issues/table/")).toBe("table");
     expect(getIssueLayoutSlugFromPathname("/acme/projects/proj-1/issues")).toBeUndefined();
     expect(getIssueLayoutSlugFromPathname("/acme/projects/proj-1/issues/PROJ-123")).toBeUndefined();
+    expect(getIssueLayoutSlugFromPathname("/acme/projects/proj-1/cycles/cyc-1/board")).toBe("board");
+    expect(getIssueLayoutSlugFromPathname("/acme/projects/proj-1/modules/mod-1/table")).toBe("table");
+    expect(getIssueLayoutSlugFromPathname("/acme/projects/proj-1/views/view-1/timeline")).toBe("timeline");
   });
 
   it("detects the exact /issues index path without matching layout URLs", () => {
@@ -78,5 +83,21 @@ describe("issue layout path mapping", () => {
       "/acme/projects/proj-1/issues/board"
     );
     expect(getProjectIssuesLayoutHref("acme", "proj-1", undefined)).toBe("/acme/projects/proj-1/issues/list");
+    expect(
+      getCollectionLayoutHref({
+        workspaceSlug: "acme",
+        projectId: "proj-1",
+        kind: "cycles",
+        entityId: "cyc-1",
+        layout: EIssueLayoutTypes.SPREADSHEET,
+      })
+    ).toBe("/acme/projects/proj-1/cycles/cyc-1/table");
+  });
+
+  it("detects collection index paths without matching layout URLs", () => {
+    expect(isCollectionIndexPath("/acme/projects/proj-1/cycles/cyc-1", "cycles")).toBe(true);
+    expect(isCollectionIndexPath("/acme/projects/proj-1/cycles/cyc-1/board", "cycles")).toBe(false);
+    expect(isCollectionIndexPath("/acme/projects/proj-1/modules/mod-1", "modules")).toBe(true);
+    expect(isCollectionIndexPath("/acme/projects/proj-1/views/view-1/list", "views")).toBe(false);
   });
 });

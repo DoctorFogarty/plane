@@ -7,22 +7,14 @@
 
 import React, { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
-import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
-import {
-  EUserPermissions,
-  EUserPermissionsLevel,
-  getIssueLayoutPathSlug,
-  isIssueLayoutPathSlug,
-} from "@plane/constants";
+import { Link, useParams, useLocation } from "react-router";
+import { EUserPermissionsLevel, getIssueLayoutPathSlug } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import type { EUserProjectRoles } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-// plane ui
-// components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 import { ProjectNavigationViews } from "@/components/workspace/sidebar/project-navigation-views";
-import { isNavHrefActive } from "@/components/navigation/tab-navigation-utils";
+import type { TNavigationItem } from "@/components/navigation/navigation-item";
+import { isNavigationItemActive } from "@/components/navigation/tab-navigation-utils";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -31,16 +23,7 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { getProjectFeatureNavigation } from "@/plane-web/components/projects/navigation/helper";
 
-export type TNavigationItem = {
-  name: string;
-  href: string;
-  icon: React.ElementType;
-  access: EUserPermissions[] | EUserProjectRoles[];
-  shouldRender: boolean;
-  sortOrder: number;
-  i18n_key: string;
-  key: string;
-};
+export type { TNavigationItem };
 
 type TProjectItemsProps = {
   workspaceSlug: string;
@@ -61,7 +44,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
   } = useIssueDetail();
   const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
   // pathname
-  const pathname = usePathname();
+  const pathname = useLocation().pathname;
   // derived values
   const workItemId = workItemIdentifierFromRoute
     ? getIssueIdByIdentifier(workItemIdentifierFromRoute?.toString())
@@ -95,18 +78,16 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
   }, [workspaceSlug, projectId, additionalNavigationItems, project]);
 
   const isActive = useCallback(
-    (item: TNavigationItem) => {
-      const workItemCondition = workItemId && workItem && !workItem?.is_epic && workItem?.project_id === projectId;
-      const epicCondition = workItemId && workItem && workItem?.is_epic && workItem?.project_id === projectId;
-      const isLayoutActiveForWorkItem =
-        !!workItemCondition && isIssueLayoutPathSlug(item.key) && item.key === workItemLayoutNavKey;
-      const isEpicActive = item.key === "epics" && epicCondition;
-      if (item.key === "views") {
-        return pathname === item.href || pathname === `${item.href}/`;
-      }
-      return isLayoutActiveForWorkItem || isEpicActive || isNavHrefActive(pathname, item.href);
-    },
-    [pathname, workItem, workItemId, projectId, workItemLayoutNavKey]
+    (item: TNavigationItem) =>
+      isNavigationItemActive({
+        item,
+        pathname,
+        projectId,
+        workItemId,
+        workItem,
+        workItemLayoutNavKey,
+      }),
+    [pathname, projectId, workItem, workItemId, workItemLayoutNavKey]
   );
 
   if (!project) return null;
@@ -133,7 +114,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         }
 
         return (
-          <Link key={item.key} href={item.href} onClick={handleProjectClick}>
+          <Link key={item.key} to={item.href} onClick={handleProjectClick}>
             <SidebarNavItem isActive={!!isActive(item)}>
               <div className="flex w-full items-center justify-between gap-1.5 py-[1px]">
                 <div className="flex items-center gap-1.5">

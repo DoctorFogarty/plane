@@ -6,6 +6,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import type { EUserProjectRoles, IProjectUserPropertiesResponse, TIssueProperty, TIssueType } from "@plane/types";
+import { EIssueLayoutTypes } from "@plane/types";
 import type { RootStore } from "@/plane-web/store/root.store";
 import type { CoreRootStore } from "@/store/root.store";
 import { IssueTypeStore } from "@/store/issue-type.store";
@@ -154,7 +155,7 @@ describe("project user-properties bootstrap", () => {
     const issueFilter = new ProjectIssuesFilter(rootIssueStore as never);
     issueFilter.filters["project-a"] = {
       richFilters: {},
-      displayFilters: { layout: "list" },
+      displayFilters: { layout: EIssueLayoutTypes.LIST },
       displayProperties: {
         custom_properties: {
           "property-a": true,
@@ -165,7 +166,7 @@ describe("project user-properties bootstrap", () => {
     };
     issueFilter.filters["project-b"] = {
       richFilters: {},
-      displayFilters: { layout: "list" },
+      displayFilters: { layout: EIssueLayoutTypes.LIST },
       displayProperties: {
         custom_properties: {
           "property-b": true,

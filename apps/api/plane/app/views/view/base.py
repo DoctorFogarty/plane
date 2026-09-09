@@ -2,18 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-import copy
-
 # Django imports
-from django.db.models import (
-    Exists,
-    F,
-    Func,
-    OuterRef,
-    Q,
-    Subquery,
-    Prefetch,
-)
+from django.db.models import Exists, OuterRef, Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.gzip import gzip_page
 from django.db import transaction
@@ -24,24 +14,18 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import allow_permission, ROLE
-from plane.app.serializers import IssueViewSerializer, ViewIssueListSerializer
+from plane.app.serializers import IssueViewSerializer
 from plane.db.models import (
     Issue,
-    FileAsset,
-    IssueLink,
     IssueView,
     Workspace,
     WorkspaceMember,
     ProjectMember,
     Project,
-    CycleIssue,
     UserRecentVisit,
-    IssueAssignee,
-    IssueLabel,
-    ModuleIssue,
 )
-from plane.utils.issue_filters import apply_issue_filters, issue_filters
-from plane.utils.order_queryset import VIEW_ORDER_BY_ALLOWLIST, order_issue_queryset, sanitize_order_by
+from plane.utils.issue_query import guest_issue_access_q, is_restricted_guest, list_issue_board
+from plane.utils.order_queryset import VIEW_ORDER_BY_ALLOWLIST, sanitize_order_by
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from .. import BaseViewSet
 from plane.db.models import UserFavorite
@@ -78,7 +62,9 @@ class WorkspaceViewViewSet(BaseViewSet):
     def list(self, request, slug):
         queryset = self.get_queryset()
         fields = [field for field in request.GET.get("fields", "").split(",") if field]
-        if WorkspaceMember.objects.filter(workspace__slug=slug, member=request.user, role=5, is_active=True).exists():
+        if WorkspaceMember.objects.filter(
+            workspace__slug=slug, member=request.user, role=ROLE.GUEST.value, is_active=True
+        ).exists():
             queryset = queryset.filter(owned_by=request.user)
         views = IssueViewSerializer(queryset, many=True, fields=fields if fields else None).data
         return Response(views, status=status.HTTP_200_OK)
@@ -146,74 +132,7 @@ class WorkspaceViewIssuesViewSet(BaseViewSet):
     filterset_class = IssueFilterSet
 
     def _get_project_permission_filters(self):
-        """
-        Get common project permission filters for guest users and role-based access control.
-        Returns Q object for filtering issues based on user role and project settings.
-        """
-        return Q(
-            Q(
-                project__project_projectmember__role=5,
-                project__guest_view_all_features=True,
-            )
-            | Q(
-                project__project_projectmember__role=5,
-                project__guest_view_all_features=False,
-                created_by=self.request.user,
-            )
-            |
-            # For other roles (role > 5), show all issues
-            Q(project__project_projectmember__role__gt=5),
-            project__project_projectmember__member=self.request.user,
-            project__project_projectmember__is_active=True,
-        )
-
-    def apply_annotations(self, issues):
-        return (
-            issues.annotate(
-                cycle_id=Subquery(
-                    CycleIssue.objects.filter(issue=OuterRef("id"), deleted_at__isnull=True).values("cycle_id")[:1]
-                )
-            )
-            .annotate(
-                link_count=IssueLink.objects.filter(issue=OuterRef("id"))
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                attachment_count=FileAsset.objects.filter(
-                    issue_id=OuterRef("id"),
-                    entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
-                )
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                sub_issues_count=Issue.issue_objects.filter(parent=OuterRef("id"))
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .prefetch_related(
-                Prefetch(
-                    "issue_assignee",
-                    queryset=IssueAssignee.objects.all(),
-                )
-            )
-            .prefetch_related(
-                Prefetch(
-                    "label_issue",
-                    queryset=IssueLabel.objects.all(),
-                )
-            )
-            .prefetch_related(
-                Prefetch(
-                    "issue_module",
-                    queryset=ModuleIssue.objects.all(),
-                )
-            )
-        )
+        return guest_issue_access_q(self.request.user)
 
     def get_queryset(self):
         return Issue.issue_objects.filter(workspace__slug=self.kwargs.get("slug"))
@@ -221,41 +140,12 @@ class WorkspaceViewIssuesViewSet(BaseViewSet):
     @method_decorator(gzip_page)
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def list(self, request, slug):
-        issue_queryset = self.get_queryset()
-
-        # Apply filtering from filterset
-        issue_queryset = self.filter_queryset(issue_queryset)
-
-        order_by_param = request.GET.get("order_by", "-created_at")
-
-        # Apply legacy filters
-        filters = issue_filters(request.query_params, "GET")
-        issue_queryset = apply_issue_filters(issue_queryset, filters)
-
-        # Get common project permission filters
-        permission_filters = self._get_project_permission_filters()
-        # Apply project permission filters to the issue queryset
-        issue_queryset = issue_queryset.filter(permission_filters)
-
-        # Base query for the counts
-        total_issue_count_queryset = copy.deepcopy(issue_queryset)
-        total_issue_count_queryset = total_issue_count_queryset.only("id")
-
-        # Apply annotations to the issue queryset
-        issue_queryset = self.apply_annotations(issue_queryset)
-
-        # Issue queryset
-        issue_queryset, order_by_param = order_issue_queryset(
-            issue_queryset=issue_queryset, order_by_param=order_by_param
-        )
-
-        # List Paginate
-        return self.paginate(
-            order_by=order_by_param,
-            request=request,
-            queryset=issue_queryset,
-            on_results=lambda issues: ViewIssueListSerializer(issues, many=True).data,
-            total_count_queryset=total_issue_count_queryset,
+        return list_issue_board(
+            self,
+            request,
+            slug=slug,
+            project_id=None,
+            queryset=self.get_queryset().filter(self._get_project_permission_filters()),
         )
 
 
@@ -296,16 +186,7 @@ class IssueViewViewSet(BaseViewSet):
     def list(self, request, slug, project_id):
         queryset = self.get_queryset()
         project = Project.objects.get(id=project_id)
-        if (
-            ProjectMember.objects.filter(
-                workspace__slug=slug,
-                project_id=project_id,
-                member=request.user,
-                role=5,
-                is_active=True,
-            ).exists()
-            and not project.guest_view_all_features
-        ):
+        if is_restricted_guest(slug=slug, project_id=project_id, user=request.user, project=project):
             queryset = queryset.filter(owned_by=request.user)
         fields = [field for field in request.GET.get("fields", "").split(",") if field]
         views = IssueViewSerializer(queryset, many=True, fields=fields if fields else None).data
@@ -315,24 +196,13 @@ class IssueViewViewSet(BaseViewSet):
     def retrieve(self, request, slug, project_id, pk):
         issue_view = self.get_queryset().filter(pk=pk, project_id=project_id).first()
         project = Project.objects.get(id=project_id)
-        """
-        if the role is guest and guest_view_all_features is false and owned by is not 
-        the requesting user then dont show the view
-        """
-
         if (
-            ProjectMember.objects.filter(
-                workspace__slug=slug,
-                project_id=project_id,
-                member=request.user,
-                role=5,
-                is_active=True,
-            ).exists()
-            and not project.guest_view_all_features
-            and not issue_view.owned_by == request.user
+            is_restricted_guest(slug=slug, project_id=project_id, user=request.user, project=project)
+            and issue_view
+            and issue_view.owned_by != request.user
         ):
             return Response(
-                {"error": "You are not allowed to view this issue"},
+                {"error": "You are not allowed to view this view"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 

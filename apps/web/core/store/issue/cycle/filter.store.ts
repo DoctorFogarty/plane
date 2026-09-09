@@ -4,16 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { isEmpty, set } from "lodash-es";
-import { action, computed, makeObservable, observable, runInAction } from "mobx";
-// base class
-import { computedFn } from "mobx-utils";
+import { action, computed, makeObservable, observable } from "mobx";
 import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
-import { EIssueFilterType } from "@plane/constants";
 import type {
-  IIssueDisplayFilterOptions,
-  IIssueDisplayProperties,
-  TIssueKanbanFilters,
   IIssueFilters,
   TIssueParams,
   IssuePaginationOptions,
@@ -21,18 +14,13 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { handleIssueQueryParamsByLayout, mergeDisplayProperties } from "@plane/utils";
 import { IssueFiltersService } from "@/services/issue_filter.service";
+import type { TCollectionRef } from "../helpers/collection-ref";
+import { EntityIssuesFilter } from "../helpers/entity-issues-filter";
 import type { IBaseIssueFilterStore } from "../helpers/issue-filter-helper.store";
-import { IssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
-// helpers
-// types
 import type { IIssueRootStore } from "../root.store";
-// constants
-// services
 
 export interface ICycleIssuesFilter extends IBaseIssueFilterStore {
-  //helper actions
   getFilterParams: (
     options: IssuePaginationOptions,
     cycleId: string,
@@ -42,7 +30,6 @@ export interface ICycleIssuesFilter extends IBaseIssueFilterStore {
   ) => Partial<Record<TIssueParams, string | boolean>>;
   getIssueFilters(cycleId: string): IIssueFilters | undefined;
   hydrateFilters: (workspaceSlug: string, projectId: string, cycleId: string) => void;
-  // action
   fetchFilters: (workspaceSlug: string, projectId: string, cycleId: string) => Promise<void>;
   updateFilterExpression: (
     workspaceSlug: string,
@@ -59,130 +46,56 @@ export interface ICycleIssuesFilter extends IBaseIssueFilterStore {
   ) => Promise<void>;
 }
 
-export class CycleIssuesFilter extends IssueFilterHelperStore implements ICycleIssuesFilter {
-  // observables
-  filters: { [cycleId: string]: IIssueFilters } = {};
-  // root store
-  rootIssueStore: IIssueRootStore;
-  // services
+export class CycleIssuesFilter extends EntityIssuesFilter implements ICycleIssuesFilter {
+  readonly scope = { storeType: EIssuesStoreType.CYCLE, extraQueryParam: "cycle" as const };
   issueFilterService;
 
   constructor(_rootStore: IIssueRootStore) {
-    super();
+    super(_rootStore);
     makeObservable(this, {
-      // observables
       filters: observable,
-      // computed
       issueFilters: computed,
       appliedFilters: computed,
-      // actions
       fetchFilters: action,
       hydrateFilters: action,
       updateFilters: action,
     });
-    // root store
-    this.rootIssueStore = _rootStore;
-    // services
     this.issueFilterService = new IssueFiltersService();
   }
 
-  get issueFilters() {
-    const cycleId = this.rootIssueStore.cycleId;
-    if (!cycleId) return undefined;
+  routerEntityId = () => this.rootIssueStore.cycleId;
 
-    return this.getIssueFilters(cycleId);
-  }
+  hydrateFrom = (ref: TCollectionRef) =>
+    ref.projectId ? this.rootIssueStore.projectIssuesFilter.getIssueFilters(ref.projectId) : undefined;
 
-  get appliedFilters() {
-    const cycleId = this.rootIssueStore.cycleId;
-    if (!cycleId) return undefined;
+  fetchRemote = (ref: TCollectionRef) => {
+    if (!ref.projectId) return Promise.resolve(undefined);
+    return this.issueFilterService.fetchCycleIssueFilters(ref.workspaceSlug, ref.projectId, ref.entityId);
+  };
 
-    return this.getAppliedFilters(cycleId);
-  }
+  persist = (ref: TCollectionRef, payload: Record<string, unknown>) => {
+    if (!ref.projectId) return Promise.resolve();
+    return this.issueFilterService.patchCycleIssueFilters(ref.workspaceSlug, ref.projectId, ref.entityId, payload);
+  };
 
-  getIssueFilters(cycleId: string) {
-    const displayFilters = this.filters[cycleId] || undefined;
-    if (isEmpty(displayFilters)) return undefined;
-
-    const _filters: IIssueFilters = this.computedIssueFilters(displayFilters);
-
-    return _filters;
-  }
-
-  getAppliedFilters(cycleId: string) {
-    const userFilters = this.getIssueFilters(cycleId);
-    if (!userFilters) return undefined;
-
-    const filteredParams = handleIssueQueryParamsByLayout(userFilters?.displayFilters?.layout, "issues");
-    if (!filteredParams) return undefined;
-
-    if (filteredParams.includes("cycle")) filteredParams.splice(filteredParams.indexOf("cycle"), 1);
-
-    const filteredRouteParams: Partial<Record<TIssueParams, string | boolean>> = this.computedFilteredParams(
-      userFilters?.richFilters,
-      userFilters?.displayFilters,
-      filteredParams
-    );
-
-    return filteredRouteParams;
-  }
-
-  getFilterParams = computedFn(
-    (
-      options: IssuePaginationOptions,
-      cycleId: string,
-      cursor: string | undefined,
-      groupId: string | undefined,
-      subGroupId: string | undefined
-    ) => {
-      let filterParams = this.getAppliedFilters(cycleId);
-
-      if (!filterParams) {
-        filterParams = {};
-      }
-      filterParams["cycle"] = cycleId;
-
-      const paginationParams = this.getPaginationParams(filterParams, options, cursor, groupId, subGroupId);
-      return paginationParams;
-    }
-  );
-
-  hydrateFilters = (workspaceSlug: string, projectId: string, cycleId: string) => {
-    if (!isEmpty(this.filters[cycleId])) return;
-    const projectFilters = this.rootIssueStore.projectIssuesFilter.getIssueFilters(projectId);
-    if (projectFilters) {
-      this.copyEntityFilters(this.filters, cycleId, projectFilters);
-      return;
-    }
-    this.writeEntityFilters(
-      this.filters,
-      cycleId,
-      workspaceSlug,
-      EIssuesStoreType.CYCLE,
-      this.rootIssueStore.currentUserId,
-      undefined
+  refetchIssues = (ref: TCollectionRef) => {
+    if (!ref.projectId) return;
+    this.rootIssueStore.cycleIssues.fetchIssuesWithExistingPagination(
+      ref.workspaceSlug,
+      ref.projectId,
+      "mutation",
+      ref.entityId
     );
   };
 
-  fetchFilters = async (workspaceSlug: string, projectId: string, cycleId: string) => {
-    this.hydrateFilters(workspaceSlug, projectId, cycleId);
-    const _filters = await this.issueFilterService.fetchCycleIssueFilters(workspaceSlug, projectId, cycleId);
+  clearIssues = () => this.rootIssueStore.cycleIssues.clear(true);
 
-    this.writeEntityFilters(
-      this.filters,
-      cycleId,
-      workspaceSlug,
-      EIssuesStoreType.CYCLE,
-      this.rootIssueStore.currentUserId,
-      _filters
-    );
-  };
+  hydrateFilters = (workspaceSlug: string, projectId: string, cycleId: string) =>
+    this.hydrateRef({ workspaceSlug, projectId, entityId: cycleId });
 
-  /**
-   * NOTE: This method is designed as a fallback function for the work item filter store.
-   * Only use this method directly when initializing filter instances.
-   * For regular filter updates, use this method as a fallback function for the work item filter store methods instead.
-   */
+  fetchFilters = async (workspaceSlug: string, projectId: string, cycleId: string) =>
+    this.fetchRef({ workspaceSlug, projectId, entityId: cycleId });
+
   updateFilterExpression: ICycleIssuesFilter["updateFilterExpression"] = async (
     workspaceSlug,
     projectId,
@@ -190,14 +103,7 @@ export class CycleIssuesFilter extends IssueFilterHelperStore implements ICycleI
     filters
   ) => {
     try {
-      runInAction(() => {
-        set(this.filters, [cycleId, "richFilters"], filters);
-      });
-
-      this.rootIssueStore.cycleIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation", cycleId);
-      await this.issueFilterService.patchCycleIssueFilters(workspaceSlug, projectId, cycleId, {
-        rich_filters: filters,
-      });
+      await this.updateExpressionRef({ workspaceSlug, projectId, entityId: cycleId }, filters);
     } catch (error) {
       console.log("error while updating rich filters", error);
       throw error;
@@ -206,113 +112,7 @@ export class CycleIssuesFilter extends IssueFilterHelperStore implements ICycleI
 
   updateFilters: ICycleIssuesFilter["updateFilters"] = async (workspaceSlug, projectId, type, filters, cycleId) => {
     try {
-      if (isEmpty(this.filters) || isEmpty(this.filters[cycleId])) return;
-
-      const _filters = {
-        richFilters: this.filters[cycleId].richFilters,
-        displayFilters: this.filters[cycleId].displayFilters as IIssueDisplayFilterOptions,
-        displayProperties: this.filters[cycleId].displayProperties as IIssueDisplayProperties,
-        kanbanFilters: this.filters[cycleId].kanbanFilters as TIssueKanbanFilters,
-      };
-
-      switch (type) {
-        case EIssueFilterType.DISPLAY_FILTERS: {
-          const updatedDisplayFilters = filters as IIssueDisplayFilterOptions;
-          _filters.displayFilters = { ..._filters.displayFilters, ...updatedDisplayFilters };
-
-          // set sub_group_by to null if group_by is set to null
-          if (_filters.displayFilters.group_by === null) {
-            _filters.displayFilters.sub_group_by = null;
-            updatedDisplayFilters.sub_group_by = null;
-          }
-          // set sub_group_by to null if layout is switched to kanban group_by and sub_group_by are same
-          if (
-            _filters.displayFilters.layout === "kanban" &&
-            _filters.displayFilters.group_by === _filters.displayFilters.sub_group_by
-          ) {
-            _filters.displayFilters.sub_group_by = null;
-            updatedDisplayFilters.sub_group_by = null;
-          }
-          // set group_by to state if layout is switched to kanban and group_by is null
-          if (_filters.displayFilters.layout === "kanban" && _filters.displayFilters.group_by === null) {
-            _filters.displayFilters.group_by = "state";
-            updatedDisplayFilters.group_by = "state";
-          }
-
-          runInAction(() => {
-            Object.keys(updatedDisplayFilters).forEach((_key) => {
-              set(
-                this.filters,
-                [cycleId, "displayFilters", _key],
-                updatedDisplayFilters[_key as keyof IIssueDisplayFilterOptions]
-              );
-            });
-          });
-
-          if (this.getShouldClearIssues(updatedDisplayFilters)) {
-            this.rootIssueStore.cycleIssues.clear(true); // clear issues for local store when some filters like layout changes
-          }
-
-          if (this.getShouldReFetchIssues(updatedDisplayFilters)) {
-            this.rootIssueStore.cycleIssues.fetchIssuesWithExistingPagination(
-              workspaceSlug,
-              projectId,
-              "mutation",
-              cycleId
-            );
-          }
-
-          await this.issueFilterService.patchCycleIssueFilters(workspaceSlug, projectId, cycleId, {
-            display_filters: _filters.displayFilters,
-          });
-
-          break;
-        }
-        case EIssueFilterType.DISPLAY_PROPERTIES: {
-          const updatedDisplayProperties = filters as IIssueDisplayProperties;
-          _filters.displayProperties = mergeDisplayProperties(_filters.displayProperties, updatedDisplayProperties);
-
-          runInAction(() => {
-            Object.keys(updatedDisplayProperties).forEach((_key) => {
-              set(
-                this.filters,
-                [cycleId, "displayProperties", _key],
-                _filters.displayProperties[_key as keyof IIssueDisplayProperties]
-              );
-            });
-          });
-
-          await this.issueFilterService.patchCycleIssueFilters(workspaceSlug, projectId, cycleId, {
-            display_properties: _filters.displayProperties,
-          });
-          break;
-        }
-
-        case EIssueFilterType.KANBAN_FILTERS: {
-          const updatedKanbanFilters = filters as TIssueKanbanFilters;
-          _filters.kanbanFilters = { ..._filters.kanbanFilters, ...updatedKanbanFilters };
-
-          const currentUserId = this.rootIssueStore.currentUserId;
-          if (currentUserId)
-            this.handleIssuesLocalFilters.set(EIssuesStoreType.CYCLE, type, workspaceSlug, cycleId, currentUserId, {
-              kanban_filters: _filters.kanbanFilters,
-            });
-
-          runInAction(() => {
-            Object.keys(updatedKanbanFilters).forEach((_key) => {
-              set(
-                this.filters,
-                [cycleId, "kanbanFilters", _key],
-                updatedKanbanFilters[_key as keyof TIssueKanbanFilters]
-              );
-            });
-          });
-
-          break;
-        }
-        default:
-          break;
-      }
+      await this.updateFiltersRef({ workspaceSlug, projectId, entityId: cycleId }, type, filters);
     } catch (error) {
       if (cycleId) this.fetchFilters(workspaceSlug, projectId, cycleId);
       throw error;

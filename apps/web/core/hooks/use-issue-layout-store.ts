@@ -5,7 +5,7 @@
  */
 
 import { createContext, useContext } from "react";
-import { useParams } from "next/navigation";
+import { useParams } from "react-router";
 import { EIssuesStoreType } from "@plane/types";
 import { useIssues } from "./store/use-issues";
 

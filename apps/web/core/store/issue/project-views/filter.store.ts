@@ -9,11 +9,9 @@ import { action, computed, makeObservable, observable, runInAction } from "mobx"
 // base class
 import { computedFn } from "mobx-utils";
 import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
-import { EIssueFilterType } from "@plane/constants";
 import type {
   IIssueDisplayFilterOptions,
   IIssueDisplayProperties,
-  TIssueKanbanFilters,
   IIssueFilters,
   TIssueParams,
   IssuePaginationOptions,
@@ -22,7 +20,7 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { handleIssueQueryParamsByLayout, mergeDisplayProperties } from "@plane/utils";
+import { handleIssueQueryParamsByLayout } from "@plane/utils";
 // services
 import { ViewService } from "@/services/view.service";
 import type { IBaseIssueFilterStore } from "../helpers/issue-filter-helper.store";
@@ -238,84 +236,20 @@ export class ProjectViewIssuesFilter extends IssueFilterHelperStore implements I
     viewId
   ) => {
     try {
-      if (isEmpty(this.filters) || isEmpty(this.filters[viewId])) return;
-
-      const _filters = {
-        richFilters: this.filters[viewId].richFilters,
-        displayFilters: this.filters[viewId].displayFilters as IIssueDisplayFilterOptions,
-        displayProperties: this.filters[viewId].displayProperties as IIssueDisplayProperties,
-        kanbanFilters: this.filters[viewId].kanbanFilters as TIssueKanbanFilters,
-      };
-
-      switch (type) {
-        case EIssueFilterType.DISPLAY_FILTERS: {
-          const updatedDisplayFilters = filters as IIssueDisplayFilterOptions;
-          _filters.displayFilters = { ..._filters.displayFilters, ...updatedDisplayFilters };
-
-          // set sub_group_by to null if group_by is set to null
-          if (_filters.displayFilters.group_by === null) {
-            _filters.displayFilters.sub_group_by = null;
-            updatedDisplayFilters.sub_group_by = null;
-          }
-          // set sub_group_by to null if layout is switched to kanban group_by and sub_group_by are same
-          if (
-            _filters.displayFilters.layout === "kanban" &&
-            _filters.displayFilters.group_by === _filters.displayFilters.sub_group_by
-          ) {
-            _filters.displayFilters.sub_group_by = null;
-            updatedDisplayFilters.sub_group_by = null;
-          }
-          // set group_by to state if layout is switched to kanban and group_by is null
-          if (_filters.displayFilters.layout === "kanban" && _filters.displayFilters.group_by === null) {
-            _filters.displayFilters.group_by = "state";
-            updatedDisplayFilters.group_by = "state";
-          }
-
-          runInAction(() => {
-            Object.keys(updatedDisplayFilters).forEach((_key) => {
-              set(
-                this.filters,
-                [viewId, "displayFilters", _key],
-                updatedDisplayFilters[_key as keyof IIssueDisplayFilterOptions]
-              );
-            });
-          });
-
-          if (this.getShouldClearIssues(updatedDisplayFilters)) {
-            this.rootIssueStore.projectIssues.clear(true); // clear issues for local store when some filters like layout changes
-          }
-
-          if (this.getShouldReFetchIssues(updatedDisplayFilters)) {
-            this.rootIssueStore.projectViewIssues.fetchIssuesWithExistingPagination(
-              workspaceSlug,
-              projectId,
-              viewId,
-              "mutation"
-            );
-          }
-
-          break;
-        }
-        case EIssueFilterType.DISPLAY_PROPERTIES: {
-          const updatedDisplayProperties = filters as IIssueDisplayProperties;
-          _filters.displayProperties = mergeDisplayProperties(_filters.displayProperties, updatedDisplayProperties);
-
-          runInAction(() => {
-            Object.keys(updatedDisplayProperties).forEach((_key) => {
-              set(
-                this.filters,
-                [viewId, "displayProperties", _key],
-                _filters.displayProperties[_key as keyof IIssueDisplayProperties]
-              );
-            });
-          });
-
-          break;
-        }
-        case EIssueFilterType.KANBAN_FILTERS: {
-          const updatedKanbanFilters = filters as TIssueKanbanFilters;
-          _filters.kanbanFilters = { ..._filters.kanbanFilters, ...updatedKanbanFilters };
-
+      await this.commitFilterTypeUpdate({
+        filters: this.filters,
+        entityId: viewId,
+        type,
+        patch: filters,
+        clear: () => this.rootIssueStore.projectViewIssues.clear(true),
+        refetch: () =>
+          this.rootIssueStore.projectViewIssues.fetchIssuesWithExistingPagination(
+            workspaceSlug,
+            projectId,
+            viewId,
+            "mutation"
+          ),
+        persistKanbanFilters: (kanbanFilters) => {
           const currentUserId = this.rootIssueStore.currentUserId;
           if (currentUserId)
             this.handleIssuesLocalFilters.set(
@@ -325,25 +259,11 @@ export class ProjectViewIssuesFilter extends IssueFilterHelperStore implements I
               viewId,
               currentUserId,
               {
-                kanban_filters: _filters.kanbanFilters,
+                kanban_filters: kanbanFilters,
               }
             );
-
-          runInAction(() => {
-            Object.keys(updatedKanbanFilters).forEach((_key) => {
-              set(
-                this.filters,
-                [viewId, "kanbanFilters", _key],
-                updatedKanbanFilters[_key as keyof TIssueKanbanFilters]
-              );
-            });
-          });
-
-          break;
-        }
-        default:
-          break;
-      }
+        },
+      });
     } catch (error) {
       if (viewId) this.fetchFilters(workspaceSlug, projectId, viewId);
       throw error;

@@ -13,7 +13,6 @@ import { EIssueFilterType } from "@plane/constants";
 import type {
   IIssueDisplayFilterOptions,
   IIssueDisplayProperties,
-  TIssueKanbanFilters,
   IIssueFilters,
   TIssueParams,
   IssuePaginationOptions,
@@ -21,7 +20,7 @@ import type {
   TSupportedFilterForUpdate,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { handleIssueQueryParamsByLayout, mergeDisplayProperties } from "@plane/utils";
+import { handleIssueQueryParamsByLayout } from "@plane/utils";
 // services
 import { IssueFiltersService } from "@/services/issue_filter.service";
 // helpers
@@ -192,80 +191,24 @@ export class WorkspaceDraftIssuesFilter extends IssueFilterHelperStore implement
 
   updateFilters: IWorkspaceDraftIssuesFilter["updateFilters"] = async (workspaceSlug, type, filters) => {
     try {
-      if (isEmpty(this.filters) || isEmpty(this.filters[workspaceSlug])) return;
-
-      const _filters = {
-        richFilters: this.filters[workspaceSlug].richFilters,
-        displayFilters: this.filters[workspaceSlug].displayFilters as IIssueDisplayFilterOptions,
-        displayProperties: this.filters[workspaceSlug].displayProperties as IIssueDisplayProperties,
-        kanbanFilters: this.filters[workspaceSlug].kanbanFilters as TIssueKanbanFilters,
-      };
-
-      switch (type) {
-        case EIssueFilterType.DISPLAY_FILTERS: {
-          const updatedDisplayFilters = filters as IIssueDisplayFilterOptions;
-          _filters.displayFilters = { ..._filters.displayFilters, ...updatedDisplayFilters };
-
-          // set sub_group_by to null if group_by is set to null
-          if (_filters.displayFilters.group_by === null) {
-            _filters.displayFilters.sub_group_by = null;
-            updatedDisplayFilters.sub_group_by = null;
-          }
-          // set sub_group_by to null if layout is switched to kanban group_by and sub_group_by are same
-          if (
-            _filters.displayFilters.layout === "kanban" &&
-            _filters.displayFilters.group_by === _filters.displayFilters.sub_group_by
-          ) {
-            _filters.displayFilters.sub_group_by = null;
-            updatedDisplayFilters.sub_group_by = null;
-          }
-          // set group_by to priority if layout is switched to kanban and group_by is null
-          if (_filters.displayFilters.layout === "kanban" && _filters.displayFilters.group_by === null) {
-            _filters.displayFilters.group_by = "priority";
-            updatedDisplayFilters.group_by = "priority";
-          }
-
-          runInAction(() => {
-            Object.keys(updatedDisplayFilters).forEach((_key) => {
-              set(
-                this.filters,
-                [workspaceSlug, "displayFilters", _key],
-                updatedDisplayFilters[_key as keyof IIssueDisplayFilterOptions]
-              );
-            });
-          });
-
-          this.rootIssueStore.profileIssues.fetchIssuesWithExistingPagination(workspaceSlug, workspaceSlug, "mutation");
-
+      await this.commitFilterTypeUpdate({
+        filters: this.filters,
+        entityId: workspaceSlug,
+        type,
+        patch: filters,
+        defaultKanbanGroupBy: "priority",
+        forceRefetch: true,
+        refetch: () =>
+          this.rootIssueStore.profileIssues.fetchIssuesWithExistingPagination(workspaceSlug, workspaceSlug, "mutation"),
+        persistDisplayFilters: (displayFilters) =>
           this.handleIssuesLocalFilters.set(EIssuesStoreType.PROFILE, type, workspaceSlug, workspaceSlug, undefined, {
-            display_filters: _filters.displayFilters,
-          });
-
-          break;
-        }
-        case EIssueFilterType.DISPLAY_PROPERTIES: {
-          const updatedDisplayProperties = filters as IIssueDisplayProperties;
-          _filters.displayProperties = mergeDisplayProperties(_filters.displayProperties, updatedDisplayProperties);
-
-          runInAction(() => {
-            Object.keys(updatedDisplayProperties).forEach((_key) => {
-              set(
-                this.filters,
-                [workspaceSlug, "displayProperties", _key],
-                _filters.displayProperties[_key as keyof IIssueDisplayProperties]
-              );
-            });
-          });
-
+            display_filters: displayFilters,
+          }),
+        persistDisplayProperties: (displayProperties) =>
           this.handleIssuesLocalFilters.set(EIssuesStoreType.PROFILE, type, workspaceSlug, workspaceSlug, undefined, {
-            display_properties: _filters.displayProperties,
-          });
-          break;
-        }
-
-        default:
-          break;
-      }
+            display_properties: displayProperties,
+          }),
+      });
     } catch (error) {
       if (workspaceSlug) this.fetchFilters(workspaceSlug);
       throw error;

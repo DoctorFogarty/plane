@@ -5,23 +5,18 @@
  */
 
 import { observer } from "mobx-react";
-// plane imports
 import { EIssueLayoutTypes } from "@plane/types";
-// components
 import { CalendarLayoutLoader } from "@/components/ui/loader/layouts/calendar-layout-loader";
 import { GanttLayoutLoader } from "@/components/ui/loader/layouts/gantt-layout-loader";
 import { KanbanLayoutLoader } from "@/components/ui/loader/layouts/kanban-layout-loader";
 import { ListLayoutLoader } from "@/components/ui/loader/layouts/list-layout-loader";
 import { SpreadsheetLayoutLoader } from "@/components/ui/loader/layouts/spreadsheet-layout-loader";
-// hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
-// local imports
 import { IssueLayoutEmptyState } from "./empty-states";
 
 export function ActiveLoader(props: { layout: EIssueLayoutTypes | undefined }) {
-  const { layout } = props;
-  switch (layout) {
+  switch (props.layout) {
     case EIssueLayoutTypes.LIST:
       return <ListLayoutLoader />;
     case EIssueLayoutTypes.KANBAN:
@@ -33,7 +28,7 @@ export function ActiveLoader(props: { layout: EIssueLayoutTypes | undefined }) {
     case EIssueLayoutTypes.GANTT:
       return <GanttLayoutLoader />;
     default:
-      return null;
+      return <ListLayoutLoader />;
   }
 }
 
@@ -48,13 +43,14 @@ export const IssueLayoutHOC = observer(function IssueLayoutHOC(props: Props) {
   const storeType = useIssueStoreType();
   const { issues } = useIssues(storeType);
 
-  const issueCount = issues.getGroupIssueCount(undefined, undefined, false);
+  const isInitialLoading = "isInitialLoading" in issues && issues.isInitialLoading;
+  const isCollectionEmpty = "isCollectionEmpty" in issues && issues.isCollectionEmpty;
 
-  if (issues?.getIssueLoader() === "init-loader" || issueCount === undefined) {
+  if (isInitialLoading) {
     return <ActiveLoader layout={layout} />;
   }
 
-  if (issues.getGroupIssueCount(undefined, undefined, false) === 0 && layout !== EIssueLayoutTypes.CALENDAR) {
+  if (isCollectionEmpty && layout !== EIssueLayoutTypes.CALENDAR) {
     return <IssueLayoutEmptyState storeType={storeType} />;
   }
 

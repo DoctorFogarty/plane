@@ -26,6 +26,7 @@ import { Breadcrumbs, Header, BreadcrumbNavigationSearchDropdown } from "@plane/
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { SwitcherIcon, SwitcherLabel } from "@/components/common/switcher-label";
 import { DisplayFiltersSelection, FiltersDropdown, LayoutSelection } from "@/components/issues/issue-layouts/filters";
+import { useCollectionLayoutSelection } from "@/components/issues/issue-layouts/use-collection-layout-route";
 import { ViewQuickActions } from "@/components/views/quick-actions";
 import { WorkItemFiltersToggle } from "@/components/work-item-filters/filters-toggle";
 // hooks
@@ -57,21 +58,11 @@ export const ProjectViewIssuesHeader = observer(function ProjectViewIssuesHeader
   const { projectViewIds, getViewById } = useProjectView();
 
   const issueFilters = viewId ? issuesFilter.getIssueFilters(viewId) : undefined;
-  const activeLayout = issueFilters?.displayFilters?.layout;
-
-  const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
-      if (!workspaceSlug || !projectId || !viewId) return;
-      updateFilters(
-        workspaceSlug.toString(),
-        projectId.toString(),
-        EIssueFilterType.DISPLAY_FILTERS,
-        { layout: layout },
-        viewId.toString()
-      );
-    },
-    [workspaceSlug, projectId, viewId, updateFilters]
-  );
+  const { activeLayout, handleLayoutChange } = useCollectionLayoutSelection({
+    kind: "views",
+    entityId: viewId,
+    storedLayout: issueFilters?.displayFilters?.layout,
+  });
 
   const handleDisplayFilters = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {

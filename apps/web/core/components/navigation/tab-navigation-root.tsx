@@ -10,7 +10,6 @@ import { observer } from "mobx-react";
 import { useParams, useLocation, Link, useNavigate } from "react-router";
 import { EUserPermissionsLevel, EUserPermissions, getIssueLayoutPathSlug } from "@plane/constants";
 import { TabNavigationList, TabNavigationItem } from "@plane/propel/tab-navigation";
-import type { EUserProjectRoles } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -23,6 +22,7 @@ import { useNavigationItems } from "@/plane-web/components/navigations";
 import { DuplicateProjectModal } from "../project/duplicate-project-modal";
 import { LeaveProjectModal } from "../project/leave-project-modal";
 import { PublishProjectModal } from "../project/publish-project/modal";
+import type { TNavigationItem } from "./navigation-item";
 import { ProjectActionsMenu } from "./project-actions-menu";
 import { ProjectHeader } from "./project-header";
 import { TabNavigationItemContent } from "./tab-navigation-item-content";
@@ -34,17 +34,7 @@ import { useProjectActions } from "./use-project-actions";
 import { useResponsiveTabLayout } from "./use-responsive-tab-layout";
 import { useTabPreferences } from "./use-tab-preferences";
 
-// Local type definition for navigation items with app-specific fields
-export type TNavigationItem = {
-  name: string;
-  href: string;
-  icon: React.ElementType;
-  access: EUserPermissions[] | EUserProjectRoles[];
-  shouldRender: boolean;
-  sortOrder: number;
-  i18n_key: string;
-  key: string;
-};
+export type { TNavigationItem } from "./navigation-item";
 
 type TTabNavigationRootProps = {
   workspaceSlug: string;
@@ -145,7 +135,6 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
   }, [pathname, workspaceSlug, projectId, tabPreferences.defaultTab, allNavigationItems, navigate]);
 
   if (allNavigationItems.length === 0) return null;
-  if (!project) return null;
 
   // Permission checks
   const isAdmin = allowPermissions(
@@ -165,36 +154,40 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
   return (
     <>
       <PublishProjectModal isOpen={publishModalOpen} projectId={projectId} onClose={() => handlePublishModal(false)} />
-      <LeaveProjectModal
-        project={project}
-        isOpen={leaveProjectModalOpen}
-        onClose={() => handleLeaveProjectModal(false)}
-      />
-      {project && (
+      {project ? (
+        <LeaveProjectModal
+          project={project}
+          isOpen={leaveProjectModalOpen}
+          onClose={() => handleLeaveProjectModal(false)}
+        />
+      ) : null}
+      {project ? (
         <DuplicateProjectModal
           isOpen={duplicateProjectModalOpen}
           project={project}
           workspaceSlug={workspaceSlug}
           onClose={() => setDuplicateProjectModalOpen(false)}
         />
-      )}
+      ) : null}
 
       {/* container for the tab navigation */}
       <div className="flex size-full items-center gap-3 overflow-hidden">
         <div className="flex shrink-0 items-center gap-2">
           <ProjectHeader workspaceSlug={workspaceSlug} projectId={projectId} />
-          <div className="shrink-0">
-            <ProjectActionsMenu
-              workspaceSlug={workspaceSlug}
-              project={project}
-              isAdmin={isAdmin}
-              isAuthorized={isAuthorized}
-              onCopyText={handleCopyText}
-              onLeaveProject={handleLeaveProject}
-              onPublishModal={() => handlePublishModal(true)}
-              onDuplicateProject={() => setDuplicateProjectModalOpen(true)}
-            />
-          </div>
+          {project ? (
+            <div className="shrink-0">
+              <ProjectActionsMenu
+                workspaceSlug={workspaceSlug}
+                project={project}
+                isAdmin={isAdmin}
+                isAuthorized={isAuthorized}
+                onCopyText={handleCopyText}
+                onLeaveProject={handleLeaveProject}
+                onPublishModal={() => handlePublishModal(true)}
+                onDuplicateProject={() => setDuplicateProjectModalOpen(true)}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="h-5 w-1 shrink-0 border-l border-subtle" />

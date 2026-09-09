@@ -11,16 +11,13 @@ import { ProjectIcon } from "@plane/propel/icons";
 import type { ICustomSearchSelectOption } from "@plane/types";
 import { CustomSearchSelect } from "@plane/ui";
 // hooks
+import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
-import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
-// plane web imports
-import { useNavigationItems } from "@/plane-web/components/navigations";
-// local imports
+import { getProjectFeatureNavigation } from "@/plane-web/components/projects/navigation/helper";
 import { SwitcherLabel } from "../common/switcher-label";
 import { ProjectHeaderButton } from "./project-header-button";
-import { getTabUrl } from "./tab-navigation-utils";
-import { useTabPreferences } from "./use-tab-preferences";
+import { getProjectSwitchUrl } from "./tab-navigation-utils";
 
 type TProjectHeaderProps = {
   workspaceSlug: string;
@@ -33,33 +30,11 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
   const router = useAppRouter();
   // store hooks
   const { joinedProjectIds, getPartialProjectById } = useProject();
-  const { allowPermissions } = useUserPermissions();
+  const {
+    project: { getProjectUserProperties },
+  } = useMember();
 
-  // Get current project details
   const currentProjectDetails = getPartialProjectById(projectId);
-
-  // Get available navigation items for this project
-  const navigationItems = useNavigationItems({
-    workspaceSlug: workspaceSlug,
-    projectId,
-    project: currentProjectDetails,
-    allowPermissions,
-  });
-
-  // Get preferences from hook
-  const { tabPreferences } = useTabPreferences(workspaceSlug, projectId);
-
-  // Memoize available tab keys
-  const availableTabKeys = useMemo(() => navigationItems.map((item) => item.key), [navigationItems]);
-
-  // Memoize validated default tab key
-  const validatedDefaultTabKey = useMemo(
-    () =>
-      availableTabKeys.includes(tabPreferences.defaultTab)
-        ? tabPreferences.defaultTab
-        : availableTabKeys[0] || "work_items",
-    [availableTabKeys, tabPreferences.defaultTab]
-  );
 
   // Memoize switcher options to prevent recalculation on every render
   const switcherOptions = useMemo<ICustomSearchSelectOption[]>(
@@ -89,11 +64,17 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
   // Memoize onChange handler
   const handleProjectChange = useCallback(
     (value: string) => {
-      if (value !== currentProjectDetails?.id) {
-        router.push(getTabUrl(workspaceSlug, value, validatedDefaultTabKey));
-      }
+      if (value === currentProjectDetails?.id) return;
+      const destinationProject = getPartialProjectById(value);
+      const destinationDefaultTab = getProjectUserProperties(value)?.preferences?.navigation?.default_tab;
+      const destinationTabKeys = destinationProject
+        ? getProjectFeatureNavigation(workspaceSlug, value, destinationProject)
+            .filter((item) => item.shouldRender)
+            .map((item) => item.key)
+        : undefined;
+      router.push(getProjectSwitchUrl(workspaceSlug, value, destinationDefaultTab, destinationTabKeys));
     },
-    [currentProjectDetails?.id, router, workspaceSlug, validatedDefaultTabKey]
+    [currentProjectDetails?.id, getPartialProjectById, getProjectUserProperties, router, workspaceSlug]
   );
 
   // Early return if no project details

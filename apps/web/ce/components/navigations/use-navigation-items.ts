@@ -11,7 +11,7 @@ import { useMemo } from "react";
 import { EUserPermissionsLevel } from "@plane/constants";
 import type { EUserPermissions } from "@plane/constants";
 import type { EUserProjectRoles, IPartialProject } from "@plane/types";
-import type { TNavigationItem } from "@/components/navigation/tab-navigation-root";
+import type { TNavigationItem } from "@/components/navigation/navigation-item";
 import { getProjectFeatureNavigation } from "@/plane-web/components/projects/navigation/helper";
 
 type UseNavigationItemsProps = {
@@ -26,6 +26,14 @@ type UseNavigationItemsProps = {
   ) => boolean;
 };
 
+const FALLBACK_PROJECT_FLAGS = {
+  cycle_view: true,
+  module_view: true,
+  issue_views_view: true,
+  page_view: true,
+  inbox_view: true,
+};
+
 export const useNavigationItems = ({
   workspaceSlug,
   projectId,
@@ -33,13 +41,11 @@ export const useNavigationItems = ({
   allowPermissions,
 }: UseNavigationItemsProps): TNavigationItem[] => {
   const navigationItems = useMemo(() => {
-    if (!project) return [];
-
-    const navItems = getProjectFeatureNavigation(workspaceSlug, projectId, project);
+    const navItems = getProjectFeatureNavigation(workspaceSlug, projectId, project ?? FALLBACK_PROJECT_FLAGS);
 
     const filteredItems = navItems.filter((item) => {
       if (!item.shouldRender) return false;
-      return allowPermissions(item.access, EUserPermissionsLevel.PROJECT, workspaceSlug, project.id ?? "");
+      return allowPermissions(item.access, EUserPermissionsLevel.PROJECT, workspaceSlug, project?.id ?? projectId);
     });
 
     return [...filteredItems].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
