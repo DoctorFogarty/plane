@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
 import { usePopper } from "react-popper";
 // components
 import { Combobox } from "@headlessui/react";
@@ -40,7 +40,7 @@ type CycleOptionsProps = {
 };
 
 export const CycleOptions = observer(function CycleOptions(props: CycleOptionsProps) {
-  const { projectId, isOpen, referenceElement, placement, canRemoveCycle, currentCycleId } = props;
+  const { projectId, referenceElement, placement, canRemoveCycle, currentCycleId } = props;
   // i18n
   const { t } = useTranslation();
   //state hooks
@@ -48,18 +48,8 @@ export const CycleOptions = observer(function CycleOptions(props: CycleOptionsPr
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   // store hooks
-  const { workspaceSlug } = useParams();
-  const { getProjectCycleIds, fetchAllCycles, getCycleById } = useCycle();
+  const { getProjectCycleIds, getCycleById } = useCycle();
   const { isMobile } = usePlatformOS();
-
-  useEffect(() => {
-    if (isOpen) {
-      onOpen();
-      if (!isMobile) {
-        inputRef.current && inputRef.current.focus();
-      }
-    }
-  }, [isOpen, isMobile]);
 
   // popper-js init
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
@@ -79,10 +69,6 @@ export const CycleOptions = observer(function CycleOptions(props: CycleOptionsPr
     if (currentCycleId && currentCycleId === cycleId) return false;
     return cycleDetails?.status ? (cycleDetails?.status.toLowerCase() != "completed" ? true : false) : true;
   });
-
-  const onOpen = () => {
-    if (workspaceSlug && !cycleIds) fetchAllCycles(workspaceSlug.toString(), projectId);
-  };
 
   const searchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (query !== "" && e.key === "Escape") {
@@ -136,6 +122,7 @@ export const CycleOptions = observer(function CycleOptions(props: CycleOptionsPr
           <Combobox.Input
             as="input"
             ref={inputRef}
+            autoFocus={!isMobile}
             className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}

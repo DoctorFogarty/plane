@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { TFilterConditionNodeForDisplay, TFilterProperty, TTextFilterFieldConfig } from "@plane/types";
@@ -22,10 +22,11 @@ export const TextFilterValueInput = observer(function TextFilterValueInput<P ext
 ) {
   const { config, condition, isDisabled = false, onChange } = props;
   const [localValue, setLocalValue] = useState(typeof condition.value === "string" ? condition.value : "");
-
-  useEffect(() => {
+  const [prevConditionValue, setPrevConditionValue] = useState(condition.value);
+  if (condition.value !== prevConditionValue) {
+    setPrevConditionValue(condition.value);
     setLocalValue(typeof condition.value === "string" ? condition.value : "");
-  }, [condition.value]);
+  }
 
   const commitValue = () => {
     const trimmed = localValue.trim();

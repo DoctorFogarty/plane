@@ -44,16 +44,13 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
     }
   }, []);
 
-  // the image is already uploaded if the image-component node has src attribute
-  // and we need to remove the blob from our file system
-  useEffect(() => {
-    if (resolvedSrc || imgNodeSrc) {
-      setIsUploaded(true);
-      setImageFromFileSystem(undefined);
-    } else {
-      setIsUploaded(false);
-    }
-  }, [resolvedSrc, imgNodeSrc]);
+  const isImageUploaded = Boolean(resolvedSrc || imgNodeSrc || isUploaded);
+  if ((resolvedSrc || imgNodeSrc) && imageFromFileSystem) {
+    setImageFromFileSystem(undefined);
+  }
+  if (status === ECustomImageStatus.UPLOADED) {
+    hasRetriedOnMount.current = false;
+  }
 
   useEffect(() => {
     if (!imgNodeSrc) {
@@ -120,21 +117,14 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
   useEffect(() => {
     if (hasImageDuplicationFailed(status) && !hasRetriedOnMount.current && imgNodeSrc) {
       hasRetriedOnMount.current = true;
-      // Add a small delay before retrying to avoid immediate retries
       updateAttributes({ status: ECustomImageStatus.DUPLICATING });
     }
   }, [status, imgNodeSrc, updateAttributes]);
 
-  useEffect(() => {
-    if (status === ECustomImageStatus.UPLOADED) {
-      hasRetriedOnMount.current = false;
-      setFailedToLoadImage(false);
-    }
-  }, [status]);
-
   const hasDuplicationFailed = hasImageDuplicationFailed(status);
-  const hasValidImageSource = imageFromFileSystem || (isUploaded && resolvedSrc);
-  const shouldShowBlock = hasValidImageSource && !failedToLoadImage && !hasDuplicationFailed;
+  const hasValidImageSource = imageFromFileSystem || (isImageUploaded && resolvedSrc);
+  const imageFailed = failedToLoadImage && status !== ECustomImageStatus.UPLOADED;
+  const shouldShowBlock = hasValidImageSource && !imageFailed && !hasDuplicationFailed;
 
   return (
     <NodeViewWrapper key={node.attrs[ECustomImageAttributeNames.ID]}>
@@ -151,7 +141,7 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
           />
         ) : (
           <CustomImageUploader
-            failedToLoadImage={failedToLoadImage}
+            failedToLoadImage={imageFailed}
             hasDuplicationFailed={hasDuplicationFailed}
             loadImageFromFileSystem={setImageFromFileSystem}
             maxFileSize={(editor.storage.imageComponent as { maxFileSize?: number } | undefined)?.maxFileSize ?? 0}

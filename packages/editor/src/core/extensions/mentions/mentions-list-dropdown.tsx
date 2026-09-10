@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable react-hooks/exhaustive-deps, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import { FloatingOverlay } from "@floating-ui/react";
 import type { SuggestionProps } from "@tiptap/suggestion";
@@ -74,14 +75,6 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
     },
   }));
 
-  // initialize the select index to 0 by default
-  useEffect(() => {
-    setSelectedIndex({
-      section: 0,
-      item: 0,
-    });
-  }, [sections]);
-
   // debounced search callback
   const debouncedSearchCallback = useCallback(
     debounce(async (searchQuery: string) => {
@@ -89,6 +82,10 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
         const sectionsResponse = await searchCallback?.(searchQuery);
         if (sectionsResponse) {
           setSections(sectionsResponse);
+          setSelectedIndex({
+            section: 0,
+            item: 0,
+          });
         }
       } catch (error) {
         console.error("Failed to fetch suggestions:", error);

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable react-hooks/exhaustive-deps, promise/always-return */
 
 import { useEffect, useState, useRef } from "react";
 import { Rocket } from "lucide-react";
@@ -112,7 +113,13 @@ export function ExistingIssuesListModal(props: Props) {
       ...searchParams,
       workspace_search: isWorkspaceLevel,
     })
-      .then((res) => setIssues(res))
+      .then((res) => {
+        setIssues(res);
+        if (!hasInitializedSelection.current && selectedWorkItemIds) {
+          setSelectedIssues(res.filter((issue) => selectedWorkItemIds.includes(issue.id)));
+          hasInitializedSelection.current = true;
+        }
+      })
       .finally(() => {
         setIsSearching(false);
         setIsLoading(false);
@@ -122,13 +129,6 @@ export function ExistingIssuesListModal(props: Props) {
   const handleSelectIssues = () => {
     setSelectedIssues((prevData) => (prevData.length === filteredIssues.length ? [] : [...filteredIssues]));
   };
-
-  useEffect(() => {
-    if (isOpen && !hasInitializedSelection.current && selectedWorkItemIds && issues.length > 0) {
-      setSelectedIssues(issues.filter((issue) => selectedWorkItemIds.includes(issue.id)));
-      hasInitializedSelection.current = true;
-    }
-  }, [isOpen, issues, selectedWorkItemIds]);
 
   useEffect(() => {
     handleSearch();

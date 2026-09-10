@@ -4,11 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
 import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
-// plane helpers
-import { useOutsideClickDetector } from "@plane/hooks";
 // i18n
 import { useTranslation } from "@plane/i18n";
 import { LabelPropertyIcon } from "@plane/propel/icons";
@@ -168,7 +165,6 @@ export const IssuePropertyLabels = observer(function IssuePropertyLabels(props: 
     value,
     defaultOptions = [],
     onChange,
-    onClose,
     disabled,
     hideDropdownArrow = false,
     buttonClassName = "",
@@ -180,29 +176,10 @@ export const IssuePropertyLabels = observer(function IssuePropertyLabels(props: 
     fullWidth = false,
     fullHeight = false,
   } = props;
-  // states
-  const [isOpen, setIsOpen] = useState(false);
-  // refs
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
   // store hooks
   const { getProjectLabels } = useLabel();
   const { isMobile } = usePlatformOS();
   const storeLabels = getProjectLabels(projectId);
-
-  const handleClose = () => {
-    if (!isOpen) return;
-    setIsOpen(false);
-    if (onClose) onClose();
-  };
-
-  useOutsideClickDetector(dropdownRef, handleClose);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current && !isMobile) {
-      inputRef.current.focus();
-    }
-  }, [isOpen, isMobile]);
 
   let projectLabels: IIssueLabel[] = defaultOptions as IIssueLabel[];
   if (storeLabels && storeLabels.length > 0) projectLabels = storeLabels;

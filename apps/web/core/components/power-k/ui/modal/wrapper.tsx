@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable react-hooks/exhaustive-deps */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Command } from "cmdk";
 import { observer } from "mobx-react";
 import { Dialog, Transition } from "@headlessui/react";
@@ -103,21 +104,15 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
     [searchTerm, activePage, onClose, setActivePage, context]
   );
 
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setTimeout(() => {
-        setSearchTerm("");
-        setActivePage(null);
-        context.setActiveCommand(null);
-        context.setShouldShowContextBasedActions(true);
-      }, 200);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  const resetClosedState = useCallback(() => {
+    setSearchTerm("");
+    setActivePage(null);
+    context.setActiveCommand(null);
+    context.setShouldShowContextBasedActions(true);
+  }, [context]);
 
   return (
-    <Transition.Root show={isOpen} as={React.Fragment}>
+    <Transition.Root show={isOpen} as={React.Fragment} afterLeave={resetClosedState}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
         {/* Backdrop */}
         <Transition.Child

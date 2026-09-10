@@ -67,7 +67,14 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   const isBulkOperationsEnabled = useBulkOperationStatus();
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
-  const [quickAddDates, setQuickAddDates] = useState<{ start_date: string; target_date: string } | null>(null);
+  const [quickAddDates] = useState<{ start_date: string; target_date: string }>(() => {
+    const nextDay = new Date();
+    nextDay.setDate(nextDay.getDate() + 1);
+    return {
+      start_date: renderFormattedPayloadDate(new Date()) ?? "",
+      target_date: renderFormattedPayloadDate(nextDay) ?? "",
+    };
+  });
 
   useLayoutEffect(() => {
     fetchIssues("init-loader", { canGroup: false, perPageCount: 100 }, viewId);
@@ -76,15 +83,6 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   useEffect(() => {
     initGantt();
   }, [initGantt]);
-
-  useEffect(() => {
-    const nextDay = new Date();
-    nextDay.setDate(nextDay.getDate() + 1);
-    setQuickAddDates({
-      start_date: renderFormattedPayloadDate(new Date()) ?? "",
-      target_date: renderFormattedPayloadDate(nextDay) ?? "",
-    });
-  }, []);
 
   const rootIssueIds = (issues.groupedIssueIds?.[ALL_ISSUES] as string[]) ?? [];
   const nextPageResults = issues.getPaginationData(undefined, undefined)?.nextPageResults;

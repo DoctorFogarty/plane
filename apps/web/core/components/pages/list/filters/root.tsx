@@ -8,6 +8,7 @@ import { useState, useRef, useEffect } from "react";
 import { observer } from "mobx-react";
 import { SearchIcon, CloseIcon } from "@plane/propel/icons";
 import type { TPageFilterProps, TPageFilters } from "@plane/types";
+import { toggleListValues } from "@plane/utils";
 // components
 import { FilterCreatedDate } from "@/components/common/filters/created-at";
 import { FilterCreatedBy } from "@/components/common/filters/created-by";
@@ -34,25 +35,20 @@ export const PageFiltersSelection = observer(function PageFiltersSelection(props
   }, [isMobile]);
 
   const handleFilters = (key: keyof TPageFilterProps, value: boolean | string | string[]) => {
-    const newValues = filters.filters?.[key] ?? [];
+    const currentValues = filters.filters?.[key];
 
-    if (typeof newValues === "boolean" && typeof value === "boolean") return;
+    if (typeof currentValues === "boolean" && typeof value === "boolean") return;
 
-    if (Array.isArray(newValues)) {
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else if (typeof value === "string") {
-        if (newValues?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
-      }
-    }
+    const nextValues =
+      Array.isArray(currentValues) || currentValues == null
+        ? typeof value === "string" || Array.isArray(value)
+          ? toggleListValues(Array.isArray(currentValues) ? currentValues : [], value)
+          : (currentValues ?? [])
+        : currentValues;
 
     handleFiltersUpdate("filters", {
       ...filters.filters,
-      [key]: newValues,
+      [key]: nextValues,
     });
   };
 

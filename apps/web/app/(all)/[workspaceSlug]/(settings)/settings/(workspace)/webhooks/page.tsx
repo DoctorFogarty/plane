@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // plane imports
@@ -36,7 +36,7 @@ function WebhooksListPage({ params }: Route.ComponentProps) {
   const { t } = useTranslation();
   // mobx store
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
-  const { fetchWebhooks, webhooks, clearSecretKey, webhookSecretKey, createWebhook } = useWebhook();
+  const { fetchWebhooks, webhooks, clearSecretKey, createWebhook } = useWebhook();
   const { currentWorkspace } = useWorkspace();
   // derived values
   const canPerformWorkspaceAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
@@ -49,11 +49,6 @@ function WebhooksListPage({ params }: Route.ComponentProps) {
   const pageTitle = currentWorkspace?.name
     ? `${currentWorkspace.name} - ${t("workspace_settings.settings.webhooks.title")}`
     : undefined;
-
-  // clear secret key when modal is closed.
-  useEffect(() => {
-    if (!showCreateWebhookModal && webhookSecretKey) clearSecretKey();
-  }, [showCreateWebhookModal, webhookSecretKey, clearSecretKey]);
 
   if (workspaceUserInfo && !canPerformWorkspaceAdminActions) {
     return <NotAuthorizedView section="settings" className="h-auto" />;

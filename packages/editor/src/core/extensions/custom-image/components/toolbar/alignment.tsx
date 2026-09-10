@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
 import { ChevronDownIcon } from "@plane/propel/icons";
@@ -29,11 +29,12 @@ export function ImageAlignmentAction(props: Props) {
   // derived values
   const activeAlignmentDetails = IMAGE_ALIGNMENT_OPTIONS.find((option) => option.value === activeAlignment);
 
-  useOutsideClickDetector(dropdownRef, () => setIsDropdownOpen(false));
+  const updateDropdownOpen = (next: boolean) => {
+    setIsDropdownOpen(next);
+    toggleToolbarViewStatus(next);
+  };
 
-  useEffect(() => {
-    toggleToolbarViewStatus(isDropdownOpen);
-  }, [isDropdownOpen, toggleToolbarViewStatus]);
+  useOutsideClickDetector(dropdownRef, () => updateDropdownOpen(false));
 
   return (
     <div ref={dropdownRef} className="relative h-full">
@@ -41,7 +42,7 @@ export function ImageAlignmentAction(props: Props) {
         <button
           type="button"
           className="flex h-full items-center gap-1 text-white/60 transition-colors hover:text-white"
-          onClick={() => setIsDropdownOpen((prev) => !prev)}
+          onClick={() => updateDropdownOpen(!isDropdownOpen)}
         >
           {activeAlignmentDetails && <activeAlignmentDetails.icon className="size-3 flex-shrink-0" />}
           <ChevronDownIcon className="size-2 flex-shrink-0" />
@@ -56,7 +57,7 @@ export function ImageAlignmentAction(props: Props) {
                 className="grid h-full flex-shrink-0 place-items-center text-white/60 transition-colors hover:text-white"
                 onClick={() => {
                   handleChange(option.value);
-                  setIsDropdownOpen(false);
+                  updateDropdownOpen(false);
                 }}
               >
                 <option.icon className="size-3" />

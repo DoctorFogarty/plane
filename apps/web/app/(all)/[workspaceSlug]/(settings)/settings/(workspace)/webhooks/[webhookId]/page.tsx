@@ -34,10 +34,6 @@ function WebhookDetailsPage({ params }: Route.ComponentProps) {
   const { currentWorkspace } = useWorkspace();
   const { allowPermissions } = useUserPermissions();
 
-  // TODO: fix this error
-  // useEffect(() => {
-  //   if (isCreated !== "true") clearSecretKey();
-  // }, [clearSecretKey, isCreated]);
   // derived values
   const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
   const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Webhook` : undefined;
@@ -100,7 +96,7 @@ function WebhookDetailsPage({ params }: Route.ComponentProps) {
       <DeleteWebhookModal isOpen={deleteWebhookModal} onClose={() => setDeleteWebhookModal(false)} />
       <div className="w-full space-y-8 overflow-y-auto">
         <div>
-          <WebhookForm onSubmit={handleUpdateWebhook} data={currentWebhook} />
+          <WebhookForm key={currentWebhook.id} onSubmit={handleUpdateWebhook} data={currentWebhook} />
         </div>
         {currentWebhook && <WebhookDeleteSection openDeleteModal={() => setDeleteWebhookModal(true)} />}
       </div>

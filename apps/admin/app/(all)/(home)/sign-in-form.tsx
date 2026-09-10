@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -58,9 +59,19 @@ export function InstanceSignInForm() {
   // state
   const [showPassword, setShowPassword] = useState(false);
   const [csrfToken, setCsrfToken] = useState<string | undefined>(undefined);
-  const [formData, setFormData] = useState<TFormData>(defaultFromData);
+  const [formData, setFormData] = useState<TFormData>(() => ({
+    ...defaultFromData,
+    email: emailParam ?? "",
+  }));
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorInfo, setErrorInfo] = useState<TAdminAuthErrorInfo | undefined>(undefined);
+  const [dismissedErrorCode, setDismissedErrorCode] = useState<string | undefined>(undefined);
+  const [prevEmailParam, setPrevEmailParam] = useState(emailParam);
+  if (emailParam !== prevEmailParam) {
+    setPrevEmailParam(emailParam);
+    if (emailParam) {
+      setFormData((prev) => ({ ...prev, email: emailParam }));
+    }
+  }
 
   const handleFormChange = (key: keyof TFormData, value: string | boolean) =>
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -70,11 +81,6 @@ export function InstanceSignInForm() {
       authService.requestCSRFToken().then((data) => data?.csrf_token && setCsrfToken(data.csrf_token));
   }, [csrfToken]);
 
-  useEffect(() => {
-    if (emailParam) setFormData((prev) => ({ ...prev, email: emailParam }));
-  }, [emailParam]);
-
-  // derived values
   const errorData: TError = useMemo(() => {
     if (errorCode && errorMessage) {
       switch (errorCode) {
@@ -91,22 +97,21 @@ export function InstanceSignInForm() {
         default:
           return { type: undefined, message: undefined };
       }
-    } else return { type: undefined, message: undefined };
+    }
+    return { type: undefined, message: undefined };
   }, [errorCode, errorMessage]);
+
+  const urlErrorInfo = useMemo(
+    () => (errorCode ? authErrorHandler(errorCode.toString() as EAdminAuthErrorCodes) : undefined),
+    [errorCode]
+  );
+  const errorInfo: TAdminAuthErrorInfo | undefined =
+    urlErrorInfo && dismissedErrorCode !== errorCode ? urlErrorInfo : undefined;
 
   const isButtonDisabled = useMemo(
     () => (!isSubmitting && formData.email && formData.password ? false : true),
     [formData.email, formData.password, isSubmitting]
   );
-
-  useEffect(() => {
-    if (errorCode) {
-      const errorDetail = authErrorHandler(errorCode?.toString() as EAdminAuthErrorCodes);
-      if (errorDetail) {
-        setErrorInfo(errorDetail);
-      }
-    }
-  }, [errorCode]);
 
   return (
     <>
@@ -128,7 +133,9 @@ export function InstanceSignInForm() {
               <Banner type="error" message={errorData?.message} />
             ) : (
               <>
-                {errorInfo && <AuthBanner bannerData={errorInfo} handleBannerData={(value) => setErrorInfo(value)} />}
+                {errorInfo && (
+                  <AuthBanner bannerData={errorInfo} handleBannerData={() => setDismissedErrorCode(errorCode)} />
+                )}
               </>
             )}
             <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />

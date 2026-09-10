@@ -6,6 +6,9 @@
 
 import { Checkbox } from "@plane/ui";
 import type { IIssueLabel, IState, TIssueProperty, TIssueType } from "@plane/types";
+import { toggleListValue } from "@plane/utils";
+
+export { toggleListValue };
 
 export const DEFAULT_CHANNEL_EVENTS = ["create", "state", "assignee", "comment"];
 export const DEFAULT_DM_EVENTS = ["create", "state", "assignee", "comment", "mention"];
@@ -33,11 +36,6 @@ export type TSlackFilterPayload = {
   labels?: string[];
   custom_properties?: Record<string, string[]>;
 };
-
-export function toggleListValue(values: string[] | undefined, value: string): string[] {
-  const current = values || [];
-  return current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
-}
 
 type EventOptionListProps = {
   events: string[];

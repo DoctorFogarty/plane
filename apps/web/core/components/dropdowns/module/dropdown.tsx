@@ -43,17 +43,17 @@ export const ModuleDropdown = observer(function ModuleDropdown(props: TModuleDro
   // store hooks
   const { getModuleById, getProjectModuleIds, fetchModules } = useModule();
   // derived values
-  const moduleIds = projectId ? getProjectModuleIds(projectId) : [];
+  const projectModuleIds = projectId ? getProjectModuleIds(projectId) : null;
 
   const onDropdownOpen = () => {
-    if (!moduleIds && projectId && workspaceSlug) fetchModules(workspaceSlug.toString(), projectId);
+    if (projectModuleIds === null && projectId && workspaceSlug) fetchModules(workspaceSlug.toString(), projectId);
   };
 
   return (
     <ModuleDropdownBase
       {...props}
       getModuleById={getModuleById}
-      moduleIds={moduleIds ?? []}
+      moduleIds={projectModuleIds ?? []}
       onDropdownOpen={onDropdownOpen}
     />
   );

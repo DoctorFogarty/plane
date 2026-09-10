@@ -5,7 +5,7 @@
  */
 
 import { Maximize } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
 // local imports
@@ -30,9 +30,10 @@ export function ImageFullScreenActionRoot(props: Props) {
   // derived values
   const { downloadSrc, src, width, aspectRatio } = image;
 
-  useEffect(() => {
-    toggleToolbarViewStatus(isFullScreenEnabled);
-  }, [isFullScreenEnabled, toggleToolbarViewStatus]);
+  const setFullScreenEnabled = (enabled: boolean) => {
+    setIsFullScreenEnabled(enabled);
+    toggleToolbarViewStatus(enabled);
+  };
 
   return (
     <>
@@ -43,7 +44,7 @@ export function ImageFullScreenActionRoot(props: Props) {
         isTouchDevice={isTouchDevice}
         src={src}
         width={width}
-        toggleFullScreenMode={setIsFullScreenEnabled}
+        toggleFullScreenMode={setFullScreenEnabled}
       />
       <Tooltip tooltipContent="View in full screen" disabled={isTouchDevice}>
         <button
@@ -51,7 +52,7 @@ export function ImageFullScreenActionRoot(props: Props) {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setIsFullScreenEnabled(true);
+            setFullScreenEnabled(true);
           }}
           className="grid h-full flex-shrink-0 place-items-center text-on-color/60 transition-colors hover:text-on-color"
           aria-label="View image in full screen"

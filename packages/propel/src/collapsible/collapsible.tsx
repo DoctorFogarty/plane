@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable import/no-named-as-default, react/jsx-no-constructed-context-values */
 
-import React, { useState, useEffect, useCallback, createContext, useContext } from "react";
+import React, { useState, useCallback, createContext, useContext } from "react";
 import { Collapsible as BaseCollapsible } from "@base-ui-components/react/collapsible";
 import clsx from "clsx";
 
@@ -47,13 +48,8 @@ const useCollapsible = () => {
 
 // Components
 function Root({ children, className, isOpen: controlledIsOpen, onToggle, defaultOpen }: RootProps) {
-  const [localIsOpen, setLocalIsOpen] = useState<boolean>(controlledIsOpen || defaultOpen || false);
-
-  useEffect(() => {
-    if (controlledIsOpen !== undefined) {
-      setLocalIsOpen(controlledIsOpen);
-    }
-  }, [controlledIsOpen]);
+  const [localIsOpen, setLocalIsOpen] = useState<boolean>(defaultOpen || false);
+  const isOpen = controlledIsOpen ?? localIsOpen;
 
   const handleToggle = useCallback(() => {
     if (controlledIsOpen !== undefined) {
@@ -64,11 +60,11 @@ function Root({ children, className, isOpen: controlledIsOpen, onToggle, default
   }, [controlledIsOpen, onToggle]);
 
   return (
-    <CollapsibleContext.Provider value={{ isOpen: localIsOpen, onToggle: handleToggle }}>
+    <CollapsibleContext.Provider value={{ isOpen, onToggle: handleToggle }}>
       <BaseCollapsible.Root
         className={clsx(className)}
         defaultOpen={defaultOpen}
-        open={localIsOpen}
+        open={isOpen}
         onOpenChange={handleToggle}
       >
         {children}

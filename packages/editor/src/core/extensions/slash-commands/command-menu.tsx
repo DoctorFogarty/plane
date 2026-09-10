@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import { FloatingOverlay } from "@floating-ui/react";
 import type { SuggestionProps } from "@tiptap/suggestion";
@@ -28,6 +29,14 @@ export const SlashCommandsMenu = forwardRef(function SlashCommandsMenu(props: Sl
     section: 0,
     item: 0,
   });
+  const [prevSections, setPrevSections] = useState(sections);
+  if (sections !== prevSections) {
+    setPrevSections(sections);
+    setSelectedIndex({
+      section: 0,
+      item: 0,
+    });
+  }
   // refs
   const commandListContainer = useRef<HTMLDivElement>(null);
 
@@ -78,13 +87,6 @@ export const SlashCommandsMenu = forwardRef(function SlashCommandsMenu(props: Sl
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [sections, selectedIndex, setSelectedIndex, selectItem]);
-  // initialize the select index to 0 by default
-  useEffect(() => {
-    setSelectedIndex({
-      section: 0,
-      item: 0,
-    });
-  }, [sections]);
   // scroll to the dropdown item when navigating via keyboard
   useLayoutEffect(() => {
     const container = commandListContainer?.current;

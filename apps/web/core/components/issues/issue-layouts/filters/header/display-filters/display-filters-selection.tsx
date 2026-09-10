@@ -52,13 +52,11 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
   const isDisplayFilterEnabled = (displayFilter: keyof IIssueDisplayFilterOptions) =>
     Object.keys(layoutDisplayFiltersOptions?.display_filters ?? {}).includes(displayFilter);
 
-  const computedIgnoreGroupedFilters: Partial<TIssueGroupByOptions>[] = [];
-  if (cycleViewDisabled) {
-    ignoreGroupedFilters.push("cycle");
-  }
-  if (moduleViewDisabled) {
-    ignoreGroupedFilters.push("module");
-  }
+  const computedIgnoreGroupedFilters: Partial<TIssueGroupByOptions>[] = [
+    ...ignoreGroupedFilters,
+    ...(cycleViewDisabled ? (["cycle"] as const) : []),
+    ...(moduleViewDisabled ? (["module"] as const) : []),
+  ];
 
   return (
     <div className="vertical-scrollbar relative scrollbar-sm h-full w-full divide-y divide-subtle-1 overflow-hidden overflow-y-auto px-2.5">
@@ -88,7 +86,7 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
                 group_by: val,
               })
             }
-            ignoreGroupedFilters={[...ignoreGroupedFilters, ...computedIgnoreGroupedFilters]}
+            ignoreGroupedFilters={computedIgnoreGroupedFilters}
           />
         </div>
       )}
@@ -106,7 +104,7 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
                 })
               }
               subGroupByOptions={layoutDisplayFiltersOptions?.display_filters.sub_group_by ?? []}
-              ignoreGroupedFilters={[...ignoreGroupedFilters, ...computedIgnoreGroupedFilters]}
+              ignoreGroupedFilters={computedIgnoreGroupedFilters}
             />
           </div>
         )}

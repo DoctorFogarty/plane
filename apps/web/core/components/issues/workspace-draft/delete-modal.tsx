@@ -5,7 +5,7 @@
  */
 /* eslint-disable promise/always-return */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 // types
 import { PROJECT_ERROR_MESSAGES, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
@@ -39,10 +39,6 @@ export const WorkspaceDraftIssueDeleteIssueModal = observer(function WorkspaceDr
 
   // derived values
   const canPerformProjectAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
-
-  useEffect(() => {
-    setIsDeleting(false);
-  }, [isOpen]);
 
   if (!dataId && !data) return null;
 

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CornerDownRight, RefreshCcw, Sparkles, TriangleAlert } from "lucide-react";
 // plane editor
@@ -70,6 +70,14 @@ export function EditorAIMenu(props: Props) {
   const [activeTask, setActiveTask] = useState<AI_EDITOR_TASKS | null>(null);
   const [response, setResponse] = useState<string | undefined>(undefined);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) {
+      setActiveTask(null);
+      setResponse(undefined);
+    }
+  }
   // refs
   const responseContainerRef = useRef<HTMLDivElement>(null);
   // params
@@ -132,14 +140,6 @@ export function EditorAIMenu(props: Props) {
     editorRef?.insertText(response, insertOnNextLine);
     onClose();
   };
-
-  // reset on close
-  useEffect(() => {
-    if (!isOpen) {
-      setActiveTask(null);
-      setResponse(undefined);
-    }
-  }, [isOpen]);
 
   return (
     <div

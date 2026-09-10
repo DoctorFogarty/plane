@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -23,12 +23,31 @@ type Props = {
 };
 
 export const OnboardingRoot = observer(function OnboardingRoot({ invitations = [] }: Props) {
-  const [currentStep, setCurrentStep] = useState<TOnboardingStep>(EOnboardingSteps.PROFILE_SETUP);
   // store hooks
   const { data: user } = useUser();
   const { data: userProfile, updateUserProfile, finishUserOnboarding } = useUserProfile();
   const { workspaces } = useWorkspace();
   const { config: instanceConfig } = useInstance();
+
+  const resolveInitialStep = (): TOnboardingStep => {
+    if (
+      userProfile?.onboarding_step?.profile_complete &&
+      !userProfile?.onboarding_step?.workspace_create &&
+      !userProfile?.onboarding_step?.workspace_join
+    ) {
+      return EOnboardingSteps.WORKSPACE_CREATE_OR_JOIN;
+    }
+    if (
+      userProfile?.onboarding_step?.profile_complete &&
+      userProfile?.onboarding_step?.workspace_create &&
+      !userProfile?.onboarding_step?.workspace_invite
+    ) {
+      return EOnboardingSteps.INVITE_MEMBERS;
+    }
+    return EOnboardingSteps.PROFILE_SETUP;
+  };
+
+  const [currentStep, setCurrentStep] = useState<TOnboardingStep>(resolveInitialStep);
 
   const workspacesList = Object.values(workspaces ?? {});
   const isSelfManaged = instanceConfig?.is_self_managed;
@@ -105,28 +124,6 @@ export const OnboardingRoot = observer(function OnboardingRoot({ invitations = [
   );
 
   const updateCurrentStep = (step: EOnboardingSteps) => setCurrentStep(step);
-
-  useEffect(() => {
-    const handleInitialStep = () => {
-      if (
-        userProfile?.onboarding_step?.profile_complete &&
-        !userProfile?.onboarding_step?.workspace_create &&
-        !userProfile?.onboarding_step?.workspace_join
-      ) {
-        setCurrentStep(EOnboardingSteps.WORKSPACE_CREATE_OR_JOIN);
-      }
-      if (
-        userProfile?.onboarding_step?.profile_complete &&
-        userProfile?.onboarding_step?.workspace_create &&
-        !userProfile?.onboarding_step?.workspace_invite
-      ) {
-        setCurrentStep(EOnboardingSteps.INVITE_MEMBERS);
-      }
-    };
-
-    handleInitialStep();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="flex h-full flex-col">

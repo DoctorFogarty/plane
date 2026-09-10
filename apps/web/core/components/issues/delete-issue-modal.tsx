@@ -5,7 +5,7 @@
  */
 /* eslint-disable promise/always-return */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // types
@@ -44,10 +44,6 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
   const { t } = useTranslation();
 
   const { data: currentUser } = useUser();
-
-  useEffect(() => {
-    setIsDeleting(false);
-  }, [isOpen]);
 
   if (!dataId && !data) return null;
 

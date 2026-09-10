@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/no-autofocus */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
@@ -37,7 +38,7 @@ interface Props {
 }
 
 export const ModuleOptions = observer(function ModuleOptions(props: Props) {
-  const { getModuleById, isOpen, moduleIds, multiple, onDropdownOpen, placement, referenceElement, value } = props;
+  const { getModuleById, moduleIds, multiple, placement, referenceElement, value } = props;
   // refs
   const inputRef = useRef<HTMLInputElement | null>(null);
   // states
@@ -47,16 +48,6 @@ export const ModuleOptions = observer(function ModuleOptions(props: Props) {
   const { t } = useTranslation();
   // store hooks
   const { isMobile } = usePlatformOS();
-
-  useEffect(() => {
-    if (isOpen) {
-      onOpen();
-      if (!isMobile) {
-        inputRef.current && inputRef.current.focus();
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, isMobile]);
 
   // popper-js init
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
@@ -70,10 +61,6 @@ export const ModuleOptions = observer(function ModuleOptions(props: Props) {
       },
     ],
   });
-
-  const onOpen = () => {
-    onDropdownOpen?.();
-  };
 
   const searchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (query !== "" && e.key === "Escape") {
@@ -125,6 +112,7 @@ export const ModuleOptions = observer(function ModuleOptions(props: Props) {
           <Combobox.Input
             as="input"
             ref={inputRef}
+            autoFocus={!isMobile}
             className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}

@@ -5,7 +5,7 @@
  */
 /* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Eye, EyeOff, XCircle } from "lucide-react";
 // plane imports
@@ -48,7 +48,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   // ref
   const formRef = useRef<HTMLFormElement>(null);
   // states
-  const [csrfPromise, setCsrfPromise] = useState<Promise<{ csrf_token: string }> | undefined>(undefined);
+  const [csrfPromise] = useState(() => authService.requestCSRFToken());
   const [passwordFormData, setPasswordFormData] = useState<TPasswordFormValues>({ ...defaultValues, email });
   const [showPassword, setShowPassword] = useState({
     password: false,
@@ -66,13 +66,6 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   const handleFormChange = (key: keyof TPasswordFormValues, value: string) =>
     setPasswordFormData((prev) => ({ ...prev, [key]: value }));
-
-  useEffect(() => {
-    if (csrfPromise === undefined) {
-      const promise = authService.requestCSRFToken();
-      setCsrfPromise(promise);
-    }
-  }, [csrfPromise]);
 
   const redirectToUniqueCodeSignIn = async () => {
     handleAuthStep(EAuthSteps.UNIQUE_CODE);

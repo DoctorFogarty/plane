@@ -5,7 +5,7 @@
  */
 
 import { Disclosure, Transition } from "@headlessui/react";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 
 export type TCollapsibleProps = {
   title: string | React.ReactNode;
@@ -21,18 +21,12 @@ export type TCollapsibleProps = {
 export function Collapsible(props: TCollapsibleProps) {
   const { title, children, buttonRef, className, buttonClassName, isOpen, onToggle, defaultOpen } = props;
   // state
-  const [localIsOpen, setLocalIsOpen] = useState<boolean>(isOpen || defaultOpen ? true : false);
+  const [localIsOpen, setLocalIsOpen] = useState<boolean>(defaultOpen ?? false);
+  const resolvedIsOpen = isOpen ?? localIsOpen;
 
-  useEffect(() => {
-    if (isOpen !== undefined) {
-      setLocalIsOpen(isOpen);
-    }
-  }, [isOpen]);
-
-  // handlers
   const handleOnClick = useCallback(() => {
     if (isOpen !== undefined) {
-      if (onToggle) onToggle();
+      onToggle?.();
     } else {
       setLocalIsOpen((prev) => !prev);
     }
@@ -44,7 +38,7 @@ export function Collapsible(props: TCollapsibleProps) {
         {title}
       </Disclosure.Button>
       <Transition
-        show={localIsOpen}
+        show={resolvedIsOpen}
         enter="transition-all duration-300 ease-in-out"
         enterFrom="grid-rows-[0fr] opacity-0"
         enterTo="grid-rows-[1fr] opacity-100"

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 // icons
 import { ListFilter } from "lucide-react";
@@ -22,15 +22,16 @@ import { ViewOrderByDropdown } from "./filters/order-by";
 import { IconButton } from "@plane/propel/icon-button";
 
 export const ViewListHeader = observer(function ViewListHeader() {
-  // states
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  // refs
-  const inputRef = useRef<HTMLInputElement>(null);
   // store hooks
   const { filters, updateFilters } = useProjectView();
   const {
     project: { projectMemberIds },
   } = useMember();
+  // states
+  const [isSearchOpen, setIsSearchOpen] = useState(Boolean(filters?.searchQuery.trim()));
+  const showSearch = isSearchOpen || Boolean(filters?.searchQuery.trim());
+  // refs
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // handlers
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -46,17 +47,13 @@ export const ViewListHeader = observer(function ViewListHeader() {
 
   // outside click detector hook
   useOutsideClickDetector(inputRef, () => {
-    if (isSearchOpen && filters?.searchQuery.trim() === "") setIsSearchOpen(false);
+    if (showSearch && filters?.searchQuery.trim() === "") setIsSearchOpen(false);
   });
-
-  useEffect(() => {
-    if (filters?.searchQuery.trim() !== "") setIsSearchOpen(true);
-  }, [filters?.searchQuery]);
 
   return (
     <div className="flex h-full items-center gap-2">
       <div className="flex items-center">
-        {!isSearchOpen && (
+        {!showSearch && (
           <IconButton
             variant="ghost"
             size="lg"
@@ -72,7 +69,7 @@ export const ViewListHeader = observer(function ViewListHeader() {
           className={cn(
             "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-md border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
             {
-              "w-64 border-subtle px-2.5 py-1.5 opacity-100": isSearchOpen,
+              "w-64 border-subtle px-2.5 py-1.5 opacity-100": showSearch,
             }
           )}
         >
@@ -85,7 +82,7 @@ export const ViewListHeader = observer(function ViewListHeader() {
             onChange={(e) => updateFilters("searchQuery", e.target.value)}
             onKeyDown={handleInputKeyDown}
           />
-          {isSearchOpen && (
+          {showSearch && (
             <button
               type="button"
               className="grid place-items-center"

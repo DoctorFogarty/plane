@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, jsx-a11y/click-events-have-key-events, jsx-a11y/no-autofocus, jsx-a11y/no-static-element-interactions */
 
-import { useState, Fragment, useEffect } from "react";
+import { useState, Fragment } from "react";
 import { TwitterPicker } from "react-color";
 import { Controller, useForm } from "react-hook-form";
 import { usePopper } from "react-popper";
@@ -36,7 +37,6 @@ export function LabelCreate(props: ILabelCreate) {
   const { workspaceSlug, projectId, issueId, values, labelOperations, disabled = false } = props;
   // state
   const [isCreateToggle, setIsCreateToggle] = useState(false);
-  const handleIsCreateToggle = () => setIsCreateToggle(!isCreateToggle);
   const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
   // react hook form
@@ -45,10 +45,14 @@ export function LabelCreate(props: ILabelCreate) {
     formState: { errors, isSubmitting },
     reset,
     control,
-    setFocus,
   } = useForm<Partial<IIssueLabel>>({
     defaultValues,
   });
+
+  const handleIsCreateToggle = () => {
+    if (!isCreateToggle) reset(defaultValues);
+    setIsCreateToggle((open) => !open);
+  };
 
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement: "bottom-start",
@@ -61,13 +65,6 @@ export function LabelCreate(props: ILabelCreate) {
       },
     ],
   });
-
-  useEffect(() => {
-    if (!isCreateToggle) return;
-
-    setFocus("name");
-    reset();
-  }, [isCreateToggle, reset, setFocus]);
 
   const handleLabel = async (formData: Partial<IIssueLabel>) => {
     if (!workspaceSlug || !projectId || isSubmitting) return;
@@ -145,6 +142,7 @@ export function LabelCreate(props: ILabelCreate) {
                 placeholder="Title"
                 className="w-full px-1.5 py-1 text-11"
                 disabled={isSubmitting}
+                autoFocus
               />
             )}
           />

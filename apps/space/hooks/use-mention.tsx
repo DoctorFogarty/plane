@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow */
 
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import useSWR from "swr";
 // plane imports
 import { UserService } from "@plane/services";
@@ -14,13 +15,8 @@ export const useMention = () => {
   const userService = new UserService();
   const { data: user, isLoading: userDataLoading } = useSWR("currentUser", async () => userService.me());
 
-  const userRef = useRef<IUser | undefined>();
-
-  useEffect(() => {
-    if (userRef) {
-      userRef.current = user;
-    }
-  }, [user]);
+  const userRef = useRef<IUser | undefined>(user);
+  userRef.current = user;
 
   const waitForUserDate = async () =>
     new Promise<IUser>((resolve) => {

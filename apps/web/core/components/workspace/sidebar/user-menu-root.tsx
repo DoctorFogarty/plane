@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings, Settings2 } from "lucide-react";
@@ -47,12 +47,6 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
     );
   };
 
-  // Toggle sidebar dropdown state when menu is open
-  useEffect(() => {
-    if (isUserMenuOpen) toggleAnySidebarDropdown(true);
-    else toggleAnySidebarDropdown(false);
-  }, [isUserMenuOpen, toggleAnySidebarDropdown]);
-
   return (
     <CustomMenu
       className="flex items-center"
@@ -72,8 +66,16 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
           }}
         />
       }
-      menuButtonOnClick={() => !isUserMenuOpen && setIsUserMenuOpen(true)}
-      onMenuClose={() => setIsUserMenuOpen(false)}
+      menuButtonOnClick={() => {
+        if (!isUserMenuOpen) {
+          setIsUserMenuOpen(true);
+          toggleAnySidebarDropdown(true);
+        }
+      }}
+      onMenuClose={() => {
+        setIsUserMenuOpen(false);
+        toggleAnySidebarDropdown(false);
+      }}
       placement="bottom-end"
       maxHeight="2xl"
       optionsClassName="w-72 p-3 flex flex-col gap-y-3"

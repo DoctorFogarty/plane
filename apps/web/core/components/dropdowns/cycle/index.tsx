@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
 
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
+import { useParams } from "next/navigation";
 import { useTranslation } from "@plane/i18n";
 // ui
 import { CycleIcon, ChevronDownIcon } from "@plane/propel/icons";
@@ -63,7 +65,8 @@ export const CycleDropdown = observer(function CycleDropdown(props: Props) {
   // states
 
   const [isOpen, setIsOpen] = useState(false);
-  const { getCycleNameById } = useCycle();
+  const { workspaceSlug } = useParams();
+  const { getCycleNameById, getProjectCycleIds, fetchAllCycles } = useCycle();
   // refs
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   // popper-js refs
@@ -75,6 +78,11 @@ export const CycleDropdown = observer(function CycleDropdown(props: Props) {
     dropdownRef,
     isOpen,
     onClose,
+    onOpen: () => {
+      if (workspaceSlug && projectId && !getProjectCycleIds(projectId)) {
+        fetchAllCycles(workspaceSlug.toString(), projectId);
+      }
+    },
     setIsOpen,
   });
 

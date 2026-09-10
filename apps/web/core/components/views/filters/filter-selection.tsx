@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/no-autofocus */
 
 import { useState } from "react";
 import { observer } from "mobx-react";
@@ -10,6 +11,7 @@ import { observer } from "mobx-react";
 import { SearchIcon, CloseIcon } from "@plane/propel/icons";
 import type { TViewFilterProps, TViewFilters } from "@plane/types";
 import { EViewAccess } from "@plane/types";
+import { toggleListValues } from "@plane/utils";
 // components
 import { FilterCreatedDate } from "@/components/common/filters/created-at";
 import { FilterCreatedBy } from "@/components/common/filters/created-by";
@@ -35,25 +37,18 @@ export const ViewFiltersSelection = observer(function ViewFiltersSelection(props
 
   // handles filter update
   const handleFilters = (key: keyof TViewFilterProps, value: boolean | string | EViewAccess | string[]) => {
-    const currValues = (filters.filters?.[key] ?? []) as (string | EViewAccess)[];
+    const currentValues = filters.filters?.[key];
 
-    if (typeof currValues === "boolean" && typeof value === "boolean") return;
+    if (typeof currentValues === "boolean" && typeof value === "boolean") return;
 
-    if (Array.isArray(currValues)) {
-      if (Array.isArray(value)) {
-        value.forEach((val) => {
-          if (!currValues.includes(val)) currValues.push(val);
-          else currValues.splice(currValues.indexOf(val), 1);
-        });
-      } else if (typeof value !== "boolean") {
-        if (currValues?.includes(value)) currValues.splice(currValues.indexOf(value), 1);
-        else currValues.push(value);
-      }
-    }
+    const nextValues =
+      typeof value === "boolean"
+        ? currentValues
+        : toggleListValues((currentValues ?? []) as (string | EViewAccess)[], value);
 
     handleFiltersUpdate("filters", {
       ...filters.filters,
-      [key]: currValues,
+      [key]: nextValues,
     });
   };
 

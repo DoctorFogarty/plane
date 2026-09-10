@@ -14,6 +14,7 @@ import { EIssueFilterType, EUserPermissions, EUserPermissionsLevel } from "@plan
 // types
 import type { EIssuesStoreType, GroupByColumnTypes, TGroupedIssues, TIssueKanbanFilters } from "@plane/types";
 import { EIssueLayoutTypes } from "@plane/types";
+import { toggleListValue } from "@plane/utils";
 // constants
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
@@ -140,12 +141,7 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   const handleCollapsedGroups = useCallback(
     (value: string) => {
       if (workspaceSlug) {
-        let collapsedGroups = issuesFilter?.issueFilters?.kanbanFilters?.group_by || [];
-        if (collapsedGroups.includes(value)) {
-          collapsedGroups = collapsedGroups.filter((_value) => _value != value);
-        } else {
-          collapsedGroups.push(value);
-        }
+        const collapsedGroups = toggleListValue(issuesFilter?.issueFilters?.kanbanFilters?.group_by || [], value);
         updateFilters(projectId?.toString() ?? "", EIssueFilterType.KANBAN_FILTERS, {
           group_by: collapsedGroups,
         } as TIssueKanbanFilters);

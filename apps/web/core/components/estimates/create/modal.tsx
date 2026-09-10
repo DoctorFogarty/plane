@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { EEstimateSystem, ESTIMATE_SYSTEMS } from "@plane/constants";
@@ -41,6 +42,18 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
 
   const handleUpdatePoints = (newPoints: TEstimatePointsObject[] | undefined) => setEstimatePoints(newPoints);
 
+  const resetWizard = () => {
+    setEstimateSystem(EEstimateSystem.POINTS);
+    setEstimatePoints(undefined);
+    setEstimatePointError(undefined);
+    setButtonLoader(false);
+  };
+
+  const onClose = () => {
+    resetWizard();
+    handleClose();
+  };
+
   const handleEstimatePointError = (
     key: number,
     oldValue: string,
@@ -58,14 +71,6 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
       }
     });
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      setEstimateSystem(EEstimateSystem.POINTS);
-      setEstimatePoints(undefined);
-      setEstimatePointError([]);
-    }
-  }, [isOpen]);
 
   const validateEstimatePointError = () => {
     let estimateError = false;
@@ -105,7 +110,7 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
           title: t("project_settings.estimates.toasts.created.success.title"),
           message: t("project_settings.estimates.toasts.created.success.message"),
         });
-        handleClose();
+        onClose();
       } catch {
         setButtonLoader(false);
         setToast({
@@ -124,9 +129,11 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
             newError[currentKey]?.oldValue === newError[currentKey]?.newValue
           ) {
             delete newError[currentKey];
-          } else {
-            newError[currentKey].message =
-              newError[currentKey].message || t("project_settings.estimates.validation.remove_empty");
+          } else if (newError[currentKey]) {
+            newError[currentKey] = {
+              ...newError[currentKey],
+              message: newError[currentKey].message || t("project_settings.estimates.validation.remove_empty"),
+            };
           }
         });
         return newError;
@@ -142,7 +149,7 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
   // }, [estimatePointError]);
 
   return (
-    <ModalCore isOpen={isOpen} position={EModalPosition.TOP} width={EModalWidth.XXL}>
+    <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
       <div className="relative space-y-6 py-5">
         {/* heading */}
         <div className="relative flex items-center justify-between gap-2 px-5">
@@ -200,7 +207,7 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
         </div>
 
         <div className="relative flex items-center justify-end gap-3 border-t border-subtle px-5 pt-5">
-          <Button variant="secondary" size="lg" onClick={handleClose} disabled={buttonLoader}>
+          <Button variant="secondary" size="lg" onClick={onClose} disabled={buttonLoader}>
             {t("common.cancel")}
           </Button>
           {estimatePoints && (

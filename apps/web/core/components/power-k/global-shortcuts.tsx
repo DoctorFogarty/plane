@@ -46,9 +46,7 @@ export const GlobalShortcutsProvider = observer(function GlobalShortcutsProvider
 
   // Store context in ref to avoid recreation on context changes
   const contextRef = useRef(context);
-  useEffect(() => {
-    contextRef.current = context;
-  }, [context]);
+  contextRef.current = context;
 
   // Store handler in ref to avoid recreation on context changes
   const handlerRef = useRef<ShortcutHandler | null>(null);

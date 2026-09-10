@@ -84,34 +84,6 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValue]);
 
-  useEffect(() => {
-    const handleBlur = () => {
-      const trimmedTitle = title.trim();
-      if (trimmedTitle !== title && isSubmitting !== "submitting") {
-        if (trimmedTitle.length > 0) {
-          setTitle(trimmedTitle);
-          setIsSubmitting("submitting");
-          hasUnsavedChanges.current = true;
-        } else {
-          setTitle(value || "");
-          setIsSubmitting("saved");
-          hasUnsavedChanges.current = false;
-        }
-      }
-    };
-
-    const textarea = document.querySelector("#title-input"); // You might need to change this selector according to your TextArea component
-    if (textarea) {
-      textarea.addEventListener("blur", handleBlur);
-    }
-
-    return () => {
-      if (textarea) {
-        textarea.removeEventListener("blur", handleBlur);
-      }
-    };
-  }, [title, isSubmitting, setIsSubmitting]);
-
   // Save on unmount if there are unsaved changes
   useEffect(
     () => () => {
@@ -162,7 +134,21 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
           maxLength={255}
           placeholder={t("issue.title.label")}
           onFocus={() => setIsLengthVisible(true)}
-          onBlur={() => setIsLengthVisible(false)}
+          onBlur={() => {
+            setIsLengthVisible(false);
+            const trimmedTitle = title.trim();
+            if (trimmedTitle !== title && isSubmitting !== "submitting") {
+              if (trimmedTitle.length > 0) {
+                setTitle(trimmedTitle);
+                setIsSubmitting("submitting");
+                hasUnsavedChanges.current = true;
+              } else {
+                setTitle(value || "");
+                setIsSubmitting("saved");
+                hasUnsavedChanges.current = false;
+              }
+            }
+          }}
         />
         <div
           className={cn(

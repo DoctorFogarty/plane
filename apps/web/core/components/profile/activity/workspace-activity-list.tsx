@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 // services
@@ -41,15 +40,14 @@ export function WorkspaceActivityListPage(props: Props) {
             cursor,
             per_page: perPage,
           })
-      : null
+      : null,
+    {
+      onSuccess: (activity) => {
+        updateTotalPages(activity.total_pages);
+        updateResultsCount(activity.results.length);
+      },
+    }
   );
-
-  useEffect(() => {
-    if (!userProfileActivity) return;
-
-    updateTotalPages(userProfileActivity.total_pages);
-    updateResultsCount(userProfileActivity.results.length);
-  }, [updateResultsCount, updateTotalPages, userProfileActivity]);
 
   return <ActivityList activity={userProfileActivity} />;
 }

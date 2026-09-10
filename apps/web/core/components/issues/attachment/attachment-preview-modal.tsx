@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Download } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -20,19 +20,6 @@ type Props = {
 
 export function AttachmentPreviewModal(props: Props) {
   const { isOpen, onClose, fileName, fileURL } = props;
-  const { t } = useTranslation();
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setIsLoading(true);
-    setHasError(false);
-  }, [isOpen, fileURL]);
-
-  const handleDownload = () => {
-    window.open(fileURL, "_blank", "noopener,noreferrer");
-  };
 
   return (
     <ModalCore
@@ -42,6 +29,23 @@ export function AttachmentPreviewModal(props: Props) {
       width={EModalWidth.VIIXL}
       className="overflow-hidden"
     >
+      <AttachmentPreviewContent key={fileURL} fileName={fileName} fileURL={fileURL} onClose={onClose} />
+    </ModalCore>
+  );
+}
+
+function AttachmentPreviewContent(props: { fileName: string; fileURL: string; onClose: () => void }) {
+  const { fileName, fileURL, onClose } = props;
+  const { t } = useTranslation();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const handleDownload = () => {
+    window.open(fileURL, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <>
       <div className="flex items-center justify-between gap-3 border-b border-subtle px-4 py-3">
         <p className="truncate text-14 font-medium text-primary" title={fileName}>
           {fileName}
@@ -87,6 +91,6 @@ export function AttachmentPreviewModal(props: Props) {
           />
         )}
       </div>
-    </ModalCore>
+    </>
   );
 }

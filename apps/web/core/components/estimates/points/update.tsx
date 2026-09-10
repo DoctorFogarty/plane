@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unused-expressions */
 
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { Info } from "lucide-react";
 import { EEstimateSystem, MAX_ESTIMATE_POINT_INPUT_LENGTH } from "@plane/constants";
@@ -56,11 +57,7 @@ export const EstimatePointUpdate = observer(function EstimatePointUpdate(props: 
   const { t } = useTranslation();
   // states
   const [loader, setLoader] = useState(false);
-  const [estimateInputValue, setEstimateInputValue] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (estimateInputValue === undefined && estimatePoint) setEstimateInputValue(estimatePoint?.value || "");
-  }, [estimateInputValue, estimatePoint]);
+  const [estimateInputValue, setEstimateInputValue] = useState(estimatePoint.value || "");
 
   const handleSuccess = (value: string) => {
     handleEstimatePointValueUpdate(value);

@@ -55,14 +55,15 @@ export const ProjectNavigationViews = observer(function ProjectNavigationViews(p
   const isDetailActive = isViewDetailPath(pathname, viewsListHref);
 
   const [isOpen, setIsOpen] = useState(isDetailActive);
+  const [wasDetailActive, setWasDetailActive] = useState(isDetailActive);
+  if (isDetailActive !== wasDetailActive) {
+    setWasDetailActive(isDetailActive);
+    if (isDetailActive) setIsOpen(true);
+  }
 
   const views = getProjectViews(projectId);
   const hasViews = (views?.length ?? 0) > 0;
   const isFetched = !!fetchedMap[projectId];
-
-  useEffect(() => {
-    if (isDetailActive) setIsOpen(true);
-  }, [isDetailActive]);
 
   // Fetch when this nav mounts (project accordion open) or when data is not yet warm
   useEffect(() => {

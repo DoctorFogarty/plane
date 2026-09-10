@@ -12,11 +12,7 @@ const AUTO_SAVE_TIME = 30000;
 const useAutoSave = (handleSaveDescription: () => void) => {
   const intervalIdRef = useRef<any>(null);
   const handleSaveDescriptionRef = useRef(handleSaveDescription);
-
-  // Update the ref to always point to the latest handleSaveDescription
-  useEffect(() => {
-    handleSaveDescriptionRef.current = handleSaveDescription;
-  }, [handleSaveDescription]);
+  handleSaveDescriptionRef.current = handleSaveDescription;
 
   // Set up the interval to run every 10 seconds
   useEffect(() => {

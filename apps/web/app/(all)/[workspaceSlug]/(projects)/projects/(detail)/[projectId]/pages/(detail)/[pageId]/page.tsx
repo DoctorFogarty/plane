@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow */
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
+import { Navigate } from "react-router";
 import useSWR from "swr";
 // plane types
 import { getButtonStyling } from "@plane/propel/button";
@@ -25,7 +27,6 @@ import { PageRoot } from "@/components/pages/editor/page-root";
 import { useEditorConfig } from "@/hooks/editor";
 import { useEditorAsset } from "@/hooks/store/use-editor-asset";
 import { useWorkspace } from "@/hooks/store/use-workspace";
-import { useAppRouter } from "@/hooks/use-app-router";
 // plane web hooks
 import { EPageStoreType, usePage, usePageStore } from "@/hooks/store";
 // plane web services
@@ -40,8 +41,6 @@ const projectPageVersionService = new ProjectPageVersionService();
 const storeType = EPageStoreType.PROJECT;
 
 function PageDetailsPage({ params }: Route.ComponentProps) {
-  // router
-  const router = useAppRouter();
   const { workspaceSlug, projectId, pageId } = params;
   // store hooks
   const { createPage, fetchPageDetails } = usePageStore(storeType);
@@ -145,12 +144,6 @@ function PageDetailsPage({ params }: Route.ComponentProps) {
     [projectId, workspaceSlug]
   );
 
-  useEffect(() => {
-    if (page?.deleted_at && page?.id) {
-      router.push(pageRootHandlers.getRedirectionLink());
-    }
-  }, [page?.deleted_at, page?.id, router, pageRootHandlers]);
-
   if ((!page || !id) && !pageDetailsError)
     return (
       <div className="grid size-full place-items-center">
@@ -175,6 +168,10 @@ function PageDetailsPage({ params }: Route.ComponentProps) {
     );
 
   if (!page) return null;
+
+  if (page.deleted_at) {
+    return <Navigate to={pageRootHandlers.getRedirectionLink()} replace />;
+  }
 
   return (
     <>

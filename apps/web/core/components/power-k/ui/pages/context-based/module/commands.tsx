@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable promise/always-return */
 
 import { useCallback } from "react";
 import { useParams } from "next/navigation";
@@ -14,7 +15,7 @@ import { LinkIcon, ModuleStatusIcon } from "@plane/propel/icons";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import type { IModule, TModuleStatus } from "@plane/types";
 import { EUserPermissions } from "@plane/types";
-import { copyTextToClipboard } from "@plane/utils";
+import { copyTextToClipboard, toggleListValue } from "@plane/utils";
 // components
 import type { TPowerKCommandConfig } from "@/components/power-k/core/types";
 // hooks
@@ -59,11 +60,7 @@ export const usePowerKModuleContextBasedActions = (): TPowerKCommandConfig[] => 
     (memberId: string) => {
       if (!moduleDetails) return;
 
-      const updatedMembers = moduleDetails.member_ids ?? [];
-      if (updatedMembers.includes(memberId)) updatedMembers.splice(updatedMembers.indexOf(memberId), 1);
-      else updatedMembers.push(memberId);
-
-      handleUpdateModule({ member_ids: updatedMembers });
+      handleUpdateModule({ member_ids: toggleListValue(moduleDetails.member_ids, memberId) });
     },
     [handleUpdateModule, moduleDetails]
   );

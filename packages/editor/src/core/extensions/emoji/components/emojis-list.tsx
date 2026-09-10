@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import { FloatingOverlay } from "@floating-ui/react";
 import type { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";
@@ -34,6 +35,11 @@ export const EmojisListDropdown = forwardRef(function EmojisListDropdown(
   const { items, command, query, onClose, forceOpen = false } = props;
   // states
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const [prevItems, setPrevItems] = useState(items);
+  if (items !== prevItems) {
+    setPrevItems(items);
+    setSelectedIndex(0);
+  }
   const [isVisible, setIsVisible] = useState(false);
   // refs
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
@@ -86,9 +92,6 @@ export const EmojisListDropdown = forwardRef(function EmojisListDropdown(
     const timeout = setTimeout(() => setIsVisible(true), 50);
     return () => clearTimeout(timeout);
   }, []);
-
-  // Reset selection when items change
-  useEffect(() => setSelectedIndex(0), [items]);
 
   // Scroll selected item into view
   useEffect(() => {

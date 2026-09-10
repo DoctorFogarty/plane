@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable react-hooks/exhaustive-deps, const-comparisons */
 
 import type { Dispatch, ReactElement, SetStateAction } from "react";
 import React, { useCallback, useEffect, useState, useRef } from "react";
@@ -37,7 +38,6 @@ export function ResizableSidebar({
   peekDuration = 500,
   isCollapsed = false,
   toggleCollapsed: toggleCollapsedProp,
-  onCollapsedChange,
   width,
   setWidth,
   onWidthChange,
@@ -73,8 +73,9 @@ export function ResizableSidebar({
       const deltaX = e.clientX - initialMouseXRef.current;
       const newWidth = Math.min(Math.max(initialWidthRef.current + deltaX, minWidth), maxWidth);
       setWidth(newWidth);
+      onWidthChange?.(newWidth);
     },
-    [isResizing, minWidth, maxWidth, setWidth]
+    [isResizing, minWidth, maxWidth, setWidth, onWidthChange]
   );
 
   const startResizing = useCallback(
@@ -164,15 +165,6 @@ export function ResizableSidebar({
       }
     }
   }, [isCollapsed, setShowPeek]);
-
-  // Call external handlers when state changes
-  useEffect(() => {
-    onWidthChange?.(width);
-  }, [width, onWidthChange]);
-
-  useEffect(() => {
-    onCollapsedChange?.(isCollapsed);
-  }, [isCollapsed, onCollapsedChange]);
 
   return (
     <>

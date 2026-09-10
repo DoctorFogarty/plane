@@ -11,7 +11,7 @@ import { ListFilter } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import type { TProjectFilters } from "@plane/types";
-import { cn, calculateTotalFilters } from "@plane/utils";
+import { cn, calculateTotalFilters, toggleListValue, toggleListValues } from "@plane/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 // hooks
@@ -50,20 +50,15 @@ const HeaderFilters = observer(function HeaderFilters({
   const handleFilters = useCallback(
     (key: keyof TProjectFilters, value: string | string[]) => {
       if (!workspaceSlug) return;
-      let newValues = filters?.[key] ?? [];
-      if (Array.isArray(value)) {
-        if (key === "created_at" && newValues.find((v) => v.includes("custom"))) newValues = [];
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      } else {
-        if (filters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else {
-          if (key === "created_at") newValues = [value];
-          else newValues.push(value);
-        }
-      }
+      const currentValues = filters?.[key];
+      const newValues = Array.isArray(value)
+        ? toggleListValues(
+            key === "created_at" && currentValues?.find((v) => v.includes("custom")) ? [] : currentValues,
+            value
+          )
+        : key === "created_at" && !currentValues?.includes(value)
+          ? [value]
+          : toggleListValue(currentValues, value);
 
       updateFilters(workspaceSlug.toString(), { [key]: newValues });
     },

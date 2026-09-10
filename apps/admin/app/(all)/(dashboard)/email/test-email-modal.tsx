@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, jsx-a11y/tabindex-no-positive, promise/always-return */
 
-import { useEffect, useState, Fragment } from "react";
+import { useState, Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 // plane imports
 import { Button } from "@plane/propel/button";
@@ -42,11 +43,10 @@ export function SendTestEmailModal(props: Props) {
     setError("");
   };
 
-  useEffect(() => {
-    if (!isOpen) {
-      resetState();
-    }
-  }, [isOpen]);
+  const onClose = () => {
+    resetState();
+    handleClose();
+  };
 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
@@ -68,7 +68,7 @@ export function SendTestEmailModal(props: Props) {
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-20" onClose={handleClose}>
+      <Dialog as="div" className="relative z-20" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -122,7 +122,7 @@ export function SendTestEmailModal(props: Props) {
                   )}
                   {sendEmailStep === ESendEmailSteps.FAILED && <div className="text-13">{error}</div>}
                   <div className="mt-5 flex items-center justify-end gap-2">
-                    <Button variant="secondary" size="lg" onClick={handleClose} tabIndex={2}>
+                    <Button variant="secondary" size="lg" onClick={onClose} tabIndex={2}>
                       {sendEmailStep === ESendEmailSteps.SEND_EMAIL ? "Cancel" : "Close"}
                     </Button>
                     {sendEmailStep === ESendEmailSteps.SEND_EMAIL && (

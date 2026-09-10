@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable react/no-array-index-key, promise/always-return */
 
 import { useState, useRef, useEffect } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
@@ -147,12 +148,13 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
     setIsAllProjectsListOpen(isOpen);
     localStorage.setItem("isAllProjectsListOpen", isOpen.toString());
   };
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     if (pathname.includes("projects")) {
       setIsAllProjectsListOpen(true);
-      localStorage.setItem("isAllProjectsListOpen", "true");
     }
-  }, [pathname]);
+  }
   return (
     <>
       {workspaceSlug && (

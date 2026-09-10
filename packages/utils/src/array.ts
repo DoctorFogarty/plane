@@ -3,9 +3,31 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, unicorn/no-array-sort */
 
 import { isEmpty } from "lodash-es";
 import type { IIssueLabel, IIssueLabelTree } from "@plane/types";
+
+/**
+ * @description Returns a new array with `value` added or removed. Never mutates `values`.
+ * @example
+ * toggleListValue(["a"], "b") // ["a", "b"]
+ * toggleListValue(["a", "b"], "a") // ["b"]
+ */
+export const toggleListValue = <T>(values: readonly T[] | null | undefined, value: T): T[] => {
+  const current = values ?? [];
+  return current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+};
+
+/**
+ * @description Toggles one or many values into a new array. Never mutates `values`.
+ * @example
+ * toggleListValues(["a"], ["b", "a"]) // ["b"]
+ */
+export const toggleListValues = <T>(values: readonly T[] | null | undefined, incoming: T | readonly T[]): T[] => {
+  const items = Array.isArray(incoming) ? incoming : [incoming];
+  return items.reduce<T[]>((next, value) => toggleListValue(next, value), [...(values ?? [])]);
+};
 
 /**
  * @description Groups an array of objects by a specified key

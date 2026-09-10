@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow, promise/always-return */
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { observer } from "mobx-react";
 import type {
   Control,
@@ -273,7 +274,15 @@ export const InviteTeamStep = observer(function InviteTeamStep(props: Props) {
     setValue,
     handleSubmit,
     formState: { isSubmitting, errors, isValid },
-  } = useForm<FormValues>();
+  } = useForm<FormValues>({
+    defaultValues: {
+      emails: [
+        { email: "", role: 15, role_active: false },
+        { email: "", role: 15, role_active: false },
+        { email: "", role: 15, role_active: false },
+      ],
+    },
+  });
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -317,21 +326,6 @@ export const InviteTeamStep = observer(function InviteTeamStep(props: Props) {
   const appendField = () => {
     append({ email: "", role: 15, role_active: false });
   };
-
-  useEffect(() => {
-    if (fields.length === 0) {
-      append(
-        [
-          { email: "", role: 15, role_active: false },
-          { email: "", role: 15, role_active: false },
-          { email: "", role: 15, role_active: false },
-        ],
-        {
-          focusIndex: 0,
-        }
-      );
-    }
-  }, [fields, append]);
 
   return (
     <form

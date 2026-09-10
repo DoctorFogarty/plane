@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, promise/always-return */
 
 import type { MouseEvent } from "react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { Eye, ArrowRight, CalendarDays } from "lucide-react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
@@ -46,11 +46,6 @@ type Props = {
   isActive?: boolean;
 };
 
-const defaultValues: Partial<ICycle> = {
-  start_date: null,
-  end_date: null,
-};
-
 export const CycleListItemAction = observer(function CycleListItemAction(props: Props) {
   const { workspaceSlug, projectId, cycleId, cycleDetails, parentRef, isActive = false } = props;
   // router
@@ -77,11 +72,6 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
   );
 
   const { getUserDetails } = useMember();
-
-  // form
-  const { reset } = useForm({
-    defaultValues,
-  });
 
   // derived values
   const cycleStatus = cycleDetails.status ? (cycleDetails.status.toLocaleLowerCase() as TCycleGroups) : "draft";
@@ -151,13 +141,6 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
   };
 
   const createdByDetails = cycleDetails.created_by ? getUserDetails(cycleDetails.created_by) : undefined;
-
-  useEffect(() => {
-    if (cycleDetails)
-      reset({
-        ...cycleDetails,
-      });
-  }, [cycleDetails, reset]);
 
   // handlers
   const openCycleOverview = (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {

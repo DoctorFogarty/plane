@@ -5,7 +5,7 @@
  */
 
 import { Tab } from "@headlessui/react";
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment, useState } from "react";
 // helpers
 import { useLocalStorage } from "@plane/hooks";
 import { cn } from "../utils";
@@ -55,16 +55,13 @@ export function Tabs(props: TTabsProps) {
   // state
   const [selectedTab, setSelectedTab] = useState(storedValue ?? defaultTab);
 
-  useEffect(() => {
-    if (storeInLocalStorage) {
-      setValue(selectedTab);
-    }
-  }, [selectedTab, setValue, storeInLocalStorage, storageKey]);
-
   const currentTabIndex = (tabKey: string): number => tabs.findIndex((tab) => tab.key === tabKey);
 
   const handleTabChange = (key: string) => {
     setSelectedTab(key);
+    if (storeInLocalStorage) {
+      setValue(key);
+    }
   };
 
   return (

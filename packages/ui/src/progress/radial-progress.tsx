@@ -4,23 +4,15 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState, useEffect } from "react";
-
 interface IRadialProgressBar {
   progress: number;
 }
 
+const CIRCUMFERENCE = 2 * Math.PI * 40;
+
 export function RadialProgressBar(props: IRadialProgressBar) {
   const { progress } = props;
-  const [circumference, setCircumference] = useState(0);
-
-  useEffect(() => {
-    const radius = 40;
-    const circumference = 2 * Math.PI * radius;
-    setCircumference(circumference);
-  }, []);
-
-  const progressOffset = ((100 - progress) / 100) * circumference;
+  const progressOffset = ((100 - progress) / 100) * CIRCUMFERENCE;
 
   return (
     <div className="relative h-4 w-4">
@@ -32,7 +24,7 @@ export function RadialProgressBar(props: IRadialProgressBar) {
           r="40"
           strokeWidth="12"
           fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`}
         />
         <circle
           className={`stroke-current`}
@@ -41,7 +33,7 @@ export function RadialProgressBar(props: IRadialProgressBar) {
           r="40"
           strokeWidth="12"
           fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`}
           strokeDashoffset={progressOffset}
           transform="rotate(-90 50 50)"
         />

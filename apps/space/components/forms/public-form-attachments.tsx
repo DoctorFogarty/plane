@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Paperclip, X } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
@@ -44,10 +44,6 @@ export function PublicFormAttachmentsField(props: Props) {
   const requiredMark = field.required ? " *" : "";
   const atCapacity = value.length + uploading.length >= maxCount;
 
-  useEffect(() => {
-    onBusyChange?.(uploading.length > 0);
-  }, [onBusyChange, uploading.length]);
-
   const handleFiles = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
     const selected = Array.from(fileList);
@@ -78,6 +74,8 @@ export function PublicFormAttachmentsField(props: Props) {
       size: file.size,
     }));
     setUploading((current) => [...current, ...locals]);
+    onBusyChange?.(true);
+    const pendingLocalIds = new Set(locals.map((local) => local.localId));
 
     const uploaded: TIntakeFormUploadedAttachment[] = [];
     await Promise.all(
@@ -93,7 +91,9 @@ export function PublicFormAttachmentsField(props: Props) {
             message: t("attachment.error"),
           });
         } finally {
+          pendingLocalIds.delete(local.localId);
           setUploading((current) => current.filter((item) => item.localId !== local.localId));
+          if (pendingLocalIds.size === 0) onBusyChange?.(false);
         }
       })
     );

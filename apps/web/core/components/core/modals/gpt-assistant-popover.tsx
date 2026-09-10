@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/no-autofocus */
 
 import type { Ref } from "react";
 import React, { useEffect, useState, useRef, Fragment } from "react";
@@ -138,10 +139,6 @@ export function GptAssistantPopover(props: Props) {
 
     await callAIService(formData);
   };
-
-  useEffect(() => {
-    if (isOpen) setFocus("task");
-  }, [isOpen, setFocus]);
 
   useEffect(() => {
     editorRef.current?.setEditorValue(prompt || "");

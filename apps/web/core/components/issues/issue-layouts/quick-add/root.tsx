@@ -75,7 +75,8 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
   // router
   const { workspaceSlug, projectId } = useParams();
   // states
-  const [isOpen, setIsOpen] = useState(isQuickAddOpen ?? false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = isQuickAddOpen ?? internalOpen;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createModalData, setCreateModalData] = useState<Partial<TIssue> | undefined>(undefined);
   // store hooks
@@ -89,16 +90,6 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
     formState: { errors, isSubmitting },
   } = useForm<TIssue>({ defaultValues });
 
-  useEffect(() => {
-    if (isQuickAddOpen !== undefined) {
-      setIsOpen(isQuickAddOpen);
-    }
-  }, [isQuickAddOpen]);
-
-  useEffect(() => {
-    if (!isOpen) reset({ ...defaultValues });
-  }, [isOpen, reset]);
-
   // Prefetch work item types/properties for required-property gating
   useEffect(() => {
     if (!workspaceSlug || !projectId) return;
@@ -108,10 +99,11 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
   }, [workspaceSlug, projectId, issueTypeStore]);
 
   const handleIsOpen = (nextOpen: boolean) => {
+    if (!nextOpen) reset({ ...defaultValues });
     if (isQuickAddOpen !== undefined && setIsQuickAddOpen) {
       setIsQuickAddOpen(nextOpen);
     } else {
-      setIsOpen(nextOpen);
+      setInternalOpen(nextOpen);
     }
   };
 

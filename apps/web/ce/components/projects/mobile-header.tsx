@@ -12,7 +12,7 @@ import { ListFilter } from "lucide-react";
 import { useTranslation } from "@plane/i18n";
 import { ChevronDownIcon } from "@plane/propel/icons";
 import type { TProjectFilters } from "@plane/types";
-import { calculateTotalFilters } from "@plane/utils";
+import { calculateTotalFilters, toggleListValues } from "@plane/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { ProjectFiltersSelection } from "@/components/project/dropdowns/filters";
@@ -40,17 +40,7 @@ export const ProjectsListMobileHeader = observer(function ProjectsListMobileHead
   const handleFilters = useCallback(
     (key: keyof TProjectFilters, value: string | string[]) => {
       if (!workspaceSlug) return;
-      const newValues = filters?.[key] ?? [];
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else {
-        if (filters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
-      }
-      updateFilters(workspaceSlug.toString(), { [key]: newValues });
+      updateFilters(workspaceSlug.toString(), { [key]: toggleListValues(filters?.[key], value) });
     },
     [filters, updateFilters, workspaceSlug]
   );

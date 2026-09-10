@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/no-autofocus, jsx-a11y/no-static-element-interactions */
 
 import type { Node } from "@tiptap/pm/model";
 import { Link2Off } from "lucide-react";
@@ -72,15 +73,6 @@ export function LinkEditView({ viewProps }: LinkEditViewProps) {
       },
     [removeLink, linkRemoved, initialUrl]
   );
-
-  // Sync state with props
-  useEffect(() => {
-    setLocalUrl(initialUrl);
-  }, [initialUrl]);
-
-  useEffect(() => {
-    if (initialText) setLocalText(initialText);
-  }, [initialText]);
 
   // Handlers
   const handleTextChange = useCallback((value: string) => {

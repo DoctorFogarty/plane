@@ -134,7 +134,9 @@ export function ConnectCodeModal(props: Props) {
   }
 
   const repoById = new Map(pickerRepos.map((repository) => [repository.id, repository]));
-  const selectedGithubId = repositoryId ? Number(repositoryId) : null;
+  const firstPickerRepoId = pickerRepos[0]?.id;
+  const selectedRepositoryId = repositoryId || (firstPickerRepoId ? String(firstPickerRepoId) : "");
+  const selectedGithubId = selectedRepositoryId ? Number(selectedRepositoryId) : null;
   const selectedRepository = selectedGithubId != null ? (repoById.get(selectedGithubId) ?? null) : null;
   const defaultBaseFromRepo = selectedRepository?.default_branch || "";
   const hasPickerRepos = pickerRepos.length > 0;
@@ -146,10 +148,12 @@ export function ConnectCodeModal(props: Props) {
     isLoading: isBranchesLoading,
     mutate: retryBranches,
   } = useSWR(
-    isOpen && (mode === "link_branch" || mode === "create_branch" || mode === "create_pull_request") && repositoryId
-      ? `ISSUE_GITHUB_REMOTE_BRANCHES_${issueId}_${repositoryId}`
+    isOpen &&
+      (mode === "link_branch" || mode === "create_branch" || mode === "create_pull_request") &&
+      selectedRepositoryId
+      ? `ISSUE_GITHUB_REMOTE_BRANCHES_${issueId}_${selectedRepositoryId}`
       : null,
-    () => issueGithubService.listRepositoryBranches(workspaceSlug, projectId, issueId, repositoryId),
+    () => issueGithubService.listRepositoryBranches(workspaceSlug, projectId, issueId, selectedRepositoryId),
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
 
@@ -159,10 +163,10 @@ export function ConnectCodeModal(props: Props) {
     isLoading: isPrsLoading,
     mutate: retryPullRequests,
   } = useSWR(
-    isOpen && mode === "link_pull_request" && repositoryId
-      ? `ISSUE_GITHUB_REMOTE_PRS_${issueId}_${repositoryId}`
+    isOpen && mode === "link_pull_request" && selectedRepositoryId
+      ? `ISSUE_GITHUB_REMOTE_PRS_${issueId}_${selectedRepositoryId}`
       : null,
-    () => issueGithubService.listRepositoryPullRequests(workspaceSlug, projectId, issueId, repositoryId),
+    () => issueGithubService.listRepositoryPullRequests(workspaceSlug, projectId, issueId, selectedRepositoryId),
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
 
@@ -193,12 +197,6 @@ export function ConnectCodeModal(props: Props) {
     ignoreCloseRef.current = false;
     setRepoQuery("");
   }, [defaultBranchName, defaultPrBody, defaultPrTitle, defaultRepoDefaultBranch, defaultRepositoryId, isOpen]);
-
-  const firstPickerRepoId = pickerRepos[0]?.id;
-  useEffect(() => {
-    if (!isOpen || repositoryId) return;
-    if (firstPickerRepoId) setRepositoryId(String(firstPickerRepoId));
-  }, [firstPickerRepoId, isOpen, repositoryId]);
 
   useEffect(() => {
     if (!isOpen || (mode !== "create_branch" && mode !== "create_pull_request")) return;
@@ -248,7 +246,7 @@ export function ConnectCodeModal(props: Props) {
   };
 
   const handleCreate = async () => {
-    if (!repositoryId) {
+    if (!selectedRepositoryId) {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Repository required",
@@ -276,7 +274,7 @@ export function ConnectCodeModal(props: Props) {
     await withSubmitGuard(async () => {
       try {
         const result = await issueGithubService.createBranch(workspaceSlug, projectId, issueId, {
-          repository_id: repositoryId,
+          repository_id: selectedRepositoryId,
           base_branch: baseBranch.trim(),
           branch_name: branchName.trim(),
         });
@@ -302,7 +300,7 @@ export function ConnectCodeModal(props: Props) {
   };
 
   const handleLinkBranch = async () => {
-    if (!repositoryId) {
+    if (!selectedRepositoryId) {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Repository required",
@@ -322,7 +320,7 @@ export function ConnectCodeModal(props: Props) {
     await withSubmitGuard(async () => {
       try {
         const result = await issueGithubService.linkBranch(workspaceSlug, projectId, issueId, {
-          repository_id: repositoryId,
+          repository_id: selectedRepositoryId,
           branch_name: branchName.trim(),
         });
         setCreated(result);
@@ -347,7 +345,7 @@ export function ConnectCodeModal(props: Props) {
   };
 
   const handleLinkPr = async () => {
-    if (!repositoryId) {
+    if (!selectedRepositoryId) {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Repository required",
@@ -368,7 +366,7 @@ export function ConnectCodeModal(props: Props) {
     await withSubmitGuard(async () => {
       try {
         const result = await issueGithubService.linkPullRequest(workspaceSlug, projectId, issueId, {
-          repository_id: repositoryId,
+          repository_id: selectedRepositoryId,
           number,
         });
         setLinkedPr(result);
@@ -393,7 +391,7 @@ export function ConnectCodeModal(props: Props) {
   };
 
   const handleCreatePr = async () => {
-    if (!repositoryId) {
+    if (!selectedRepositoryId) {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Repository required",
@@ -429,7 +427,7 @@ export function ConnectCodeModal(props: Props) {
     await withSubmitGuard(async () => {
       try {
         const result = await issueGithubService.createPullRequest(workspaceSlug, projectId, issueId, {
-          repository_id: repositoryId,
+          repository_id: selectedRepositoryId,
           head_branch: branchName.trim(),
           base_branch: baseBranch.trim(),
           title: prTitle.trim(),

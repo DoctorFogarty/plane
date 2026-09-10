@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
 
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
@@ -14,7 +15,6 @@ import { ComboDropDown } from "@plane/ui";
 import { cn } from "@plane/utils";
 // hooks
 import { useDropdown } from "@/hooks/use-dropdown";
-import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { DropdownButton } from "../buttons";
 import { BUTTON_VARIANTS_WITHOUT_TEXT } from "../constants";
@@ -64,6 +64,7 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
     multiple,
     onChange,
     onClose,
+    onDropdownOpen,
     placeholder = "",
     placement,
     projectId,
@@ -79,17 +80,14 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
   const [isOpen, setIsOpen] = useState(false);
   // refs
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
   // popper-js refs
   const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
-  // store hooks
-  const { isMobile } = usePlatformOS();
 
   const { handleClose, handleKeyDown, handleOnClick } = useDropdown({
     dropdownRef,
-    inputRef,
     isOpen,
     onClose,
+    onOpen: onDropdownOpen,
     setIsOpen,
   });
 
@@ -104,12 +102,6 @@ export const ModuleDropdownBase = observer(function ModuleDropdownBase(props: TM
     disabled,
     multiple,
   };
-
-  useEffect(() => {
-    if (isOpen && inputRef.current && !isMobile) {
-      inputRef.current.focus();
-    }
-  }, [isOpen, isMobile]);
 
   const comboButton = (
     <>

@@ -64,9 +64,9 @@ export const SidebarQuickActions = observer(function SidebarQuickActions() {
   };
 
   const removeWorkspaceDraftIssue = () => {
-    const draftIssues = storedValue ?? {};
-    if (workspaceSlug && draftIssues[workspaceSlug]) delete draftIssues[workspaceSlug];
-    setValue(draftIssues);
+    if (!workspaceSlug || !storedValue?.[workspaceSlug]) return Promise.resolve();
+    const { [workspaceSlug]: _removedDraft, ...rest } = storedValue;
+    setValue(rest);
     return Promise.resolve();
   };
 

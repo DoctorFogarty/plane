@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable promise/always-return */
 
-import { useEffect } from "react";
 import type { Control, FieldArrayWithId, FormState, UseFormWatch } from "react-hook-form";
 import { useFieldArray, useForm } from "react-hook-form";
 // plane imports
@@ -68,22 +68,26 @@ export const useWorkspaceInvitationActions = (props: TUseWorkspaceInvitationProp
     append({ email: "", role: EUserPermissions.MEMBER });
   };
 
+  const handleRemove = (index: number) => {
+    if (fields.length <= 1) {
+      reset(SEND_WORKSPACE_INVITATION_MODAL_DEFAULT_VALUES);
+      return;
+    }
+    remove(index);
+  };
+
   const onSubmitForm = async (data: InvitationFormValues) => {
     await onSubmit(data)?.then(() => {
       reset(SEND_WORKSPACE_INVITATION_MODAL_DEFAULT_VALUES);
     });
   };
 
-  useEffect(() => {
-    if (fields.length === 0) append([{ email: "", role: EUserPermissions.MEMBER }]);
-  }, [fields, append]);
-
   return {
     control,
     fields,
     formState,
     watch,
-    remove,
+    remove: handleRemove,
     onFormSubmit: handleSubmit(onSubmitForm),
     handleClose,
     appendField,

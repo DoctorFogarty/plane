@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-unneeded-ternary */
 
 import { useCallback, useRef, useState } from "react";
 import { observer } from "mobx-react";
@@ -14,7 +15,7 @@ import { SearchIcon, CloseIcon } from "@plane/propel/icons";
 // plane helpers
 // types
 import type { TCycleFilters } from "@plane/types";
-import { cn, calculateTotalFilters } from "@plane/utils";
+import { cn, calculateTotalFilters, toggleListValues } from "@plane/utils";
 // components
 import { ArchiveTabsList } from "@/components/archives";
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
@@ -41,19 +42,11 @@ export const ArchivedCyclesHeader = observer(function ArchivedCyclesHeader() {
   const handleFilters = useCallback(
     (key: keyof TCycleFilters, value: string | string[]) => {
       if (!projectId) return;
-      const newValues = currentProjectArchivedFilters?.[key] ?? [];
-
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else {
-        if (currentProjectArchivedFilters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
-      }
-
-      updateFilters(projectId.toString(), { [key]: newValues }, "archived");
+      updateFilters(
+        projectId.toString(),
+        { [key]: toggleListValues(currentProjectArchivedFilters?.[key], value) },
+        "archived"
+      );
     },
     [currentProjectArchivedFilters, projectId, updateFilters]
   );

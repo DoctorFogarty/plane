@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { IWorkspaceMemberInvitation } from "@plane/types";
@@ -22,20 +22,16 @@ type Props = {
 export const WorkspaceSetupStep = observer(function WorkspaceSetupStep({ invitations, handleStepChange }: Props) {
   // states
   const [currentView, setCurrentView] = useState<ECreateOrJoinWorkspaceViews | null>(null);
-  // store hooks
+  const resolvedView =
+    currentView ??
+    (invitations.length > 0
+      ? ECreateOrJoinWorkspaceViews.WORKSPACE_JOIN
+      : ECreateOrJoinWorkspaceViews.WORKSPACE_CREATE);
   const { data: user } = useUser();
-
-  useEffect(() => {
-    if (invitations.length > 0) {
-      setCurrentView(ECreateOrJoinWorkspaceViews.WORKSPACE_JOIN);
-    } else {
-      setCurrentView(ECreateOrJoinWorkspaceViews.WORKSPACE_CREATE);
-    }
-  }, [invitations]);
 
   return (
     <>
-      {currentView === ECreateOrJoinWorkspaceViews.WORKSPACE_JOIN ? (
+      {resolvedView === ECreateOrJoinWorkspaceViews.WORKSPACE_JOIN ? (
         <WorkspaceJoinInvitesStep
           invitations={invitations}
           handleNextStep={async () => {

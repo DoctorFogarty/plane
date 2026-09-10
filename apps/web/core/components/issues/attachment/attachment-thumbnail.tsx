@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@plane/utils";
 import { getFileIcon } from "@/components/icons";
 
@@ -18,10 +18,11 @@ type Props = {
 export function AttachmentThumbnail(props: Props) {
   const { fileURL, fileExtension, size, canPreview } = props;
   const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
+  const [prevFileURL, setPrevFileURL] = useState(fileURL);
+  if (fileURL !== prevFileURL) {
+    setPrevFileURL(fileURL);
     setHasError(false);
-  }, [fileURL]);
+  }
 
   const fileIcon = getFileIcon(fileExtension, size);
   const sizeClass = size === 28 ? "size-7" : "size-6";

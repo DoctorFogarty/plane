@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { ListFilter } from "lucide-react";
 // plane imports
@@ -13,7 +13,7 @@ import { IconButton } from "@plane/propel/icon-button";
 import { useTranslation } from "@plane/i18n";
 import { SearchIcon, CloseIcon } from "@plane/propel/icons";
 import type { TCycleFilters } from "@plane/types";
-import { cn, calculateTotalFilters } from "@plane/utils";
+import { cn, calculateTotalFilters, toggleListValues } from "@plane/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 // hooks
@@ -33,28 +33,17 @@ export const CyclesViewHeader = observer(function CyclesViewHeader(props: Props)
   const { currentProjectFilters, searchQuery, updateFilters, updateSearchQuery } = useCycleFilter();
   const { t } = useTranslation();
   // states
-  const [isSearchOpen, setIsSearchOpen] = useState(searchQuery !== "" ? true : false);
+  const [isSearchOpen, setIsSearchOpen] = useState(searchQuery.trim() !== "");
+  const showSearch = isSearchOpen || searchQuery.trim() !== "";
   // outside click detector hook
   useOutsideClickDetector(inputRef, () => {
-    if (isSearchOpen && searchQuery.trim() === "") setIsSearchOpen(false);
+    if (showSearch && searchQuery.trim() === "") setIsSearchOpen(false);
   });
 
   const handleFilters = useCallback(
     (key: keyof TCycleFilters, value: string | string[]) => {
       if (!projectId) return;
-      const newValues = currentProjectFilters?.[key] ?? [];
-
-      if (Array.isArray(value))
-        value.forEach((val) => {
-          if (!newValues.includes(val)) newValues.push(val);
-          else newValues.splice(newValues.indexOf(val), 1);
-        });
-      else {
-        if (currentProjectFilters?.[key]?.includes(value)) newValues.splice(newValues.indexOf(value), 1);
-        else newValues.push(value);
-      }
-
-      updateFilters(projectId, { [key]: newValues });
+      updateFilters(projectId, { [key]: toggleListValues(currentProjectFilters?.[key], value) });
     },
     [currentProjectFilters, projectId, updateFilters]
   );
@@ -71,13 +60,9 @@ export const CyclesViewHeader = observer(function CyclesViewHeader(props: Props)
 
   const isFiltersApplied = calculateTotalFilters(currentProjectFilters ?? {}) !== 0;
 
-  useEffect(() => {
-    if (searchQuery.trim() !== "") setIsSearchOpen(true);
-  }, [searchQuery]);
-
   return (
     <div className="flex items-center gap-2">
-      {!isSearchOpen ? (
+      {!showSearch ? (
         <IconButton
           variant="ghost"
           size="lg"
@@ -92,7 +77,7 @@ export const CyclesViewHeader = observer(function CyclesViewHeader(props: Props)
           className={cn(
             "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-md border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
             {
-              "w-64 border-subtle px-2.5 py-1.5 opacity-100": isSearchOpen,
+              "w-64 border-subtle px-2.5 py-1.5 opacity-100": showSearch,
             }
           )}
         >
@@ -105,7 +90,7 @@ export const CyclesViewHeader = observer(function CyclesViewHeader(props: Props)
             onChange={(e) => updateSearchQuery(e.target.value)}
             onKeyDown={handleInputKeyDown}
           />
-          {isSearchOpen && (
+          {showSearch && (
             <button
               type="button"
               className="grid place-items-center"

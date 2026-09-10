@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { OctagonAlert } from "lucide-react";
 // plane imports
@@ -35,19 +35,16 @@ export const CreateOrJoinWorkspaces = observer(function CreateOrJoinWorkspaces(p
   const { invitations, stepChange, finishOnboarding } = props;
   // states
   const [currentView, setCurrentView] = useState<ECreateOrJoinWorkspaceViews | null>(null);
+  const resolvedView =
+    currentView ??
+    (invitations.length > 0
+      ? ECreateOrJoinWorkspaceViews.WORKSPACE_JOIN
+      : ECreateOrJoinWorkspaceViews.WORKSPACE_CREATE);
   // store hooks
   const { data: user } = useUser();
   const { config } = useInstance();
   // derived values
   const isWorkspaceCreationDisabled = config?.is_workspace_creation_disabled ?? false;
-
-  useEffect(() => {
-    if (invitations.length > 0) {
-      setCurrentView(ECreateOrJoinWorkspaceViews.WORKSPACE_JOIN);
-    } else {
-      setCurrentView(ECreateOrJoinWorkspaceViews.WORKSPACE_CREATE);
-    }
-  }, [invitations]);
 
   const handleNextStep = async () => {
     if (!user) return;
@@ -59,13 +56,13 @@ export const CreateOrJoinWorkspaces = observer(function CreateOrJoinWorkspaces(p
     <div className="flex h-full w-full">
       <div className="h-full w-full overflow-auto px-6 py-10 sm:px-7 sm:py-14 md:px-14 lg:px-28">
         <div className="mt-6 flex w-full flex-col items-center justify-center p-8">
-          {currentView === ECreateOrJoinWorkspaceViews.WORKSPACE_JOIN ? (
+          {resolvedView === ECreateOrJoinWorkspaceViews.WORKSPACE_JOIN ? (
             <Invitations
               invitations={invitations}
               handleNextStep={handleNextStep}
               handleCurrentViewChange={() => setCurrentView(ECreateOrJoinWorkspaceViews.WORKSPACE_CREATE)}
             />
-          ) : currentView === ECreateOrJoinWorkspaceViews.WORKSPACE_CREATE ? (
+          ) : resolvedView === ECreateOrJoinWorkspaceViews.WORKSPACE_CREATE ? (
             !isWorkspaceCreationDisabled ? (
               <CreateWorkspace
                 stepChange={stepChange}

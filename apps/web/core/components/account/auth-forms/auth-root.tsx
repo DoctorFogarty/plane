@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable no-shadow */
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
@@ -42,7 +43,7 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
   // props
   const { authMode: currentAuthMode } = props;
   // states
-  const [authMode, setAuthMode] = useState<EAuthModes | undefined>(undefined);
+  const [authMode, setAuthMode] = useState<EAuthModes>(currentAuthMode);
   const [authStep, setAuthStep] = useState<EAuthSteps>(EAuthSteps.EMAIL);
   const [email, setEmail] = useState(emailParam ? emailParam.toString() : "");
   const [errorInfo, setErrorInfo] = useState<TAuthErrorInfo | undefined>(undefined);
@@ -53,10 +54,6 @@ export const AuthRoot = observer(function AuthRoot(props: TAuthRoot) {
   const { isOAuthEnabled, oAuthOptions } = useOAuthConfig(oAuthActionText);
   const isEmailBasedAuthEnabled = config?.is_email_password_enabled || config?.is_magic_login_enabled;
   const noAuthMethodsAvailable = !isOAuthEnabled && !isEmailBasedAuthEnabled;
-
-  useEffect(() => {
-    if (!authMode && currentAuthMode) setAuthMode(currentAuthMode);
-  }, [currentAuthMode, authMode]);
 
   useEffect(() => {
     if (error_code && authMode) {

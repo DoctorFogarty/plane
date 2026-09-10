@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+/* eslint-disable jsx-a11y/no-autofocus */
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import type { SubmitHandler } from "react-hook-form";
@@ -42,7 +43,7 @@ export const NewFavoriteFolder = observer(function NewFavoriteFolder(props: TPro
   const ref = useRef(null);
 
   // form info
-  const { handleSubmit, control, setValue, setFocus } = useForm<TForm>({
+  const { handleSubmit, control, setValue } = useForm<TForm>({
     reValidateMode: "onChange",
     defaultValues: {
       name: defaultName,
@@ -130,10 +131,6 @@ export const NewFavoriteFolder = observer(function NewFavoriteFolder(props: TPro
     setValue("name", "");
   };
 
-  useEffect(() => {
-    setFocus("name");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   useOutsideClickDetector(ref, () => {
     setCreateNewFolder(false);
   });
@@ -150,6 +147,7 @@ export const NewFavoriteFolder = observer(function NewFavoriteFolder(props: TPro
               className="w-full"
               placeholder={t("new_folder")}
               aria-label={t("aria_labels.projects_sidebar.enter_folder_name")}
+              autoFocus
               {...field}
             />
           )}

@@ -211,12 +211,10 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     );
   }, [projectId, isLastChild, projectListType, handleOnProjectDrop]);
 
-  useEffect(() => {
-    if (isMenuActive) toggleAnySidebarDropdown(true);
-    else toggleAnySidebarDropdown(false);
-  }, [isMenuActive, toggleAnySidebarDropdown]);
-
-  useOutsideClickDetector(actionSectionRef, () => setIsMenuActive(false));
+  useOutsideClickDetector(actionSectionRef, () => {
+    setIsMenuActive(false);
+    toggleAnySidebarDropdown(false);
+  });
   useOutsideClickDetector(projectRef, () => projectRef?.current?.classList?.remove(HIGHLIGHT_CLASS));
 
   useEffect(() => {
@@ -354,7 +352,11 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                       variant="ghost"
                       size="sm"
                       icon={MoreHorizontal}
-                      onClick={() => setIsMenuActive(!isMenuActive)}
+                      onClick={() => {
+                        const next = !isMenuActive;
+                        setIsMenuActive(next);
+                        toggleAnySidebarDropdown(next);
+                      }}
                       className="text-placeholder"
                     />
                   }
@@ -369,7 +371,10 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   ariaLabel={t("aria_labels.projects_sidebar.toggle_quick_actions_menu")}
                   useCaptureForOutsideClick
                   closeOnSelect
-                  onMenuClose={() => setIsMenuActive(false)}
+                  onMenuClose={() => {
+                    setIsMenuActive(false);
+                    toggleAnySidebarDropdown(false);
+                  }}
                 >
                   {/* TODO: Removed is_favorite logic due to the optimization in projects API */}
                   {/* {isAuthorized && (
