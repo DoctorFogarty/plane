@@ -20,6 +20,7 @@ import type {
 import type { IBaseIssuesStore } from "../helpers/base-issues.store";
 import { BaseIssuesStore } from "../helpers/base-issues.store";
 import { issueListRequestKey } from "../helpers/collection-ref";
+import { consumePrefetch, runPrefetch } from "@/lib/prefetch-registry";
 // services
 import type { IIssueRootStore } from "../root.store";
 import type { IProjectIssuesFilter } from "./filter.store";
@@ -27,6 +28,7 @@ import type { IProjectIssuesFilter } from "./filter.store";
 export interface IProjectIssues extends IBaseIssuesStore {
   viewFlags: ViewFlags;
   // action
+  prefetchIssues: (workspaceSlug: string, projectId: string, option: IssuePaginationOptions) => void;
   fetchIssues: (
     workspaceSlug: string,
     projectId: string,
@@ -92,6 +94,22 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
   updateParentStats = () => {};
 
   /**
+   * Speculatively request the first page for a project the user is about to
+   * open (sidebar hover/focus). Touches no store state; `fetchIssues` picks the
+   * response up through the prefetch registry when the layout mounts with the
+   * same filters, so the navigation does not wait on a fresh round trip.
+   * Requires the destination's filters to be hydrated so the request identity
+   * matches what the layout will ask for.
+   */
+  prefetchIssues = (workspaceSlug: string, projectId: string, options: IssuePaginationOptions) => {
+    if (!this.issueFilterStore?.getIssueFilters(projectId)) return;
+    const params = this.issueFilterStore.getFilterParams(options, projectId, undefined, undefined, undefined);
+    const requestKey = issueListRequestKey({ workspaceSlug, projectId, params });
+    if (this.fetchPromises.has(requestKey)) return;
+    runPrefetch(requestKey, () => this.issueService.getIssues(workspaceSlug, projectId, params)).catch(() => undefined);
+  };
+
+  /**
    * This method is called to fetch the first issues of pagination
    * @param workspaceSlug
    * @param projectId
@@ -113,9 +131,11 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
     const requestKey = issueListRequestKey({ workspaceSlug, projectId, params });
     try {
       return await this.fetchIssuesWithDedupe(requestKey, loadType, !isExistingPaginationOptions, async () => {
-        const response = await this.issueService.getIssues(workspaceSlug, projectId, params, {
-          signal: this.controller.signal,
-        });
+        const response = await consumePrefetch(requestKey, () =>
+          this.issueService.getIssues(workspaceSlug, projectId, params, {
+            signal: this.controller.signal,
+          })
+        );
         this.onfetchIssues(response, options, workspaceSlug, projectId, undefined, !isExistingPaginationOptions, false);
         return response;
       });

@@ -84,6 +84,107 @@ def _should_drop_filter_key(key: str) -> bool:
     return base in CONTENT_FILTER_KEYS
 
 
+def _remap_filter_leaf(
+    key: str,
+    value: Any,
+    *,
+    style: str,
+    state_map: Dict[str, str],
+    label_map: Dict[str, str],
+    property_map: Dict[str, str],
+    option_map: Dict[str, str],
+) -> Optional[tuple[str, Any]]:
+    if _should_drop_filter_key(key):
+        return None
+
+    custom_match = CUSTOM_PROPERTY_FILTER_RE.match(key)
+    if custom_match:
+        old_property_id = custom_match.group("property_id")
+        lookup = custom_match.group("lookup")
+        new_property_id = property_map.get(old_property_id)
+        if not new_property_id:
+            return None
+        return f"customproperty_{new_property_id}__{lookup}", _remap_uuid_value(value, option_map)
+
+    if style == "legacy":
+        if key in LEGACY_UUID_LIST_KEYS:
+            id_map = state_map if key == "state" else label_map
+            return key, _remap_uuid_value(value, id_map)
+        return key, copy.deepcopy(value)
+
+    base = key.split("__", 1)[0]
+    if base == "state_id":
+        return key, _remap_uuid_value(value, state_map)
+    if base == "label_id":
+        return key, _remap_uuid_value(value, label_map)
+    if base in ("cycle_id", "module_id"):
+        return None
+    return key, copy.deepcopy(value)
+
+
+def remap_filter_tree(
+    node: Any,
+    *,
+    style: str,
+    state_map: Dict[str, str],
+    label_map: Dict[str, str],
+    property_map: Dict[str, str],
+    option_map: Dict[str, str],
+) -> Any:
+    """Walk a legacy or rich filter tree and remap project-scoped IDs."""
+    if node is None:
+        return {} if style == "legacy" else {}
+
+    if isinstance(node, list):
+        remapped_list = []
+        for item in node:
+            remapped_item = remap_filter_tree(
+                item,
+                style=style,
+                state_map=state_map,
+                label_map=label_map,
+                property_map=property_map,
+                option_map=option_map,
+            )
+            if remapped_item in ({}, [], None):
+                continue
+            remapped_list.append(remapped_item)
+        return remapped_list
+
+    if not isinstance(node, dict):
+        return node
+
+    if "and" in node or "or" in node:
+        remapped: Dict[str, Any] = {}
+        for bool_key in ("and", "or"):
+            if bool_key in node:
+                remapped[bool_key] = remap_filter_tree(
+                    node[bool_key],
+                    style=style,
+                    state_map=state_map,
+                    label_map=label_map,
+                    property_map=property_map,
+                    option_map=option_map,
+                )
+        return remapped
+
+    result: Dict[str, Any] = {}
+    for key, value in node.items():
+        remapped = _remap_filter_leaf(
+            key,
+            value,
+            style=style,
+            state_map=state_map,
+            label_map=label_map,
+            property_map=property_map,
+            option_map=option_map,
+        )
+        if remapped is None:
+            continue
+        result[remapped[0]] = remapped[1]
+    return result
+
+
 def remap_filters(
     filters: Optional[Dict[str, Any]],
     *,
@@ -95,34 +196,14 @@ def remap_filters(
     """Remap legacy `filters` JSON for a duplicated project."""
     if not filters:
         return {}
-
-    combined: Dict[str, str] = {**state_map, **label_map, **option_map}
-    result: Dict[str, Any] = {}
-
-    for key, value in filters.items():
-        if _should_drop_filter_key(key):
-            continue
-
-        custom_match = CUSTOM_PROPERTY_FILTER_RE.match(key)
-        if custom_match:
-            old_property_id = custom_match.group("property_id")
-            lookup = custom_match.group("lookup")
-            new_property_id = property_map.get(old_property_id)
-            if not new_property_id:
-                continue
-            new_key = f"customproperty_{new_property_id}__{lookup}"
-            result[new_key] = _remap_uuid_value(value, option_map)
-            continue
-
-        if key in LEGACY_UUID_LIST_KEYS:
-            id_map = state_map if key == "state" else label_map
-            result[key] = _remap_uuid_value(value, id_map)
-            continue
-
-        # Pass-through non-project-scoped filters (priority, assignees, dates, etc.)
-        result[key] = copy.deepcopy(value)
-
-    return result
+    return remap_filter_tree(
+        filters,
+        style="legacy",
+        state_map=state_map,
+        label_map=label_map,
+        property_map=property_map,
+        option_map=option_map,
+    )
 
 
 def remap_rich_filters(
@@ -136,68 +217,14 @@ def remap_rich_filters(
     """Recursively remap `rich_filters` JSON (flat or nested and/or trees)."""
     if rich_filters is None:
         return {}
-
-    if isinstance(rich_filters, list):
-        remapped_list = []
-        for item in rich_filters:
-            remapped_item = remap_rich_filters(
-                item,
-                state_map=state_map,
-                label_map=label_map,
-                property_map=property_map,
-                option_map=option_map,
-            )
-            if remapped_item in ({}, [], None):
-                continue
-            remapped_list.append(remapped_item)
-        return remapped_list
-
-    if not isinstance(rich_filters, dict):
-        return rich_filters
-
-    # Nested boolean groups: {"and": [...]} / {"or": [...]}
-    if "and" in rich_filters or "or" in rich_filters:
-        remapped: Dict[str, Any] = {}
-        for bool_key in ("and", "or"):
-            if bool_key in rich_filters:
-                remapped[bool_key] = remap_rich_filters(
-                    rich_filters[bool_key],
-                    state_map=state_map,
-                    label_map=label_map,
-                    property_map=property_map,
-                    option_map=option_map,
-                )
-        return remapped
-
-    result: Dict[str, Any] = {}
-    for key, value in rich_filters.items():
-        if _should_drop_filter_key(key):
-            continue
-
-        custom_match = CUSTOM_PROPERTY_FILTER_RE.match(key)
-        if custom_match:
-            old_property_id = custom_match.group("property_id")
-            lookup = custom_match.group("lookup")
-            new_property_id = property_map.get(old_property_id)
-            if not new_property_id:
-                continue
-            new_key = f"customproperty_{new_property_id}__{lookup}"
-            result[new_key] = _remap_uuid_value(value, option_map)
-            continue
-
-        base = key.split("__", 1)[0]
-        if base == "state_id":
-            result[key] = _remap_uuid_value(value, state_map)
-            continue
-        if base == "label_id":
-            result[key] = _remap_uuid_value(value, label_map)
-            continue
-        if base in ("cycle_id", "module_id"):
-            continue
-
-        result[key] = copy.deepcopy(value)
-
-    return result
+    return remap_filter_tree(
+        rich_filters,
+        style="rich",
+        state_map=state_map,
+        label_map=label_map,
+        property_map=property_map,
+        option_map=option_map,
+    )
 
 
 def _clone_state_groups_and_states(

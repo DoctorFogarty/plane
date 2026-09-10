@@ -16,6 +16,7 @@ import type { TProject } from "@plane/types";
 import { EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
 import { projectIdentifierSanitizer } from "@plane/utils";
 // hooks
+import { getDefaultTabUrl } from "@/components/navigation/tab-navigation-utils";
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
 
@@ -89,7 +90,7 @@ export function DuplicateProjectModal(props: DuplicateProjectModalProps) {
         title: t("toast.success"),
         message: t("project_duplicate.toast.success"),
       });
-      router.push(`/${workspaceSlug}/projects/${response.id}/issues`);
+      router.push(getDefaultTabUrl(workspaceSlug, response.id));
     } catch (error: any) {
       const errorData = error?.data ?? error;
       const nameError =

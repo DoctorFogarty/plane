@@ -91,6 +91,7 @@ from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from .base import BaseAPIView
 from plane.utils.host import base_host
 from plane.utils.issue_relation_mapper import get_actual_relation
+from plane.utils.work_item import WorkItemCreateError, adapt_public_work_item_payload, create_work_item
 from plane.bgtasks.webhook_task import model_activity
 from plane.app.permissions import ROLE
 from plane.utils.openapi import (
@@ -442,72 +443,71 @@ class IssueListCreateAPIEndpoint(BaseAPIView):
         """
         project = Project.objects.get(pk=project_id)
 
+        if (
+            request.data.get("external_id")
+            and request.data.get("external_source")
+            and Issue.objects.filter(
+                project_id=project_id,
+                workspace__slug=slug,
+                external_source=request.data.get("external_source"),
+                external_id=request.data.get("external_id"),
+            ).exists()
+        ):
+            issue = Issue.objects.filter(
+                workspace__slug=slug,
+                project_id=project_id,
+                external_id=request.data.get("external_id"),
+                external_source=request.data.get("external_source"),
+            ).first()
+            return Response(
+                {
+                    "error": "Issue with the same external id and external source already exists",
+                    "id": str(issue.id),
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
+            issue = create_work_item(
+                project=project,
+                actor=request.user,
+                data=adapt_public_work_item_payload(request.data),
+            )
+        except WorkItemCreateError as exc:
+            return Response(exc.payload, status=exc.status_code)
+
+        issue.created_at = request.data.get("created_at", timezone.now())
+        issue.created_by_id = request.data.get("created_by", request.user.id)
+        issue.save(update_fields=["created_at", "created_by"])
+
+        issue_activity.delay(
+            type="issue.activity.created",
+            requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
+            actor_id=str(request.user.id),
+            issue_id=str(issue.id),
+            project_id=str(project_id),
+            current_instance=None,
+            epoch=int(timezone.now().timestamp()),
+            notification=True,
+            origin=base_host(request=request, is_app=True),
+        )
+        model_activity.delay(
+            model_name="issue",
+            model_id=str(issue.id),
+            requested_data=request.data,
+            current_instance=None,
+            actor_id=request.user.id,
+            slug=slug,
+            origin=base_host(request=request, is_app=True),
+        )
         serializer = IssueSerializer(
-            data=request.data,
+            issue,
             context={
                 "project_id": project_id,
                 "workspace_id": project.workspace_id,
-                "default_assignee_id": project.default_assignee_id,
             },
         )
-
-        if serializer.is_valid():
-            if (
-                request.data.get("external_id")
-                and request.data.get("external_source")
-                and Issue.objects.filter(
-                    project_id=project_id,
-                    workspace__slug=slug,
-                    external_source=request.data.get("external_source"),
-                    external_id=request.data.get("external_id"),
-                ).exists()
-            ):
-                issue = Issue.objects.filter(
-                    workspace__slug=slug,
-                    project_id=project_id,
-                    external_id=request.data.get("external_id"),
-                    external_source=request.data.get("external_source"),
-                ).first()
-                return Response(
-                    {
-                        "error": "Issue with the same external id and external source already exists",
-                        "id": str(issue.id),
-                    },
-                    status=status.HTTP_409_CONFLICT,
-                )
-
-            serializer.save()
-            # Refetch the issue
-            issue = Issue.objects.filter(workspace__slug=slug, project_id=project_id, pk=serializer.data["id"]).first()
-            issue.created_at = request.data.get("created_at", timezone.now())
-            issue.created_by_id = request.data.get("created_by", request.user.id)
-            issue.save(update_fields=["created_at", "created_by"])
-
-            # Track the issue
-            issue_activity.delay(
-                type="issue.activity.created",
-                requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(serializer.data.get("id", None)),
-                project_id=str(project_id),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-                notification=True,
-                origin=base_host(request=request, is_app=True),
-            )
-
-            # Send the model activity
-            model_activity.delay(
-                model_name="issue",
-                model_id=str(serializer.data["id"]),
-                requested_data=request.data,
-                current_instance=None,
-                actor_id=request.user.id,
-                slug=slug,
-                origin=base_host(request=request, is_app=True),
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class IssueDetailAPIEndpoint(BaseAPIView):

@@ -341,6 +341,7 @@ class IntakeFormSubmitEndpoint(BaseAPIView):
                 actor=actor,
                 data={**issue_data, "property_values": filtered_properties},
                 allow_triage_state=True,
+                # Public forms collect a subset of fields; required properties are optional here.
                 validate_property_required=False,
                 in_transaction=finish_form_issue,
             )

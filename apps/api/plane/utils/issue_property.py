@@ -2,49 +2,25 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from datetime import datetime
-from uuid import UUID
-
-from django.utils.dateparse import parse_datetime, parse_date
-
 from plane.db.models import (
     IssueProperty,
     IssuePropertyOption,
     IssuePropertyType,
     IssuePropertyValue,
     IssueSubscriber,
-    ProjectMember,
     User,
 )
+from plane.utils.property_types import handler_for, is_empty, is_multi_select
 
 
 def _is_empty(value):
-    if value is None:
-        return True
-    if isinstance(value, str) and value.strip() == "":
-        return True
-    if isinstance(value, (list, dict)) and len(value) == 0:
-        return True
-    return False
+    return is_empty(value)
 
 
 def serialize_property_value(property_obj, value_obj):
     if value_obj is None:
         return None
-    property_type = property_obj.property_type
-    if property_type == IssuePropertyType.BOOLEAN:
-        return value_obj.value_boolean
-    if property_type == IssuePropertyType.NUMBER:
-        return value_obj.value_number
-    if property_type == IssuePropertyType.DATE:
-        return value_obj.value_datetime.isoformat() if value_obj.value_datetime else None
-    if property_type in (IssuePropertyType.DROPDOWN, IssuePropertyType.MEMBER):
-        settings = property_obj.settings or {}
-        multi = settings.get("is_multi") or settings.get("display_format") == "multi"
-        if multi or (isinstance(value_obj.value_json, list) and len(value_obj.value_json) > 0):
-            return value_obj.value_json or []
-        return str(value_obj.value_uuid) if value_obj.value_uuid else None
-    return value_obj.value_text
+    return handler_for(property_obj.property_type).serialize(property_obj, value_obj)
 
 
 def clear_value_fields(value_obj: IssuePropertyValue):
@@ -58,43 +34,9 @@ def clear_value_fields(value_obj: IssuePropertyValue):
 
 def apply_value_to_model(property_obj: IssueProperty, value_obj: IssuePropertyValue, value):
     clear_value_fields(value_obj)
-    property_type = property_obj.property_type
-    settings = property_obj.settings or {}
-
     if _is_empty(value):
         return value_obj
-
-    if property_type == IssuePropertyType.BOOLEAN:
-        value_obj.value_boolean = bool(value)
-    elif property_type == IssuePropertyType.NUMBER:
-        value_obj.value_number = float(value)
-    elif property_type == IssuePropertyType.DATE:
-        if isinstance(value, datetime):
-            value_obj.value_datetime = value
-        else:
-            parsed = parse_datetime(str(value))
-            if parsed is None:
-                parsed_date = parse_date(str(value))
-                if parsed_date:
-                    parsed = datetime.combine(parsed_date, datetime.min.time())
-            value_obj.value_datetime = parsed
-    elif property_type == IssuePropertyType.DROPDOWN:
-        multi = settings.get("is_multi") or settings.get("display_format") == "multi"
-        if multi:
-            values = value if isinstance(value, list) else [value]
-            value_obj.value_json = [str(v) for v in values if v is not None]
-        else:
-            value_obj.value_uuid = UUID(str(value))
-    elif property_type == IssuePropertyType.MEMBER:
-        multi = settings.get("is_multi") or settings.get("display_format") == "multi"
-        if multi:
-            values = value if isinstance(value, list) else [value]
-            value_obj.value_json = [str(v) for v in values if v is not None]
-        else:
-            value_obj.value_uuid = UUID(str(value))
-    else:
-        value_obj.value_text = str(value)
-
+    handler_for(property_obj.property_type).apply(property_obj, value_obj, value)
     return value_obj
 
 
@@ -103,55 +45,7 @@ def validate_property_value(property_obj: IssueProperty, value, project_id):
         if property_obj.is_required and property_obj.is_active:
             return f"Property '{property_obj.name}' is required"
         return None
-
-    property_type = property_obj.property_type
-    settings = property_obj.settings or {}
-
-    if property_type == IssuePropertyType.NUMBER:
-        try:
-            float(value)
-        except (TypeError, ValueError):
-            return f"Property '{property_obj.name}' must be a number"
-
-    if property_type == IssuePropertyType.URL:
-        if not isinstance(value, str) or not (value.startswith("http://") or value.startswith("https://")):
-            return f"Property '{property_obj.name}' must be a valid URL"
-
-    if property_type == IssuePropertyType.DROPDOWN:
-        multi = settings.get("is_multi") or settings.get("display_format") == "multi"
-        option_ids = value if multi else [value]
-        if not isinstance(option_ids, list):
-            option_ids = [option_ids]
-        valid_ids = set(
-            str(oid)
-            for oid in IssuePropertyOption.objects.filter(
-                property_id=property_obj.id,
-                project_id=project_id,
-                is_active=True,
-            ).values_list("id", flat=True)
-        )
-        for option_id in option_ids:
-            if str(option_id) not in valid_ids:
-                return f"Invalid option for property '{property_obj.name}'"
-
-    if property_type == IssuePropertyType.MEMBER:
-        multi = settings.get("is_multi") or settings.get("display_format") == "multi"
-        member_ids = value if multi else [value]
-        if not isinstance(member_ids, list):
-            member_ids = [member_ids]
-        valid_ids = set(
-            str(mid)
-            for mid in ProjectMember.objects.filter(
-                project_id=project_id,
-                is_active=True,
-                member_id__in=member_ids,
-            ).values_list("member_id", flat=True)
-        )
-        for member_id in member_ids:
-            if str(member_id) not in valid_ids:
-                return f"Invalid member for property '{property_obj.name}'"
-
-    return None
+    return handler_for(property_obj.property_type).validate(property_obj, value, project_id)
 
 
 def upsert_property_values(
@@ -219,8 +113,7 @@ def upsert_property_values(
         result[str(property_id)] = serialize_property_value(property_obj, value_obj)
 
         if property_obj.property_type == IssuePropertyType.MEMBER and not _is_empty(value):
-            settings = property_obj.settings or {}
-            multi = settings.get("is_multi") or settings.get("display_format") == "multi"
+            multi = is_multi_select(property_obj)
             ids = value if multi else [value]
             if not isinstance(ids, list):
                 ids = [ids]

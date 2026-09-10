@@ -13,18 +13,16 @@ export function useRouter() {
   return useMemo(
     () => ({
       push: (to: string) => {
-        // Defer navigation to avoid state updates during render
-        setTimeout(() => navigate(ensureTrailingSlash(to)), 0);
+        navigate(ensureTrailingSlash(to));
       },
       replace: (to: string) => {
-        // Defer navigation to avoid state updates during render
-        setTimeout(() => navigate(ensureTrailingSlash(to), { replace: true }), 0);
+        navigate(ensureTrailingSlash(to), { replace: true });
       },
       back: () => {
-        setTimeout(() => navigate(-1), 0);
+        navigate(-1);
       },
       forward: () => {
-        setTimeout(() => navigate(1), 0);
+        navigate(1);
       },
       refresh: () => {
         location.reload();

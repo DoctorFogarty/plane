@@ -6,7 +6,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import type { FC } from "react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useLayoutEffect } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -89,7 +89,7 @@ export const BaseCalendarRoot = observer(function BaseCalendarRoot(props: IBaseC
   const layout = displayFilters?.calendar?.layout ?? "month";
   const { startDate, endDate } = issueCalendarView.getStartAndEndDate(layout) ?? {};
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (startDate && endDate && layout) {
       fetchIssues(
         "init-loader",

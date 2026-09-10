@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { useParams } from "react-router";
 import { EIssueLayoutTypes } from "@plane/types";
 import { CalendarLayoutLoader } from "@/components/ui/loader/layouts/calendar-layout-loader";
 import { GanttLayoutLoader } from "@/components/ui/loader/layouts/gantt-layout-loader";
@@ -13,6 +14,8 @@ import { ListLayoutLoader } from "@/components/ui/loader/layouts/list-layout-loa
 import { SpreadsheetLayoutLoader } from "@/components/ui/loader/layouts/spreadsheet-layout-loader";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
+import { listKeyMatchesCollection } from "@/store/issue/helpers/collection-ref";
+import { shouldShowIssueLayoutLoader } from "./collection-layout-ready";
 import { IssueLayoutEmptyState } from "./empty-states";
 
 export function ActiveLoader(props: { layout: EIssueLayoutTypes | undefined }) {
@@ -42,11 +45,19 @@ export const IssueLayoutHOC = observer(function IssueLayoutHOC(props: Props) {
 
   const storeType = useIssueStoreType();
   const { issues } = useIssues(storeType);
+  const { workspaceSlug, projectId, cycleId, moduleId, viewId, globalViewId } = useParams();
+  const entityId = cycleId ?? moduleId ?? viewId ?? globalViewId ?? projectId;
+  const listKey = "listKey" in issues ? issues.listKey : undefined;
+  const listBelongsToRoute = listKeyMatchesCollection(listKey, {
+    workspaceSlug: workspaceSlug?.toString(),
+    projectId: projectId?.toString(),
+    entityId: entityId?.toString(),
+  });
 
   const isInitialLoading = "isInitialLoading" in issues && issues.isInitialLoading;
   const isCollectionEmpty = "isCollectionEmpty" in issues && issues.isCollectionEmpty;
 
-  if (isInitialLoading) {
+  if (shouldShowIssueLayoutLoader(!!isInitialLoading, listKey, listBelongsToRoute)) {
     return <ActiveLoader layout={layout} />;
   }
 

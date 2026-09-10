@@ -51,6 +51,7 @@ from plane.utils.grouper import issue_on_results
 from plane.utils.issue_query import (
     ISSUE_BOARD_FIELDS,
     INTAKE_BOARD_COUNT_FILTER,
+    SavedViewNotFound,
     annotate_issue_detail_qs,
     guest_issue_access_q,
     is_restricted_guest,
@@ -87,7 +88,10 @@ class IssueListEndpoint(BaseAPIView):
             queryset = queryset.select_related("workspace", "project", "state", "parent").prefetch_related(
                 "assignees", "labels", "issue_module__module"
             )
-        prepared = prepare_issue_board(self, request, queryset=queryset)
+        try:
+            prepared = prepare_issue_board(self, request, queryset=queryset, slug=slug, project_id=project_id)
+        except SavedViewNotFound as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         issue_queryset = prepared.issue_queryset.distinct()
 
         recent_visited_task.delay(
@@ -161,7 +165,6 @@ class IssueViewSet(BaseViewSet):
                 project=project,
                 actor=request.user,
                 data=request.data,
-                validate_property_required="property_values" in request.data,
             )
         except WorkItemCreateError as exc:
             return Response(exc.payload, status=exc.status_code)

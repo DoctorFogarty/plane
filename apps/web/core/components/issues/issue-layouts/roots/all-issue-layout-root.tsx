@@ -10,8 +10,8 @@ import { useParams, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { GLOBAL_VIEW_TRACKER_ELEMENTS, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import type { EIssueLayoutTypes } from "@plane/types";
-import { EIssuesStoreType, STATIC_VIEW_TYPES } from "@plane/types";
+import { EIssueLayoutTypes, EIssuesStoreType, STATIC_VIEW_TYPES } from "@plane/types";
+import { ActiveLoader } from "@/components/issues/issue-layouts/issue-layout-HOC";
 import { IssueLayoutShell } from "@/components/issues/issue-layouts/issue-layout-shell";
 import { WorkspaceActiveLayout } from "@/components/views/helper";
 import { useGlobalView } from "@/hooks/store/use-global-view";
@@ -114,7 +114,9 @@ export const AllIssueLayoutRoot = observer(function AllIssueLayoutRoot(props: Pr
     );
   }
 
-  if (!workspaceSlug || !globalViewId || !initialWorkItemFilters) return null;
+  if (!workspaceSlug || !globalViewId || !initialWorkItemFilters) {
+    return <ActiveLoader layout={activeLayout ?? EIssueLayoutTypes.SPREADSHEET} />;
+  }
 
   return (
     <IssueLayoutShell

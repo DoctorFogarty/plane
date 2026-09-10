@@ -7,7 +7,10 @@
 import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 import { EIssueLayoutTypes } from "@plane/types";
-import { shouldRenderCollectionLoader } from "@/components/issues/issue-layouts/collection-layout-ready";
+import {
+  shouldRenderCollectionLoader,
+  shouldShowIssueLayoutLoader,
+} from "@/components/issues/issue-layouts/collection-layout-ready";
 import { ActiveLoader } from "@/components/issues/issue-layouts/issue-layout-HOC";
 
 describe("collection layout readiness", () => {
@@ -38,6 +41,13 @@ describe("collection layout readiness", () => {
         },
       })
     ).toBe(false);
+  });
+
+  it("shows a loader when the list key belongs to another project", () => {
+    expect(shouldShowIssueLayoutLoader(false, "acme:proj-a:proj-a:{}", false)).toBe(true);
+    expect(shouldShowIssueLayoutLoader(false, "acme:proj-b:proj-b:{}", true)).toBe(false);
+    expect(shouldShowIssueLayoutLoader(false, undefined, false)).toBe(false);
+    expect(shouldShowIssueLayoutLoader(true, "acme:proj-b:proj-b:{}", true)).toBe(true);
   });
 
   it("builds ActiveLoader without a Suspense blank frame", () => {

@@ -6,15 +6,17 @@
 
 import { range } from "lodash-es";
 import { Row } from "@plane/ui";
-import { getRandomLength } from "../utils";
+import { getStableLoaderClass, LOADER_TITLE_WIDTH_CLASSES } from "../utils";
 
-export function SpreadsheetIssueRowLoader(props: { columnCount: number }) {
+export function SpreadsheetIssueRowLoader(props: { columnCount: number; rowIndex?: number }) {
   return (
     <tr className="border-b border-subtle bg-surface-1">
       <td className="sticky left-0 z-[10] flex h-11 min-w-[28rem] items-center border-r-[0.5px] border-subtle bg-surface-1">
         <Row className="flex items-center gap-3">
           <span className="h-5 w-10 animate-pulse rounded-sm bg-layer-1" />
-          <span className={`h-5 w-${getRandomLength(["32", "52", "72"])} animate-pulse rounded-sm bg-layer-1`} />
+          <span
+            className={`h-5 animate-pulse rounded-sm bg-layer-1 ${getStableLoaderClass(props.rowIndex ?? 0, LOADER_TITLE_WIDTH_CLASSES)}`}
+          />
         </Row>
       </td>
       {range(props.columnCount).map((colIndex) => (
@@ -42,7 +44,7 @@ export function SpreadsheetLayoutLoader() {
         </thead>
         <tbody>
           {range(16).map((rowIndex) => (
-            <SpreadsheetIssueRowLoader key={rowIndex} columnCount={10} />
+            <SpreadsheetIssueRowLoader key={rowIndex} columnCount={10} rowIndex={rowIndex} />
           ))}
         </tbody>
       </table>

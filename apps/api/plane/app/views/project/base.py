@@ -9,7 +9,6 @@ import json
 # Django imports
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Exists, F, OuterRef, Prefetch, Q, Subquery, Count
-from django.db import transaction
 from django.utils import timezone
 
 # Third Party imports
@@ -536,39 +535,22 @@ class ProjectIdentifierEndpoint(BaseAPIView):
 
 
 class ProjectUserViewsEndpoint(BaseAPIView):
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def post(self, request, slug, project_id):
         project = Project.objects.get(pk=project_id, workspace__slug=slug)
 
-        project_member = ProjectMember.objects.filter(member=request.user, project=project, is_active=True).first()
-
-        if project_member is None:
-            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-
-        view_props = request.data.get("view_props", project_member.view_props)
-        default_props = request.data.get("default_props", project_member.default_props)
-        preferences = request.data.get("preferences", project_member.preferences)
-        sort_order = request.data.get("sort_order", project_member.sort_order)
-
-        with transaction.atomic():
-            user_property, _ = ProjectUserProperty.objects.get_or_create(
-                user=request.user,
-                project_id=project_id,
-                defaults={"workspace_id": project.workspace_id},
-            )
-            apply_view_props_to_user_property(
-                user_property,
-                view_props=view_props,
-                preferences=preferences,
-                sort_order=sort_order,
-            )
-            user_property.save()
-            # Compatibility blob for ProjectMember serializers. Live reads use ProjectUserProperty.
-            project_member.view_props = view_props
-            project_member.default_props = default_props
-            project_member.preferences = preferences
-            project_member.sort_order = sort_order
-            project_member.save()
-
+        user_property, _ = ProjectUserProperty.objects.get_or_create(
+            user=request.user,
+            project_id=project_id,
+            defaults={"workspace_id": project.workspace_id},
+        )
+        apply_view_props_to_user_property(
+            user_property,
+            view_props=request.data.get("view_props"),
+            preferences=request.data.get("preferences"),
+            sort_order=request.data.get("sort_order"),
+        )
+        user_property.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

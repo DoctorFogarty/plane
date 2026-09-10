@@ -42,6 +42,7 @@ from plane.db.models import (
     EstimatePoint,
     IssueType,
     Project,
+    ProjectIssueType,
 )
 from plane.utils.content_validator import (
     validate_html_content,
@@ -196,6 +197,12 @@ class IssueCreateSerializer(BaseSerializer):
             ).exists()
         ):
             raise serializers.ValidationError("Estimate point is not valid please pass a valid estimate_point_id")
+
+        if attrs.get("type") and not ProjectIssueType.objects.filter(
+            project_id=self.context.get("project_id"),
+            issue_type_id=attrs["type"].id,
+        ).exists():
+            raise serializers.ValidationError("Type is not valid for this project")
 
         return attrs
 

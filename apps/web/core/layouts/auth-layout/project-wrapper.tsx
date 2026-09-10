@@ -27,6 +27,7 @@ import {
   PROJECT_MODULES,
   PROJECT_VIEWS,
   PROJECT_INTAKE_STATE,
+  WORK_ITEM_TYPES_PROPERTIES_AND_OPTIONS,
 } from "@plane/constants";
 // hooks
 import { useProjectEstimates } from "@/hooks/store/estimates";
@@ -36,10 +37,12 @@ import { useMember } from "@/hooks/store/use-member";
 import { useModule } from "@/hooks/store/use-module";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
+import { useIssueType } from "@/hooks/store/use-issue-type";
 import { useProjectView } from "@/hooks/store/use-project-view";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { useTimeLineChart } from "@/hooks/use-timeline-chart";
 import { runIdleTask } from "@/lib/idle-task";
+import { consumePrefetch } from "@/lib/prefetch-registry";
 
 interface IProjectAuthWrapper {
   workspaceSlug: string;
@@ -70,6 +73,7 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   const { data: currentUserData } = useUser();
   const { fetchProjectLabels } = useLabel();
   const { getProjectEstimates } = useProjectEstimates();
+  const { fetchWorkItemTypesPropertiesAndOptions } = useIssueType();
   // derived values
   const hasPermissionToCurrentProject = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
@@ -79,6 +83,7 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   );
   const currentProjectRole = getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId);
   const hasResolvedProjectRole = currentProjectRole !== undefined && currentProjectRole !== null;
+  const canFetchProjectMeta = Boolean(workspaceSlug && projectId);
   const cachedProjectDetails = getProjectById(projectId);
   const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE, workspaceSlug);
   useEffect(() => {
@@ -93,40 +98,57 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
 
   const swrImmutable = { revalidateIfStale: false, revalidateOnFocus: false };
 
+  // List-critical fetchers consume a fresh hover/focus prefetch (usePrefetchProject)
+  // when one is in flight instead of issuing the same request again on mount.
   // fetching project details
   const { isLoading: isProjectDetailsLoading, error: projectDetailsError } = useSWR(
     PROJECT_DETAILS(workspaceSlug, projectId),
-    () => fetchProjectDetails(workspaceSlug, projectId),
+    () =>
+      consumePrefetch(PROJECT_DETAILS(workspaceSlug, projectId), () => fetchProjectDetails(workspaceSlug, projectId)),
     swrImmutable
   );
   // fetching user project member information
   useSWR(
     PROJECT_ME_INFORMATION(workspaceSlug, projectId),
-    () => fetchUserProjectInfo(workspaceSlug, projectId),
+    () =>
+      consumePrefetch(PROJECT_ME_INFORMATION(workspaceSlug, projectId), () =>
+        fetchUserProjectInfo(workspaceSlug, projectId)
+      ),
     swrImmutable
   );
-  // fetching project member preferences
+  // List-critical meta starts with the project. Keys omit role so ME resolving
+  // does not cancel-and-refetch these after they have already landed.
   useSWR(
-    currentUserData?.id ? PROJECT_MEMBER_PREFERENCES(projectId, currentProjectRole) : null,
-    currentUserData?.id ? () => fetchProjectUserProperties(workspaceSlug, projectId) : null,
+    canFetchProjectMeta && currentUserData?.id ? PROJECT_MEMBER_PREFERENCES(projectId, undefined) : null,
+    currentUserData?.id
+      ? () =>
+          consumePrefetch(PROJECT_MEMBER_PREFERENCES(projectId, undefined), () =>
+            fetchProjectUserProperties(workspaceSlug, projectId)
+          )
+      : null,
     swrImmutable
   );
-  // fetching project labels
   useSWR(
-    hasResolvedProjectRole ? PROJECT_LABELS(projectId, currentProjectRole) : null,
-    () => fetchProjectLabels(workspaceSlug, projectId),
+    canFetchProjectMeta ? PROJECT_LABELS(projectId, undefined) : null,
+    () => consumePrefetch(PROJECT_LABELS(projectId, undefined), () => fetchProjectLabels(workspaceSlug, projectId)),
     swrImmutable
   );
-  // fetching project members
   useSWR(
-    hasResolvedProjectRole ? PROJECT_MEMBERS(projectId, currentProjectRole) : null,
-    () => fetchProjectMembers(workspaceSlug, projectId),
+    canFetchProjectMeta ? PROJECT_MEMBERS(projectId, undefined) : null,
+    () => consumePrefetch(PROJECT_MEMBERS(projectId, undefined), () => fetchProjectMembers(workspaceSlug, projectId)),
     swrImmutable
   );
-  // fetching project states
   useSWR(
-    hasResolvedProjectRole ? PROJECT_STATES(projectId, currentProjectRole) : null,
-    () => fetchProjectStates(workspaceSlug, projectId),
+    canFetchProjectMeta ? PROJECT_STATES(projectId, undefined) : null,
+    () => consumePrefetch(PROJECT_STATES(projectId, undefined), () => fetchProjectStates(workspaceSlug, projectId)),
+    swrImmutable
+  );
+  useSWR(
+    canFetchProjectMeta ? WORK_ITEM_TYPES_PROPERTIES_AND_OPTIONS(projectId, undefined) : null,
+    () =>
+      consumePrefetch(WORK_ITEM_TYPES_PROPERTIES_AND_OPTIONS(projectId, undefined), () =>
+        fetchWorkItemTypesPropertiesAndOptions(workspaceSlug, projectId)
+      ),
     swrImmutable
   );
   // fetching project intake state

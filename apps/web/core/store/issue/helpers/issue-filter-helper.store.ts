@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { isEmpty, set } from "lodash-es";
+import { isEmpty, isEqual, set } from "lodash-es";
 import { runInAction } from "mobx";
 // plane constants
 import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
@@ -237,25 +237,16 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
     getComputedDisplayProperties(displayProperties);
 
   /**
-   * Write display/rich/kanban filters for an entity. Used to hydrate from cache or apply a network response.
+   * Build the filter document writeEntityFilters would persist, without mutating the map.
    */
-  protected writeEntityFilters(
-    filters: Record<string, IIssueFilters>,
-    entityId: string,
+  protected buildEntityFilters(
     workspaceSlug: string,
+    entityId: string,
     storeType: EIssuesStoreType,
     currentUserId: string | undefined,
     properties: TFilterPropertySource,
     displayFilterDefaults?: IIssueDisplayFilterOptions
-  ) {
-    const richFilters = properties?.rich_filters;
-    const displayFilters = this.computedDisplayFilters(
-      properties?.display_filters ?? ({} as IIssueDisplayFilterOptions),
-      displayFilterDefaults
-    );
-    const displayProperties = this.computedDisplayProperties(
-      properties?.display_properties ?? ({} as IIssueDisplayProperties)
-    );
+  ): IIssueFilters {
     const kanbanFilters: TIssueKanbanFilters = {
       group_by: [],
       sub_group_by: [],
@@ -266,12 +257,59 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
       kanbanFilters.sub_group_by = localFilters?.kanban_filters?.sub_group_by || [];
     }
 
+    return {
+      richFilters: properties?.rich_filters ?? {},
+      displayFilters: this.computedDisplayFilters(
+        properties?.display_filters ?? ({} as IIssueDisplayFilterOptions),
+        displayFilterDefaults
+      ),
+      displayProperties: this.computedDisplayProperties(
+        properties?.display_properties ?? ({} as IIssueDisplayProperties)
+      ),
+      kanbanFilters,
+    };
+  }
+
+  protected entityFiltersMatch(current: IIssueFilters | undefined, next: IIssueFilters): boolean {
+    if (!current) return false;
+    return (
+      isEqual(current.richFilters ?? {}, next.richFilters ?? {}) &&
+      isEqual(current.displayFilters, next.displayFilters) &&
+      isEqual(current.displayProperties, next.displayProperties) &&
+      isEqual(current.kanbanFilters, next.kanbanFilters)
+    );
+  }
+
+  /**
+   * Write display/rich/kanban filters for an entity. Used to hydrate from cache or apply a network response.
+   * Returns false when the computed document already matches the stored one so observers do not churn.
+   */
+  protected writeEntityFilters(
+    filters: Record<string, IIssueFilters>,
+    entityId: string,
+    workspaceSlug: string,
+    storeType: EIssuesStoreType,
+    currentUserId: string | undefined,
+    properties: TFilterPropertySource,
+    displayFilterDefaults?: IIssueDisplayFilterOptions
+  ) {
+    const next = this.buildEntityFilters(
+      workspaceSlug,
+      entityId,
+      storeType,
+      currentUserId,
+      properties,
+      displayFilterDefaults
+    );
+    if (this.entityFiltersMatch(filters[entityId], next)) return false;
+
     runInAction(() => {
-      set(filters, [entityId, "richFilters"], richFilters);
-      set(filters, [entityId, "displayFilters"], displayFilters);
-      set(filters, [entityId, "displayProperties"], displayProperties);
-      set(filters, [entityId, "kanbanFilters"], kanbanFilters);
+      set(filters, [entityId, "richFilters"], next.richFilters);
+      set(filters, [entityId, "displayFilters"], next.displayFilters);
+      set(filters, [entityId, "displayProperties"], next.displayProperties);
+      set(filters, [entityId, "kanbanFilters"], next.kanbanFilters);
     });
+    return true;
   }
 
   protected copyEntityFilters(filters: Record<string, IIssueFilters>, entityId: string, source: IIssueFilters) {
@@ -487,7 +525,12 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
       const groupingChanged =
         applied.displayFilters.group_by !== previousGroupBy ||
         applied.displayFilters.sub_group_by !== previousSubGroupBy;
-      if (groupingChanged) {
+      const isLayoutDrivenNormalize =
+        groupingChanged &&
+        displayPatch.layout !== undefined &&
+        displayPatch.group_by === undefined &&
+        displayPatch.sub_group_by === undefined;
+      if (groupingChanged && !isLayoutDrivenNormalize) {
         args.clear?.();
       }
       if (args.forceRefetch || groupingChanged || this.getShouldReFetchIssues(displayPatch)) {

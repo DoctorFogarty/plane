@@ -5,7 +5,7 @@
  */
 
 /* eslint-disable no-shadow, react-hooks/exhaustive-deps */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/element/pointer-outside-of-preview";
@@ -28,8 +28,8 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@plane/ui";
 import { cn } from "@plane/utils";
 // components
-import { getTabUrl, resolveDefaultTabKey } from "@/components/navigation/tab-navigation-utils";
-import { useTabPreferences } from "@/components/navigation/use-tab-preferences";
+import { usePrefetchProject } from "@/components/navigation/use-prefetch-project";
+import { useProjectSwitchHref } from "@/components/navigation/use-project-switch-href";
 import { LeaveProjectModal } from "@/components/project/leave-project-modal";
 import { PublishProjectModal } from "@/components/project/publish-project/modal";
 // hooks
@@ -40,7 +40,6 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web imports
-import { useNavigationItems } from "@/plane-web/components/navigations";
 import { ProjectNavigationRoot } from "@/plane-web/components/sidebar";
 // local imports
 import { HIGHLIGHT_CLASS, highlightIssueOnDrop } from "../../issues/issue-layouts/utils";
@@ -96,21 +95,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const router = useRouter();
   // derived values
   const project = getPartialProjectById(projectId);
-
-  // Get available navigation items for this project
-  const navigationItems = useNavigationItems({
-    workspaceSlug: workspaceSlug.toString(),
-    projectId,
-    project,
-    allowPermissions,
-  });
-  const availableTabKeys = navigationItems.map((item) => item.key);
-
-  // Get preferences from hook
-  const { tabPreferences } = useTabPreferences(workspaceSlug.toString(), projectId);
-  const defaultTabKey = tabPreferences.defaultTab;
-  const validatedDefaultTabKey = resolveDefaultTabKey(defaultTabKey, availableTabKeys);
-  const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, validatedDefaultTabKey) : "";
+  const getProjectHref = useProjectSwitchHref(workspaceSlug.toString());
+  const prefetchProject = usePrefetchProject(workspaceSlug.toString());
+  const defaultTabUrl = project ? getProjectHref(project.id) : "";
 
   // toggle project list open
   const setIsProjectListOpen = useCallback(
@@ -266,7 +253,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     if (projectPreferences.navigationMode === "ACCORDION") {
       setIsProjectListOpen(!isProjectListOpen);
     } else {
-      router.push(defaultTabUrl);
+      startTransition(() => {
+        router.push(defaultTabUrl);
+      });
     }
     // close the extended sidebar if it is open
     if (isExtendedProjectSidebarOpened && !isAccordionMode) {
@@ -325,7 +314,13 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               </Tooltip>
             )}
             <>
-              <ControlLink href={defaultTabUrl} className="flex flex-grow truncate" onClick={handleItemClick}>
+              <ControlLink
+                href={defaultTabUrl}
+                className="flex flex-grow truncate"
+                onClick={handleItemClick}
+                onMouseEnter={() => prefetchProject(project.id)}
+                onFocus={() => prefetchProject(project.id)}
+              >
                 {isAccordionMode ? (
                   <Disclosure.Button
                     as="button"

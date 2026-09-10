@@ -9,8 +9,17 @@ import { observer } from "mobx-react";
 import type { IWorkItemPeekOverview } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { IssuePeekOverviewLoader } from "./loader";
 
 const IssuePeekOverviewContent = lazy(() => import("./root").then((module) => ({ default: module.IssuePeekOverview })));
+
+function PeekSuspenseFallback() {
+  return (
+    <div className="absolute top-0 right-0 bottom-0 z-[25] flex w-full flex-col overflow-hidden border-l border-subtle bg-surface-1 md:w-1/2">
+      <IssuePeekOverviewLoader removeRoutePeekId={() => undefined} />
+    </div>
+  );
+}
 
 export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWorkItemPeekOverview) {
   const { embedIssue = false } = props;
@@ -20,7 +29,9 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
   if (!embedIssue && !peekIssue?.issueId && !epicPeekIssue?.issueId) return null;
 
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={embedIssue ? <IssuePeekOverviewLoader removeRoutePeekId={() => undefined} /> : <PeekSuspenseFallback />}
+    >
       <IssuePeekOverviewContent {...props} />
     </Suspense>
   );

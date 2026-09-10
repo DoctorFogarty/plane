@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 import { observer } from "mobx-react";
 import { v4 as uuidv4 } from "uuid";
 // plane imports
@@ -43,7 +43,7 @@ export const WorkItemFiltersHOC = observer(function WorkItemFiltersHOC(props: TW
 type TWorkItemFilterProps = TSharedWorkItemFiltersProps &
   TAdditionalWorkItemFiltersProps & {
     initialWorkItemFilters: IIssueFilters;
-    children: React.ReactNode | ((props: { filter: IWorkItemFilterInstance }) => React.ReactNode);
+    children: React.ReactNode | ((props: { filter: IWorkItemFilterInstance | undefined }) => React.ReactNode);
   };
 
 const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItemFilterProps) {
@@ -61,7 +61,7 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
     ...entityConfigProps
   } = props;
   // store hooks
-  const { getOrCreateFilter, deleteFilter } = useWorkItemFilters();
+  const { getFilter, getOrCreateFilter, deleteFilter } = useWorkItemFilters();
   // derived values
   const workItemEntityID = useMemo(
     () => (isTemporary ? `TEMP-${entityId ?? uuidv4()}` : entityId),
@@ -75,25 +75,16 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
     ...entityConfigProps,
   });
 
-  // One instance per entity id; expression/callback sync happens in the effect below
-  const workItemLayoutFilter = useMemo(
-    () =>
-      getOrCreateFilter({
-        entityType,
-        entityId: workItemEntityID,
-        initialExpression: initialUserFilters,
-        onExpressionChange: updateFilters,
-        expressionOptions: {
-          saveViewOptions,
-          updateViewOptions,
-        },
-        showOnMount,
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- create once per entity; effect re-syncs
-    [entityType, workItemEntityID, getOrCreateFilter]
-  );
+  // Observable read only. The instance is created in the layout effect below.
+  // Creating it during render mutates the store while the header's
+  // WorkItemFiltersToggle (already mounted) observes it; that schedules a sync
+  // update which aborts the in-progress navigation render. On a project switch
+  // React kept restarting until the transition lane expired (~5s per switch).
+  const workItemLayoutFilter = getFilter(entityType, workItemEntityID);
 
-  useEffect(() => {
+  // Layout effect so the instance exists before paint; the resulting sync
+  // re-render lands in the same frame, so there is no visible flicker.
+  useLayoutEffect(() => {
     getOrCreateFilter({
       entityType,
       entityId: workItemEntityID,
@@ -125,14 +116,12 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
     [deleteFilter, entityType, workItemEntityID]
   );
 
+  const configManager = workItemLayoutFilter?.configManager;
   useEffect(() => {
-    workItemLayoutFilter.configManager.setAreConfigsReady(workItemFiltersConfig.areAllConfigsInitialized);
-    workItemLayoutFilter.configManager.replaceAll(workItemFiltersConfig.configs);
-  }, [
-    workItemFiltersConfig.areAllConfigsInitialized,
-    workItemFiltersConfig.configs,
-    workItemLayoutFilter.configManager,
-  ]);
+    if (!configManager) return;
+    configManager.setAreConfigsReady(workItemFiltersConfig.areAllConfigsInitialized);
+    configManager.replaceAll(workItemFiltersConfig.configs);
+  }, [workItemFiltersConfig.areAllConfigsInitialized, workItemFiltersConfig.configs, configManager]);
 
   return <>{typeof children === "function" ? children({ filter: workItemLayoutFilter }) : children}</>;
 });

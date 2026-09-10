@@ -160,6 +160,7 @@ class IntakeIssuePublicViewSet(BaseViewSet):
                 actor=request.user,
                 data=issue_data,
                 allow_triage_state=True,
+                # Anonymous space intake cannot satisfy required custom properties.
                 validate_property_required=False,
                 in_transaction=attach_intake,
             )

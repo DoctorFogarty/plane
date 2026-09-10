@@ -7,13 +7,13 @@
 import { range } from "lodash-es";
 import { Row } from "@plane/ui";
 import { BLOCK_HEIGHT } from "@/components/gantt-chart/constants";
-import { getRandomLength } from "../utils";
+import { getStableLoaderClass, LOADER_GANTT_OFFSETS, LOADER_TITLE_WIDTH_CLASSES } from "../utils";
 
-export function GanttLayoutListItemLoader() {
+export function GanttLayoutListItemLoader({ rowIndex = 0 }: { rowIndex?: number }) {
   return (
     <div className="flex w-full items-center gap-4 px-6" style={{ height: `${BLOCK_HEIGHT}px` }}>
       <div className="h-6 w-8 rounded-sm bg-layer-1 px-3" />
-      <div className={`h-6 px-3 w-${getRandomLength(["32", "52", "72"])} rounded-sm bg-layer-1`} />
+      <div className={`h-6 rounded-sm bg-layer-1 px-3 ${getStableLoaderClass(rowIndex, LOADER_TITLE_WIDTH_CLASSES)}`} />
     </div>
   );
 }
@@ -36,7 +36,9 @@ export function GanttLayoutLoader() {
             {range(6).map((index) => (
               <div key={index} className="flex h-11 w-full items-center gap-3">
                 <span className="h-6 w-6 rounded-sm bg-layer-1" />
-                <span className={`h-6 w-${getRandomLength(["32", "52", "72"])} rounded-sm bg-layer-1`} />
+                <span
+                  className={`h-6 rounded-sm bg-layer-1 ${getStableLoaderClass(index, LOADER_TITLE_WIDTH_CLASSES)}`}
+                />
               </div>
             ))}
           </Row>
@@ -56,10 +58,12 @@ export function GanttLayoutLoader() {
             {range(6).map((index) => (
               <div
                 key={index}
-                className={`flex h-11 w-full items-center gap-3`}
-                style={{ paddingLeft: getRandomLength(["115px", "208px", "260px"]) }}
+                className="flex h-11 w-full items-center gap-3"
+                style={{ paddingLeft: getStableLoaderClass(index, LOADER_GANTT_OFFSETS) }}
               >
-                <span className={`h-6 w-40 w-${getRandomLength(["32", "52", "72"])} rounded-sm bg-layer-1`} />
+                <span
+                  className={`h-6 w-40 rounded-sm bg-layer-1 ${getStableLoaderClass(index, LOADER_TITLE_WIDTH_CLASSES)}`}
+                />
               </div>
             ))}
           </div>

@@ -4,14 +4,19 @@
 
 """Shared board-query pipeline for project / cycle / module / archive / workspace lists."""
 
+import json
 from collections import namedtuple
 
-from django.db.models import Count, OuterRef, Q, Subquery
+from django.contrib.postgres.aggregates import ArrayAgg
+from django.contrib.postgres.fields import ArrayField
+from django.db.models import Count, OuterRef, Q, Subquery, UUIDField, Value
+from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE
-from plane.db.models import CycleIssue, FileAsset, Issue, IssueLink, Project, ProjectMember
+from plane.db.models import CycleIssue, FileAsset, Issue, IssueLink, IssueView, Project, ProjectMember
+from plane.utils.filters import IssueComplexFilterBackend, LegacyToRichFiltersConverter
 from plane.utils.grouper import (
     ISSUE_BOARD_FIELDS,
     annotate_issue_relation_ids,
@@ -41,6 +46,54 @@ _FALSEY_GROUP_VALUES = {"", "false", "none", "null"}
 
 class InvalidBoardGrouping(ValueError):
     """Raised when group_by and sub_group_by name the same field."""
+
+
+class SavedViewNotFound(ValueError):
+    """Raised when `view_id` does not resolve to a workspace/project saved view."""
+
+
+def _parse_request_filter_tree(request):
+    raw = request.query_params.get("filters")
+    if not raw:
+        return None
+    if isinstance(raw, dict):
+        return raw or None
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    return parsed or None
+
+
+def resolve_saved_view_filters(request, *, slug, project_id=None):
+    """Load a saved view's rich filter tree, or None when `view_id` is absent."""
+    view_id = request.query_params.get("view_id")
+    if not view_id:
+        return None
+
+    queryset = IssueView.objects.filter(workspace__slug=slug, pk=view_id, archived_at__isnull=True)
+    if project_id:
+        queryset = queryset.filter(Q(project_id=project_id) | Q(project__isnull=True))
+    else:
+        queryset = queryset.filter(project__isnull=True)
+
+    issue_view = queryset.only("rich_filters", "filters").first()
+    if issue_view is None:
+        raise SavedViewNotFound("view_id is not valid")
+    if issue_view.rich_filters:
+        return issue_view.rich_filters
+    if issue_view.filters:
+        return LegacyToRichFiltersConverter().convert(issue_view.filters, strict=False) or None
+    return None
+
+
+def _merge_filter_trees(*trees):
+    present = [tree for tree in trees if tree]
+    if not present:
+        return None
+    if len(present) == 1:
+        return present[0]
+    return {"and": present}
 
 
 def parse_group_param(value):
@@ -126,18 +179,74 @@ def guest_issue_access_q(user):
     )
 
 
-def apply_board_filters(queryset, request, view=None, extra_filters=None, prefix=""):
-    if view is not None:
-        queryset = view.filter_queryset(queryset)
-    filters = issue_filters(request.query_params, "GET", prefix=prefix)
+def apply_board_filters(
+    queryset,
+    request,
+    view=None,
+    extra_filters=None,
+    prefix="",
+    saved_view_filters=None,
+):
+    """Apply one compiled filter tree, then hierarchy / extra kwargs.
+
+    Rich JSON (`filters` / saved `view_id`) is the single stack when present.
+    Legacy flat GET params run only when no rich tree exists.
+    """
+    request_tree = _parse_request_filter_tree(request)
+    filter_tree = _merge_filter_trees(saved_view_filters, request_tree)
+
+    if filter_tree:
+        filter_view = view if view is not None else type("BoardFilterView", (), {})()
+        queryset = IssueComplexFilterBackend().filter_queryset(
+            request, queryset, filter_view, filter_data=filter_tree
+        )
+        filters = {}
+    else:
+        if view is not None:
+            queryset = view.filter_queryset(queryset)
+        filters = issue_filters(request.query_params, "GET", prefix=prefix)
+        queryset = apply_issue_filters(
+            queryset,
+            filters,
+            extra_filters=None,
+            query_params=None,
+            prefix=prefix,
+        )
+
     queryset = apply_issue_filters(
         queryset,
-        filters,
+        {},
         extra_filters,
         query_params=request.query_params,
         prefix=prefix,
     )
     return queryset, filters
+
+
+def annotate_intake_issue_relations(queryset):
+    """Label / assignee ids on IntakeIssue rows for the intake serializer."""
+    return queryset.annotate(
+        label_ids=Coalesce(
+            ArrayAgg(
+                "issue__labels__id",
+                distinct=True,
+                filter=Q(~Q(issue__labels__id__isnull=True) & Q(issue__label_issue__deleted_at__isnull=True)),
+            ),
+            Value([], output_field=ArrayField(UUIDField())),
+        ),
+        assignee_ids=Coalesce(
+            ArrayAgg(
+                "issue__assignees__id",
+                distinct=True,
+                filter=Q(
+                    ~Q(issue__assignees__id__isnull=True)
+                    & Q(issue__assignees__member_project__is_active=True)
+                    & Q(issue__issue_assignee__deleted_at__isnull=True)
+                ),
+            ),
+            Value([], output_field=ArrayField(UUIDField())),
+        ),
+    )
 
 
 def wants_property_values(request):
@@ -273,12 +382,22 @@ def prepare_issue_board(
     grouper_fn=None,
     slug=None,
     project_id=None,
+    saved_view_filters=None,
 ):
     extra = dict(extra_filters or {})
     if request.GET.get("updated_at__gt") is not None:
         extra["updated_at__gt"] = request.GET.get("updated_at__gt")
 
-    issue_queryset, filters = apply_board_filters(queryset, request, view=view, extra_filters=extra or None)
+    if saved_view_filters is None and slug:
+        saved_view_filters = resolve_saved_view_filters(request, slug=slug, project_id=project_id)
+
+    issue_queryset, filters = apply_board_filters(
+        queryset,
+        request,
+        view=view,
+        extra_filters=extra or None,
+        saved_view_filters=saved_view_filters,
+    )
     if restrict_guest:
         issue_queryset = restrict_guest_issues(
             issue_queryset,
@@ -329,6 +448,11 @@ def list_issue_board(
     grouper_fn=None,
 ):
     """Filter, annotate, group, and paginate a board-scoped issue queryset."""
+    try:
+        saved_view_filters = resolve_saved_view_filters(request, slug=slug, project_id=project_id)
+    except SavedViewNotFound as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
     prepared = prepare_issue_board(
         view,
         request,
@@ -342,6 +466,7 @@ def list_issue_board(
         grouper_fn=grouper_fn,
         slug=slug,
         project_id=project_id,
+        saved_view_filters=saved_view_filters,
     )
     try:
         return paginate_issue_board(

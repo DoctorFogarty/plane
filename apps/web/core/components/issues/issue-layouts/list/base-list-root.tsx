@@ -6,7 +6,7 @@
 /* eslint-disable no-shadow */
 
 import type { FC } from "react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useLayoutEffect } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane constants
@@ -87,7 +87,7 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   const collapsedGroups =
     issuesFilter?.issueFilters?.kanbanFilters || ({ group_by: [], sub_group_by: [] } as TIssueKanbanFilters);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     fetchIssues("init-loader", { canGroup: true, perPageCount: group_by ? 50 : 100 }, viewId);
   }, [fetchIssues, storeType, group_by, viewId]);
 

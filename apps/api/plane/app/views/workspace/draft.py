@@ -230,7 +230,6 @@ class WorkspaceDraftIssueViewSet(BaseViewSet):
                 project=draft_issue.project,
                 actor=request.user,
                 data=payload,
-                validate_property_required="property_values" in payload,
                 in_transaction=transfer_draft,
             )
         except WorkItemCreateError as exc:

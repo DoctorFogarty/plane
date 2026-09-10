@@ -6,7 +6,7 @@
 /* eslint-disable no-shadow, react-hooks/exhaustive-deps */
 
 import type { FC } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
@@ -97,7 +97,7 @@ export const BaseKanBanRoot = observer(function BaseKanBanRoot(props: IBaseKanBa
 
   const orderBy = displayFilters?.order_by;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     fetchIssues("init-loader", { canGroup: true, perPageCount: 10 }, viewId);
   }, [fetchIssues, storeType, group_by, sub_group_by, viewId]);
 

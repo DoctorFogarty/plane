@@ -75,17 +75,15 @@ class ProjectStateGroupViewSet(BaseViewSet):
     def partial_update(self, request, slug, project_id, pk):
         try:
             group = ProjectStateGroup.objects.get(pk=pk, project_id=project_id, workspace__slug=slug)
-            if group.is_system or group.category == StateGroup.TRIAGE.value:
-                # Allow sequence/name/color updates on non-triage; block triage entirely
-                if group.category == StateGroup.TRIAGE.value:
-                    return Response(
-                        {"error": "System triage group cannot be modified"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+            if group.category == StateGroup.TRIAGE.value:
+                return Response(
+                    {"error": "System triage group cannot be modified"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             serializer = ProjectStateGroupSerializer(group, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
-                # Sync denormalized category on member states when category changes
+                # Cache writer: State.group mirrors workflow_group.category
                 if "category" in serializer.validated_data:
                     State.all_state_objects.filter(workflow_group=group).update(
                         group=serializer.validated_data["category"]

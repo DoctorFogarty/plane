@@ -5,7 +5,12 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { collectionIdentityFromListKey, issueListRequestKey } from "@/store/issue/helpers/collection-ref";
+import {
+  collectionIdentityFromListKey,
+  findListSnapshotKey,
+  issueListRequestKey,
+  listKeyMatchesCollection,
+} from "@/store/issue/helpers/collection-ref";
 
 describe("issueListRequestKey", () => {
   it("omits layout so list and board share a collection identity", () => {
@@ -59,5 +64,50 @@ describe("issueListRequestKey", () => {
 
     expect(byState).not.toBe(byPriority);
     expect(collectionIdentityFromListKey(byState)).toBe(collectionIdentityFromListKey(byPriority));
+  });
+});
+
+describe("listKeyMatchesCollection", () => {
+  it("treats project list keys as matching the current project", () => {
+    const listKey = issueListRequestKey({
+      workspaceSlug: "acme",
+      projectId: "proj-1",
+      params: { group_by: "state" },
+    });
+
+    expect(listKeyMatchesCollection(listKey, { workspaceSlug: "acme", projectId: "proj-1", entityId: "proj-1" })).toBe(
+      true
+    );
+    expect(listKeyMatchesCollection(listKey, { workspaceSlug: "acme", projectId: "proj-2", entityId: "proj-2" })).toBe(
+      false
+    );
+  });
+
+  it("does not treat a missing list key as a match", () => {
+    expect(listKeyMatchesCollection(undefined, { workspaceSlug: "acme", projectId: "proj-1" })).toBe(false);
+  });
+});
+
+describe("findListSnapshotKey", () => {
+  it("prefers an exact key, then the newest identity match", () => {
+    const exact = issueListRequestKey({
+      workspaceSlug: "acme",
+      projectId: "proj-1",
+      params: { group_by: "state" },
+    });
+    const older = issueListRequestKey({
+      workspaceSlug: "acme",
+      projectId: "proj-1",
+      params: { group_by: "priority" },
+    });
+    const otherProject = issueListRequestKey({
+      workspaceSlug: "acme",
+      projectId: "proj-2",
+      params: { group_by: "state" },
+    });
+
+    expect(findListSnapshotKey([older, otherProject, exact], exact)).toBe(exact);
+    expect(findListSnapshotKey([older, otherProject], exact)).toBe(older);
+    expect(findListSnapshotKey([otherProject], exact)).toBeUndefined();
   });
 });

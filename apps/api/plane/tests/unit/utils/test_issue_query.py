@@ -12,10 +12,13 @@ from plane.utils.issue_query import (
     INTAKE_BOARD_COUNT_FILTER,
     InvalidBoardGrouping,
     PreparedIssueBoard,
+    SavedViewNotFound,
+    apply_board_filters,
     guest_issue_access_q,
     list_issue_board,
     paginate_issue_board,
     parse_group_param,
+    resolve_saved_view_filters,
     wants_property_values,
 )
 
@@ -166,6 +169,49 @@ def test_hierarchy_filters_treat_show_sub_issues_as_sub_issue():
     assert hierarchy_filters_q({"sub_issue": "true"}) == hierarchy_filters_q({})
     combined = hierarchy_filters_q({"sub_issue": "false", "exclude_epics": "true"})
     assert combined != explicit
+
+
+@pytest.mark.unit
+def test_apply_board_filters_uses_rich_tree_only(monkeypatch):
+    applied = {}
+
+    def fake_filter(self, request, queryset, view, filter_data=None):
+        applied["filter_data"] = filter_data
+        return queryset
+
+    monkeypatch.setattr(
+        "plane.utils.issue_query.IssueComplexFilterBackend.filter_queryset",
+        fake_filter,
+    )
+    queryset, filters = apply_board_filters(
+        ["qs"],
+        _FakeRequest(get={"filters": '{"priority__in":["high"]}', "state": "ignored"}),
+        view=_FakeView(),
+    )
+    assert queryset == ["qs"]
+    assert applied["filter_data"] == {"priority__in": ["high"]}
+    assert filters == {}
+
+
+@pytest.mark.unit
+def test_resolve_saved_view_filters_requires_valid_id(monkeypatch):
+    class _QS:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def only(self, *args, **kwargs):
+            return self
+
+        def first(self):
+            return None
+
+    class _Manager:
+        def filter(self, *args, **kwargs):
+            return _QS()
+
+    monkeypatch.setattr("plane.utils.issue_query.IssueView.objects", _Manager())
+    with pytest.raises(SavedViewNotFound):
+        resolve_saved_view_filters(_FakeRequest(get={"view_id": "missing"}), slug="ws")
 
 
 @pytest.mark.unit

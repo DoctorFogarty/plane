@@ -13,7 +13,7 @@ import { observer } from "mobx-react";
 import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
 // types
 import type { TGroupedIssues, TIssue, TPaginationData, ICalendarWeek, TSupportedFilterForUpdate } from "@plane/types";
-import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
+import { EIssueLayoutTypes } from "@plane/types";
 // ui
 import { Spinner } from "@plane/ui";
 import { renderFormattedPayloadDate, cn } from "@plane/utils";
@@ -22,6 +22,7 @@ import { MONTHS_LIST } from "@plane/constants";
 // helpers
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
+import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import useSize from "@/hooks/use-window-size";
 // store
 import type { ICycleIssuesFilter } from "@/store/issue/cycle";
@@ -89,9 +90,10 @@ export const CalendarChart = observer(function CalendarChart(props: Props) {
   //refs
   const scrollableContainerRef = useRef<HTMLDivElement | null>(null);
   // store hooks
+  const storeType = useIssueStoreType();
   const {
     issues: { viewFlags },
-  } = useIssues(EIssuesStoreType.PROJECT);
+  } = useIssues(storeType);
 
   const [windowWidth] = useSize();
 

@@ -4,25 +4,15 @@
  * See the LICENSE file for details.
  */
 
-import { lazy, Suspense } from "react";
 import { observer } from "mobx-react";
 import { EIssueLayoutTypes } from "@plane/types";
 import { ActiveLoader } from "./issue-layout-HOC";
 import { useIssueLayoutPolicy } from "./issue-layout-policy";
-
-const BaseListRoot = lazy(() => import("./list/base-list-root").then((module) => ({ default: module.BaseListRoot })));
-const BaseKanBanRoot = lazy(() =>
-  import("./kanban/base-kanban-root").then((module) => ({ default: module.BaseKanBanRoot }))
-);
-const BaseCalendarRoot = lazy(() =>
-  import("./calendar/base-calendar-root").then((module) => ({ default: module.BaseCalendarRoot }))
-);
-const BaseSpreadsheetRoot = lazy(() =>
-  import("./spreadsheet/base-spreadsheet-root").then((module) => ({ default: module.BaseSpreadsheetRoot }))
-);
-const BaseGanttRoot = lazy(() =>
-  import("./gantt/base-gantt-root").then((module) => ({ default: module.BaseGanttRoot }))
-);
+import { BaseCalendarRoot } from "./calendar/base-calendar-root";
+import { BaseGanttRoot } from "./gantt/base-gantt-root";
+import { BaseKanBanRoot } from "./kanban/base-kanban-root";
+import { BaseListRoot } from "./list/base-list-root";
+import { BaseSpreadsheetRoot } from "./spreadsheet/base-spreadsheet-root";
 
 type TIssueLayoutRendererProps = {
   activeLayout: EIssueLayoutTypes | undefined;
@@ -44,26 +34,18 @@ export const IssueLayoutRenderer = observer(function IssueLayoutRenderer(props: 
 
   if (!activeLayout) return <ActiveLoader layout={activeLayout} />;
 
-  let layoutNode = null;
   switch (activeLayout) {
     case EIssueLayoutTypes.LIST:
-      layoutNode = <BaseListRoot {...shared} />;
-      break;
+      return <BaseListRoot {...shared} />;
     case EIssueLayoutTypes.KANBAN:
-      layoutNode = <BaseKanBanRoot {...shared} />;
-      break;
+      return <BaseKanBanRoot {...shared} />;
     case EIssueLayoutTypes.CALENDAR:
-      layoutNode = <BaseCalendarRoot {...shared} />;
-      break;
+      return <BaseCalendarRoot {...shared} />;
     case EIssueLayoutTypes.SPREADSHEET:
-      layoutNode = <BaseSpreadsheetRoot {...shared} />;
-      break;
+      return <BaseSpreadsheetRoot {...shared} />;
     case EIssueLayoutTypes.GANTT:
-      layoutNode = <BaseGanttRoot {...shared} />;
-      break;
+      return <BaseGanttRoot {...shared} />;
     default:
-      return null;
+      return <ActiveLoader layout={activeLayout} />;
   }
-
-  return <Suspense fallback={<ActiveLoader layout={activeLayout} />}>{layoutNode}</Suspense>;
 });

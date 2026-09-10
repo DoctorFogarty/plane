@@ -7,12 +7,8 @@ import json
 
 # Django import
 from django.utils import timezone
-from django.db.models import Q, Count, OuterRef, Func, F, Prefetch, Subquery
+from django.db.models import Q, Count, Prefetch
 from django.core.serializers.json import DjangoJSONEncoder
-from django.contrib.postgres.aggregates import ArrayAgg
-from django.contrib.postgres.fields import ArrayField
-from django.db.models import Value, UUIDField
-from django.db.models.functions import Coalesce
 
 # Third party imports
 from rest_framework import status
@@ -25,11 +21,8 @@ from plane.db.models import (
     Intake,
     IntakeIssue,
     Issue,
-    IssueLink,
-    FileAsset,
     Project,
     ProjectMember,
-    CycleIssue,
     IssueDescriptionVersion,
     WorkspaceMember,
 )
@@ -41,8 +34,16 @@ from plane.app.serializers import (
     IntakeIssueDetailSerializer,
     IssueDescriptionVersionDetailSerializer,
 )
-from plane.utils.issue_filters import apply_issue_filters, issue_filters
-from plane.utils.issue_query import is_restricted_guest
+from plane.utils.filters import IssueComplexFilterBackend, IssueFilterSet
+from plane.utils.grouper import annotate_issue_relation_ids
+from plane.utils.issue_query import (
+    SavedViewNotFound,
+    annotate_intake_issue_relations,
+    annotate_issue_detail_qs,
+    apply_board_filters,
+    is_restricted_guest,
+    resolve_saved_view_filters,
+)
 from plane.utils.work_item import WorkItemCreateError, create_work_item, ensure_triage_state
 from plane.utils.order_queryset import INTAKE_ISSUE_ORDER_BY_ALLOWLIST, sanitize_order_by
 from plane.bgtasks.issue_activities_task import issue_activity
@@ -95,11 +96,13 @@ class IntakeViewSet(BaseViewSet):
 class IntakeIssueViewSet(BaseViewSet):
     serializer_class = IntakeIssueSerializer
     model = IntakeIssue
+    filter_backends = (IssueComplexFilterBackend,)
+    filterset_class = IssueFilterSet
 
     filterset_fields = ["status"]
 
     def get_queryset(self):
-        return (
+        return annotate_issue_detail_qs(
             Issue.objects.filter(
                 project_id=self.kwargs.get("project_id"),
                 workspace__slug=self.kwargs.get("slug"),
@@ -112,66 +115,6 @@ class IntakeIssueViewSet(BaseViewSet):
                     queryset=IntakeIssue.objects.only("status", "duplicate_to", "snoozed_till", "source"),
                 )
             )
-            .annotate(
-                cycle_id=Subquery(
-                    CycleIssue.objects.filter(issue=OuterRef("id"), deleted_at__isnull=True).values("cycle_id")[:1]
-                )
-            )
-            .annotate(
-                link_count=IssueLink.objects.filter(issue=OuterRef("id"))
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                attachment_count=FileAsset.objects.filter(
-                    issue_id=OuterRef("id"),
-                    entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
-                )
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                sub_issues_count=Issue.issue_objects.filter(parent=OuterRef("id"))
-                .order_by()
-                .annotate(count=Func(F("id"), function="Count"))
-                .values("count")
-            )
-            .annotate(
-                label_ids=Coalesce(
-                    ArrayAgg(
-                        "labels__id",
-                        distinct=True,
-                        filter=Q(~Q(labels__id__isnull=True) & Q(label_issue__deleted_at__isnull=True)),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-                assignee_ids=Coalesce(
-                    ArrayAgg(
-                        "assignees__id",
-                        distinct=True,
-                        filter=Q(
-                            ~Q(assignees__id__isnull=True)
-                            & Q(assignees__member_project__is_active=True)
-                            & Q(issue_assignee__deleted_at__isnull=True)
-                        ),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-                module_ids=Coalesce(
-                    ArrayAgg(
-                        "issue_module__module_id",
-                        distinct=True,
-                        filter=Q(
-                            ~Q(issue_module__module_id__isnull=True)
-                            & Q(issue_module__module__archived_at__isnull=True)
-                            & Q(issue_module__deleted_at__isnull=True)
-                        ),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-            )
         ).distinct()
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
@@ -181,25 +124,29 @@ class IntakeIssueViewSet(BaseViewSet):
             return Response({"error": "Intake not found"}, status=status.HTTP_404_NOT_FOUND)
 
         project = Project.objects.get(pk=project_id)
-        filters = issue_filters(request.GET, "GET", "issue__")
+        try:
+            saved_view_filters = resolve_saved_view_filters(request, slug=slug, project_id=project_id)
+        except SavedViewNotFound as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        issue_queryset, _filters = apply_board_filters(
+            Issue.objects.filter(
+                project_id=project_id,
+                workspace__slug=slug,
+                issue_intake__intake_id=intake.id,
+            ),
+            request,
+            view=self,
+            saved_view_filters=saved_view_filters,
+        )
         intake_issue = (
-            apply_issue_filters(
-                IntakeIssue.objects.filter(intake_id=intake.id, project_id=project_id),
-                filters,
-                query_params=request.GET,
-                prefix="issue__",
-            )
-            .select_related("issue")
-            .prefetch_related("issue__labels")
-            .annotate(
-                label_ids=Coalesce(
-                    ArrayAgg(
-                        "issue__labels__id",
-                        distinct=True,
-                        filter=Q(~Q(issue__labels__id__isnull=True) & Q(issue__label_issue__deleted_at__isnull=True)),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
+            annotate_intake_issue_relations(
+                IntakeIssue.objects.filter(
+                    intake_id=intake.id,
+                    project_id=project_id,
+                    issue_id__in=issue_queryset.values("id"),
                 )
+                .select_related("issue")
+                .prefetch_related("issue__labels")
             )
         ).order_by(
             sanitize_order_by(
@@ -258,7 +205,7 @@ class IntakeIssueViewSet(BaseViewSet):
                 actor=request.user,
                 data=request.data.get("issue"),
                 allow_triage_state=True,
-                validate_property_required="property_values" in (request.data.get("issue") or {}),
+                # In-app intake uses the same required-property invariant as board create.
                 in_transaction=attach_intake,
             )
         except WorkItemCreateError as exc:
@@ -283,35 +230,12 @@ class IntakeIssueViewSet(BaseViewSet):
             user_id=request.user.id,
             is_creating=True,
         )
-        intake_issue = (
-            IntakeIssue.objects.select_related("issue")
-            .prefetch_related("issue__labels", "issue__assignees")
-            .annotate(
-                label_ids=Coalesce(
-                    ArrayAgg(
-                        "issue__labels__id",
-                        distinct=True,
-                        filter=Q(
-                            ~Q(issue__labels__id__isnull=True) & Q(issue__label_issue__deleted_at__isnull=True)
-                        ),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-                assignee_ids=Coalesce(
-                    ArrayAgg(
-                        "issue__assignees__id",
-                        distinct=True,
-                        filter=~Q(issue__assignees__id__isnull=True)
-                        & Q(issue__assignees__member_project__is_active=True),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-            )
-            .get(
-                intake_id=intake.id,
-                issue_id=issue.id,
-                project_id=project_id,
-            )
+        intake_issue = annotate_intake_issue_relations(
+            IntakeIssue.objects.select_related("issue").prefetch_related("issue__labels", "issue__assignees")
+        ).get(
+            intake_id=intake.id,
+            issue_id=issue.id,
+            project_id=project_id,
         )
         return Response(IntakeIssueDetailSerializer(intake_issue).data, status=status.HTTP_200_OK)
 
@@ -366,24 +290,9 @@ class IntakeIssueViewSet(BaseViewSet):
 
         # Validate issue data if provided
         if bool(issue_data):
-            issue = Issue.objects.annotate(
-                label_ids=Coalesce(
-                    ArrayAgg(
-                        "labels__id",
-                        distinct=True,
-                        filter=Q(~Q(labels__id__isnull=True) & Q(label_issue__deleted_at__isnull=True)),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-                assignee_ids=Coalesce(
-                    ArrayAgg(
-                        "assignees__id",
-                        distinct=True,
-                        filter=Q(~Q(assignees__id__isnull=True) & Q(issue_assignee__deleted_at__isnull=True)),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-            ).get(pk=intake_issue.issue_id, workspace__slug=slug, project_id=project_id)
+            issue = annotate_issue_relation_ids(Issue.objects.all()).get(
+                pk=intake_issue.issue_id, workspace__slug=slug, project_id=project_id
+            )
 
             if project_member and project_member.role <= ROLE.GUEST.value:
                 issue_data = {
@@ -457,32 +366,9 @@ class IntakeIssueViewSet(BaseViewSet):
                 intake=str(intake_issue.id),
             )
 
-        # Fetch and return the updated intake issue
-        intake_issue = (
-            IntakeIssue.objects.select_related("issue")
-            .prefetch_related("issue__labels", "issue__assignees")
-            .annotate(
-                label_ids=Coalesce(
-                    ArrayAgg(
-                        "issue__labels__id",
-                        distinct=True,
-                        filter=Q(~Q(issue__labels__id__isnull=True) & Q(issue__label_issue__deleted_at__isnull=True)),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-                assignee_ids=Coalesce(
-                    ArrayAgg(
-                        "issue__assignees__id",
-                        distinct=True,
-                        filter=Q(
-                            ~Q(issue__assignees__id__isnull=True) & Q(issue__issue_assignee__deleted_at__isnull=True)
-                        ),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-            )
-            .get(intake_id=intake_id.id, issue_id=pk, project_id=project_id)
-        )
+        intake_issue = annotate_intake_issue_relations(
+            IntakeIssue.objects.select_related("issue").prefetch_related("issue__labels", "issue__assignees")
+        ).get(intake_id=intake_id.id, issue_id=pk, project_id=project_id)
         serializer = IntakeIssueDetailSerializer(intake_issue).data
         return Response(serializer, status=status.HTTP_200_OK)
 
@@ -490,31 +376,9 @@ class IntakeIssueViewSet(BaseViewSet):
     def retrieve(self, request, slug, project_id, pk):
         intake_id = Intake.objects.filter(workspace__slug=slug, project_id=project_id).first()
         project = Project.objects.get(pk=project_id)
-        intake_issue = (
-            IntakeIssue.objects.select_related("issue")
-            .prefetch_related("issue__labels", "issue__assignees")
-            .annotate(
-                label_ids=Coalesce(
-                    ArrayAgg(
-                        "issue__labels__id",
-                        distinct=True,
-                        filter=Q(~Q(issue__labels__id__isnull=True) & Q(issue__label_issue__deleted_at__isnull=True)),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-                assignee_ids=Coalesce(
-                    ArrayAgg(
-                        "issue__assignees__id",
-                        distinct=True,
-                        filter=Q(
-                            ~Q(issue__assignees__id__isnull=True) & Q(issue__issue_assignee__deleted_at__isnull=True)
-                        ),
-                    ),
-                    Value([], output_field=ArrayField(UUIDField())),
-                ),
-            )
-            .get(intake_id=intake_id.id, issue_id=pk, project_id=project_id)
-        )
+        intake_issue = annotate_intake_issue_relations(
+            IntakeIssue.objects.select_related("issue").prefetch_related("issue__labels", "issue__assignees")
+        ).get(intake_id=intake_id.id, issue_id=pk, project_id=project_id)
         if is_restricted_guest(
             slug=slug, project_id=project_id, user=request.user, project=project
         ) and intake_issue.created_by != request.user:

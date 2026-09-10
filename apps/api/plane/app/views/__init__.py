@@ -166,8 +166,12 @@ from .issue.type import (
     IssueTypeEnableEndpoint,
     IssueTypeViewSet,
     IssueTypePropertiesAndOptionsEndpoint,
+)
+from .issue.property import (
     IssuePropertyViewSet,
     IssuePropertyOptionViewSet,
+)
+from .issue.property_value import (
     IssuePropertyValueEndpoint,
     IssuePropertyValueBulkEndpoint,
 )

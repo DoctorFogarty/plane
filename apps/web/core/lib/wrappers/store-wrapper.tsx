@@ -5,9 +5,10 @@
  */
 
 import type { ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import type { ParsedUrlQuery } from "node:querystring";
 import { useTheme } from "next-themes";
 // helpers
 import { applyCustomTheme, clearCustomTheme } from "@plane/utils";
@@ -20,6 +21,26 @@ type TStoreWrapper = {
   children: ReactNode;
 };
 
+function routeParamsToQuery(params: Record<string, string | undefined> | null | undefined): ParsedUrlQuery {
+  const next: ParsedUrlQuery = {};
+  if (!params) return next;
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "*" || value == null || value === "") continue;
+    next[key] = value;
+  }
+  return next;
+}
+
+function areRouteParamsInSync(query: ParsedUrlQuery, params: Record<string, string | undefined>): boolean {
+  const keys = new Set([...Object.keys(query), ...Object.keys(params)]);
+  for (const key of keys) {
+    const raw = query[key];
+    const queryValue = Array.isArray(raw) ? raw[0] : raw;
+    if ((queryValue ?? "") !== (params[key] ?? "")) return false;
+  }
+  return true;
+}
+
 function StoreWrapper(props: TStoreWrapper) {
   const { children } = props;
   // theme
@@ -27,7 +48,7 @@ function StoreWrapper(props: TStoreWrapper) {
   // router
   const params = useParams();
   // store hooks
-  const { setQuery } = useRouterParams();
+  const { setQuery, query } = useRouterParams();
   const { sidebarCollapsed, toggleSidebar } = useAppTheme();
   const { data: userProfile } = useUserProfile();
   // Track if we've initialized theme from server (one-time only)
@@ -42,7 +63,7 @@ function StoreWrapper(props: TStoreWrapper) {
    */
   useEffect(() => {
     const localValue = localStorage && localStorage.getItem("app_sidebar_collapsed");
-    const localBoolValue = localValue ? (localValue === "true" ? true : false) : false;
+    const localBoolValue = localValue === "true";
     if (localValue && sidebarCollapsed === undefined) toggleSidebar(localBoolValue);
   }, [sidebarCollapsed, setTheme, toggleSidebar]);
 
@@ -74,7 +95,7 @@ function StoreWrapper(props: TStoreWrapper) {
 
     // Mark as initialized - prevents future syncs from server
     hasInitializedThemeRef.current = true;
-  }, [userProfile?.theme?.theme, setTheme]);
+  }, [userProfile?.id, userProfile?.theme?.theme, setTheme]);
 
   /**
    * Effect 2: Custom theme CSS application (runs on every change)
@@ -103,10 +124,14 @@ function StoreWrapper(props: TStoreWrapper) {
     previousThemeRef.current = currentTheme;
   }, [userProfile?.theme]);
 
-  useEffect(() => {
-    if (!params) return;
-    setQuery(params);
-  }, [params, setQuery]);
+  // Sync MobX router before paint. Writing the store during an observer render
+  // retriggered this wrapper on every frame after login.
+  useLayoutEffect(() => {
+    const nextQuery = routeParamsToQuery(params as Record<string, string | undefined>);
+    if (!areRouteParamsInSync(query, nextQuery as Record<string, string | undefined>)) {
+      setQuery(nextQuery);
+    }
+  }, [params, query, setQuery]);
 
   return <>{children}</>;
 }

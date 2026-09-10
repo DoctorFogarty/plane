@@ -234,4 +234,30 @@ describe("project user-properties bootstrap", () => {
       "property-a": true,
     });
   });
+
+  it("does not rewrite filters when fetchRef matches the hydrated document", async () => {
+    const memberStore = createMemberStore();
+    const properties = createUserProperties({ "property-a": true });
+    vi.spyOn(memberStore.projectService, "getProjectUserProperties").mockResolvedValue(properties);
+    const rootIssueStore = {
+      currentUserId: undefined,
+      rootStore: {
+        memberRoot: {
+          project: memberStore,
+        },
+      },
+    };
+    const issueFilter = new ProjectIssuesFilter(rootIssueStore as never);
+
+    await memberStore.fetchProjectUserProperties("workspace", "project-a");
+    issueFilter.hydrateFilters("workspace", "project-a");
+    const hydratedDisplayFilters = issueFilter.filters["project-a"].displayFilters;
+    const hydratedDisplayProperties = issueFilter.filters["project-a"].displayProperties;
+
+    await issueFilter.fetchFilters("workspace", "project-a");
+
+    expect(issueFilter.filters["project-a"].displayFilters).toBe(hydratedDisplayFilters);
+    expect(issueFilter.filters["project-a"].displayProperties).toBe(hydratedDisplayProperties);
+    expect(issueFilter.getIssueFilters("project-a")?.displayFilters?.group_by).toBeNull();
+  });
 });

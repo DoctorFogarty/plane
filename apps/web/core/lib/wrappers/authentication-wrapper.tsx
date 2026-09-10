@@ -6,6 +6,7 @@
 /* eslint-disable no-shadow */
 
 import type { ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams, usePathname } from "next/navigation";
 import useSWR from "swr";
@@ -30,10 +31,16 @@ const isValidURL = (url: string): boolean => {
   return !disallowedSchemes.test(url);
 };
 
+function normalizePath(path: string): string {
+  const pathname = path.split("?")[0] ?? path;
+  return pathname.replace(/\/+$/, "") || "/";
+}
+
 export const AuthenticationWrapper = observer(function AuthenticationWrapper(props: TAuthenticationWrapper) {
   const pathname = usePathname();
   const router = useAppRouter();
   const searchParams = useSearchParams();
+  const search = searchParams.toString();
   const nextPath = searchParams.get("next_path");
   // props
   const { children, pageType = EPageTypes.AUTHENTICATED } = props;
@@ -48,21 +55,6 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     shouldRetryOnError: false,
   });
 
-  const getLoginRedirectUrl = (): string => {
-    const search = searchParams.toString();
-    const nextPath = `${pathname}${search ? `?${search}` : ""}`;
-    const params = new URLSearchParams();
-    if (nextPath && nextPath !== "/") {
-      params.set("next_path", nextPath);
-    }
-    const inviteCode = searchParams.get("code") || searchParams.get("invite_code");
-    const workspaceSlug = searchParams.get("slug") || searchParams.get("workspace_slug");
-    if (inviteCode) params.set("invite_code", inviteCode);
-    if (workspaceSlug) params.set("workspace_slug", workspaceSlug);
-    const query = params.toString();
-    return query ? `/?${query}` : "/";
-  };
-
   const isUserOnboard =
     currentUserProfile?.is_onboarded ||
     (currentUserProfile?.onboarding_step?.profile_complete &&
@@ -71,28 +63,104 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
       currentUserProfile?.onboarding_step?.workspace_join) ||
     false;
 
-  const getWorkspaceRedirectionUrl = (): string => {
-    let redirectionRoute = "/create-workspace";
+  const redirect = useMemo(() => {
+    const getLoginRedirectUrl = (): string => {
+      const nextPathFromLocation = `${pathname}${search ? `?${search}` : ""}`;
+      const params = new URLSearchParams();
+      if (nextPathFromLocation && nextPathFromLocation !== "/") {
+        params.set("next_path", nextPathFromLocation);
+      }
+      const inviteCode = searchParams.get("code") || searchParams.get("invite_code");
+      const workspaceSlug = searchParams.get("slug") || searchParams.get("workspace_slug");
+      if (inviteCode) params.set("invite_code", inviteCode);
+      if (workspaceSlug) params.set("workspace_slug", workspaceSlug);
+      const query = params.toString();
+      return query ? `/?${query}` : "/";
+    };
 
-    // validating the nextPath from the router query
-    if (nextPath && isValidURL(nextPath.toString())) {
-      redirectionRoute = nextPath.toString();
+    const getWorkspaceRedirectionUrl = (): string => {
+      let redirectionRoute = "/create-workspace";
+
+      if (nextPath && isValidURL(nextPath.toString())) {
+        return nextPath.toString();
+      }
+
+      const currentWorkspaceSlug =
+        currentUserSettings?.workspace?.last_workspace_slug || currentUserSettings?.workspace?.fallback_workspace_slug;
+
+      const isCurrentWorkspaceValid = Object.values(workspaces || {}).findIndex(
+        (workspace) => workspace.slug === currentWorkspaceSlug
+      );
+
+      if (isCurrentWorkspaceValid >= 0) redirectionRoute = `/${currentWorkspaceSlug}`;
+
       return redirectionRoute;
+    };
+
+    if (pageType === EPageTypes.PUBLIC) return null;
+
+    if (pageType === EPageTypes.NON_AUTHENTICATED) {
+      if (!currentUser?.id) return null;
+      if (currentUserProfile?.id && isUserOnboard) {
+        return { to: getWorkspaceRedirectionUrl(), replace: false };
+      }
+      return { to: "/onboarding", replace: false };
     }
 
-    // validate the last and fallback workspace_slug
-    const currentWorkspaceSlug =
-      currentUserSettings?.workspace?.last_workspace_slug || currentUserSettings?.workspace?.fallback_workspace_slug;
+    if (pageType === EPageTypes.ONBOARDING) {
+      if (!currentUser?.id) return { to: getLoginRedirectUrl(), replace: false };
+      if (currentUser && currentUserProfile?.id && isUserOnboard) {
+        return { to: getWorkspaceRedirectionUrl(), replace: true };
+      }
+      return null;
+    }
 
-    // validate the current workspace_slug is available in the user's workspace list
-    const isCurrentWorkspaceValid = Object.values(workspaces || {}).findIndex(
-      (workspace) => workspace.slug === currentWorkspaceSlug
-    );
+    if (pageType === EPageTypes.SET_PASSWORD) {
+      if (!currentUser?.id) return { to: getLoginRedirectUrl(), replace: false };
+      if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
+        return { to: getWorkspaceRedirectionUrl(), replace: false };
+      }
+      return null;
+    }
 
-    if (isCurrentWorkspaceValid >= 0) redirectionRoute = `/${currentWorkspaceSlug}`;
+    if (pageType === EPageTypes.AUTHENTICATED) {
+      if (currentUser?.id) {
+        if (currentUserProfile && currentUserProfile?.id && isUserOnboard) return null;
+        return { to: "/onboarding", replace: false };
+      }
+      return { to: getLoginRedirectUrl(), replace: false };
+    }
 
-    return redirectionRoute;
-  };
+    return null;
+  }, [
+    currentUser,
+    currentUserProfile,
+    currentUserSettings?.workspace?.fallback_workspace_slug,
+    currentUserSettings?.workspace?.last_workspace_slug,
+    isUserOnboard,
+    nextPath,
+    pageType,
+    pathname,
+    search,
+    searchParams,
+    workspaces,
+  ]);
+
+  const redirectTo = redirect?.to ?? null;
+  const redirectReplace = redirect?.replace ?? false;
+  const lastRedirectRef = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (!redirectTo) {
+      lastRedirectRef.current = null;
+      return;
+    }
+    if (normalizePath(pathname) === normalizePath(redirectTo)) return;
+    if (lastRedirectRef.current === redirectTo) return;
+    lastRedirectRef.current = redirectTo;
+    if (redirectReplace) router.replace(redirectTo);
+    else router.push(redirectTo);
+  }, [pathname, redirectReplace, redirectTo, router]);
 
   if ((isUserSWRLoading || isUserLoading || workspacesLoader) && !currentUser?.id)
     return (
@@ -101,59 +169,12 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
       </div>
     );
 
-  if (pageType === EPageTypes.PUBLIC) return <>{children}</>;
-
-  if (pageType === EPageTypes.NON_AUTHENTICATED) {
-    if (!currentUser?.id) return <>{children}</>;
-    else {
-      if (currentUserProfile?.id && isUserOnboard) {
-        const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.push(currentRedirectRoute);
-        return <></>;
-      } else {
-        router.push("/onboarding");
-        return <></>;
-      }
-    }
-  }
-
-  if (pageType === EPageTypes.ONBOARDING) {
-    if (!currentUser?.id) {
-      router.push(getLoginRedirectUrl());
-      return <></>;
-    } else {
-      if (currentUser && currentUserProfile?.id && isUserOnboard) {
-        const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.replace(currentRedirectRoute);
-        return <></>;
-      } else return <>{children}</>;
-    }
-  }
-
-  if (pageType === EPageTypes.SET_PASSWORD) {
-    if (!currentUser?.id) {
-      router.push(getLoginRedirectUrl());
-      return <></>;
-    } else {
-      if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
-        const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.push(currentRedirectRoute);
-        return <></>;
-      } else return <>{children}</>;
-    }
-  }
-
-  if (pageType === EPageTypes.AUTHENTICATED) {
-    if (currentUser?.id) {
-      if (currentUserProfile && currentUserProfile?.id && isUserOnboard) return <>{children}</>;
-      else {
-        router.push(`/onboarding`);
-        return <></>;
-      }
-    } else {
-      router.push(getLoginRedirectUrl());
-      return <></>;
-    }
+  if (redirect) {
+    return (
+      <div className="relative flex h-screen w-full items-center justify-center">
+        <LogoSpinner />
+      </div>
+    );
   }
 
   return <>{children}</>;

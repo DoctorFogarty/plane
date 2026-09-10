@@ -7,7 +7,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { EIssueFilterType } from "@plane/constants";
 import type { IIssueDisplayFilterOptions, IIssueFilters } from "@plane/types";
-import { EIssueLayoutTypes } from "@plane/types";
+import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
+import type { TFilterPropertySource } from "@/store/issue/helpers/issue-filter-helper.store";
 import { IssueFilterHelperStore } from "@/store/issue/helpers/issue-filter-helper.store";
 
 const seedFilters = (displayFilters: IIssueDisplayFilterOptions): Record<string, IIssueFilters> => ({
@@ -20,7 +21,7 @@ const seedFilters = (displayFilters: IIssueDisplayFilterOptions): Record<string,
 });
 
 describe("commitFilterTypeUpdate", () => {
-  it("clears and refetches when kanban normalization changes grouping", async () => {
+  it("refetches without clearing when kanban normalization changes grouping", async () => {
     const store = new IssueFilterHelperStore();
     const filters = seedFilters({ layout: EIssueLayoutTypes.LIST, group_by: null });
     const clear = vi.fn();
@@ -36,7 +37,7 @@ describe("commitFilterTypeUpdate", () => {
     });
 
     expect(filters.entity.displayFilters?.group_by).toBe("state");
-    expect(clear).toHaveBeenCalledTimes(1);
+    expect(clear).not.toHaveBeenCalled();
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
@@ -111,5 +112,46 @@ describe("commitFilterTypeUpdate", () => {
 
     expect(clear).not.toHaveBeenCalled();
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+class TestableFilterStore extends IssueFilterHelperStore {
+  write(filters: Record<string, IIssueFilters>, entityId: string, properties: TFilterPropertySource) {
+    return this.writeEntityFilters(filters, entityId, "acme", EIssuesStoreType.PROJECT, undefined, properties);
+  }
+}
+
+describe("writeEntityFilters", () => {
+  const remote: TFilterPropertySource = {
+    rich_filters: {},
+    display_filters: { layout: EIssueLayoutTypes.LIST, group_by: "state" },
+    display_properties: { assignee: true },
+  };
+
+  it("does not replace the stored document when the remote payload matches", () => {
+    const store = new TestableFilterStore();
+    const filters: Record<string, IIssueFilters> = {};
+
+    expect(store.write(filters, "project-a", remote)).toBe(true);
+    const firstDisplayFilters = filters["project-a"].displayFilters;
+    const firstDisplayProperties = filters["project-a"].displayProperties;
+
+    expect(store.write(filters, "project-a", remote)).toBe(false);
+    expect(filters["project-a"].displayFilters).toBe(firstDisplayFilters);
+    expect(filters["project-a"].displayProperties).toBe(firstDisplayProperties);
+  });
+
+  it("writes when grouping differs from the hydrated document", () => {
+    const store = new TestableFilterStore();
+    const filters: Record<string, IIssueFilters> = {};
+
+    store.write(filters, "project-a", remote);
+    expect(
+      store.write(filters, "project-a", {
+        ...remote,
+        display_filters: { layout: EIssueLayoutTypes.LIST, group_by: "priority" },
+      })
+    ).toBe(true);
+    expect(filters["project-a"].displayFilters?.group_by).toBe("priority");
   });
 });

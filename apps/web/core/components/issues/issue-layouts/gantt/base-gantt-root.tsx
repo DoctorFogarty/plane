@@ -5,7 +5,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -69,7 +69,7 @@ export const BaseGanttRoot = observer(function BaseGanttRoot(props: IBaseGanttRo
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [quickAddDates, setQuickAddDates] = useState<{ start_date: string; target_date: string } | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     fetchIssues("init-loader", { canGroup: false, perPageCount: 100 }, viewId);
   }, [fetchIssues, storeType, viewId]);
 

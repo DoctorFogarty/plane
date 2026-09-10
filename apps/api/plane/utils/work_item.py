@@ -52,13 +52,23 @@ def _normalize_module_ids(module_ids):
     return [_parse_uuid(module_id, "module_ids") for module_id in module_ids if module_id]
 
 
+def adapt_public_work_item_payload(data):
+    """Map public REST field names onto the create-modal / IssueCreateSerializer shape."""
+    payload = dict(data or {})
+    if "assignee_ids" not in payload and "assignees" in payload:
+        payload["assignee_ids"] = payload.pop("assignees")
+    if "label_ids" not in payload and "labels" in payload:
+        payload["label_ids"] = payload.pop("labels")
+    return payload
+
+
 def create_work_item(
     *,
     project,
     actor,
     data,
     allow_triage_state=False,
-    validate_property_required=True,
+    validate_property_required=None,
     default_assignee_id=None,
     in_transaction=None,
 ):
@@ -70,7 +80,13 @@ def create_work_item(
 
     `in_transaction(issue)` runs before commit so callers can attach intake
     rows, transfer draft files, or clear anonymous actors atomically.
+
+    Required custom properties are enforced when types are enabled, unless the
+    caller passes `validate_property_required=False` (public/space forms).
     """
+    if validate_property_required is None:
+        validate_property_required = bool(getattr(project, "is_issue_type_enabled", False))
+
     property_values = (data or {}).get("property_values") or {}
     if not isinstance(property_values, dict):
         raise WorkItemCreateError({"error": "property_values must be an object"})

@@ -238,8 +238,8 @@ class State(ProjectBaseModel):
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
-        # Auto-assign a workflow group from category when missing
-        if not self.workflow_group_id and self.group and self.project_id:
+        # workflow_group is canonical. State.group is a cached category written here only.
+        if self._state.adding and not self.workflow_group_id and self.group and self.project_id:
             group = (
                 ProjectStateGroup.all_objects.filter(project_id=self.project_id, category=self.group)
                 .order_by("sequence")
@@ -247,10 +247,8 @@ class State(ProjectBaseModel):
             )
             if group:
                 self.workflow_group = group
-        # Keep behavioral category in sync with the workflow group
         if self.workflow_group_id:
-            # Avoid extra query when category already matches a prefetched/set group
-            if hasattr(self, "workflow_group") and self.workflow_group is not None:
+            if getattr(self, "workflow_group", None) is not None:
                 self.group = self.workflow_group.category
             else:
                 category = (

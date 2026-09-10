@@ -11,6 +11,7 @@ import type { IProject } from "@plane/types";
 // ui
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
+import { getDefaultTabUrl } from "@/components/navigation/tab-navigation-utils";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 
@@ -36,7 +37,7 @@ export function JoinProjectModal(props: TJoinProjectModalProps) {
 
     await joinProject(workspaceSlug, project.id)
       .then(() => {
-        router.push(`/${workspaceSlug}/projects/${project.id}/issues`);
+        router.push(getDefaultTabUrl(workspaceSlug, project.id));
         handleClose();
         return;
       })
@@ -62,7 +63,7 @@ export function JoinProjectModal(props: TJoinProjectModalProps) {
         <Button variant="secondary" size="lg" onClick={handleClose}>
           Cancel
         </Button>
-        <Button variant="primary" size="lg" tabIndex={1} type="submit" onClick={handleJoin} loading={isJoiningLoading}>
+        <Button variant="primary" size="lg" type="submit" onClick={handleJoin} loading={isJoiningLoading}>
           {isJoiningLoading ? "Joining..." : "Join Project"}
         </Button>
       </div>

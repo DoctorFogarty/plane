@@ -200,6 +200,7 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
                 actor=request.user,
                 data=create_data,
                 allow_triage_state=True,
+                # Public intake API is a subset of the create modal.
                 validate_property_required=False,
                 in_transaction=attach_intake,
             )

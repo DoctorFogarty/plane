@@ -97,11 +97,11 @@ class TestIssuePropertyValueNotifications:
 
         mock_redis = MagicMock()
         with (
-            patch("plane.app.views.issue.type.notifications") as mock_notifications,
-            patch("plane.app.views.issue.type.dispatch_slack_channel_event") as mock_slack,
-            patch("plane.app.views.issue.type.redis_instance", return_value=mock_redis),
+            patch("plane.utils.issue_property_activity.notifications") as mock_notifications,
+            patch("plane.utils.issue_property_activity.dispatch_slack_channel_event") as mock_slack,
+            patch("plane.utils.issue_property_activity.redis_instance", return_value=mock_redis),
             patch(
-                "plane.app.views.issue.type.base_host",
+                "plane.app.views.issue.property_value.base_host",
                 return_value="https://app.example.com",
             ),
         ):
@@ -138,11 +138,11 @@ class TestIssuePropertyValueNotifications:
 
         mock_redis = MagicMock()
         with (
-            patch("plane.app.views.issue.type.notifications"),
-            patch("plane.app.views.issue.type.dispatch_slack_channel_event"),
-            patch("plane.app.views.issue.type.redis_instance", return_value=mock_redis),
+            patch("plane.utils.issue_property_activity.notifications"),
+            patch("plane.utils.issue_property_activity.dispatch_slack_channel_event"),
+            patch("plane.utils.issue_property_activity.redis_instance", return_value=mock_redis),
             patch(
-                "plane.app.views.issue.type.base_host",
+                "plane.app.views.issue.property_value.base_host",
                 return_value="https://app.example.com",
             ),
         ):
@@ -154,11 +154,11 @@ class TestIssuePropertyValueNotifications:
         assert setup_response.status_code == status.HTTP_200_OK
 
         with (
-            patch("plane.app.views.issue.type.notifications") as mock_notifications,
-            patch("plane.app.views.issue.type.dispatch_slack_channel_event"),
-            patch("plane.app.views.issue.type.redis_instance", return_value=mock_redis),
+            patch("plane.utils.issue_property_activity.notifications") as mock_notifications,
+            patch("plane.utils.issue_property_activity.dispatch_slack_channel_event"),
+            patch("plane.utils.issue_property_activity.redis_instance", return_value=mock_redis),
             patch(
-                "plane.app.views.issue.type.base_host",
+                "plane.app.views.issue.property_value.base_host",
                 return_value="https://app.example.com",
             ),
         ):
@@ -181,11 +181,11 @@ class TestIssuePropertyValueNotifications:
 
         mock_redis = MagicMock()
         with (
-            patch("plane.app.views.issue.type.notifications"),
-            patch("plane.app.views.issue.type.dispatch_slack_channel_event"),
-            patch("plane.app.views.issue.type.redis_instance", return_value=mock_redis),
+            patch("plane.utils.issue_property_activity.notifications"),
+            patch("plane.utils.issue_property_activity.dispatch_slack_channel_event"),
+            patch("plane.utils.issue_property_activity.redis_instance", return_value=mock_redis),
             patch(
-                "plane.app.views.issue.type.base_host",
+                "plane.app.views.issue.property_value.base_host",
                 return_value="https://app.example.com",
             ),
         ):
@@ -196,7 +196,7 @@ class TestIssuePropertyValueNotifications:
             )
         assert setup_response.status_code == status.HTTP_200_OK
 
-        with patch("plane.app.views.issue.type.notifications") as mock_notifications:
+        with patch("plane.utils.issue_property_activity.notifications") as mock_notifications:
             response = session_client.patch(
                 url,
                 {"property_values": {prop_id: "Critical"}},

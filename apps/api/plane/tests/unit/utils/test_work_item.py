@@ -22,7 +22,13 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.db.models.intake import SourceType
-from plane.utils.work_item import WorkItemCreateError, create_work_item, ensure_triage_state
+from plane.db.models.issue_property import IssueProperty, IssuePropertyType
+from plane.utils.work_item import (
+    WorkItemCreateError,
+    adapt_public_work_item_payload,
+    create_work_item,
+    ensure_triage_state,
+)
 
 
 @pytest.fixture
@@ -193,6 +199,38 @@ class TestCreateWorkItem:
                 in_transaction=boom,
             )
         assert not Issue.objects.filter(name="Hook rollback").exists()
+
+    def test_required_properties_enforced_when_types_enabled(self, work_item_context):
+        ctx = work_item_context
+        IssueProperty.objects.create(
+            project=ctx["project"],
+            workspace=ctx["project"].workspace,
+            issue_type=ctx["task_type"],
+            name="Severity",
+            property_type=IssuePropertyType.TEXT,
+            is_required=True,
+            is_active=True,
+        )
+        with pytest.raises(WorkItemCreateError):
+            create_work_item(
+                project=ctx["project"],
+                actor=ctx["user"],
+                data={
+                    "name": "Missing required",
+                    "state_id": str(ctx["state"].id),
+                    "type_id": str(ctx["task_type"].id),
+                },
+            )
+        assert not Issue.objects.filter(name="Missing required").exists()
+
+    def test_adapt_public_work_item_payload_maps_assignees_and_labels(self):
+        adapted = adapt_public_work_item_payload(
+            {"name": "API item", "assignees": ["a"], "labels": ["b"], "priority": "high"}
+        )
+        assert adapted["assignee_ids"] == ["a"]
+        assert adapted["label_ids"] == ["b"]
+        assert "assignees" not in adapted
+        assert adapted["priority"] == "high"
 
     def test_ensure_triage_state_reuses_existing(self, work_item_context):
         ctx = work_item_context

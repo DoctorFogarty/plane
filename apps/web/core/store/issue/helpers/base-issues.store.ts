@@ -47,7 +47,12 @@ import {
   getSubGroupIssueKeyActions,
 } from "./base-issues-utils";
 import { filterHierarchyRootIssueIds, isHierarchyLayout } from "@/components/issues/issue-layouts/hierarchy.helpers";
-import { collectionIdentityFromListKey } from "./collection-ref";
+import {
+  collectionIdentityFromListKey,
+  findListSnapshotKey,
+  resolveBeginIssuesFetch,
+  shouldReuseWarmCollection,
+} from "./collection-ref";
 import type { IBaseIssueFilterStore } from "./issue-filter-helper.store";
 
 export type TIssueDisplayFilterOptions = Exclude<TIssueGroupByOptions, null> | "target_date";
@@ -321,10 +326,13 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     const inFlightRequest = this.fetchPromises.get(requestKey);
     if (inFlightRequest) return inFlightRequest;
 
-    const hasWarmCollection =
-      loadType === "init-loader" &&
-      this.lastCompletedRequestKey === requestKey &&
-      this.getGroupIssueCount(undefined, undefined, false) !== undefined;
+    const hasWarmCollection = shouldReuseWarmCollection({
+      loadType,
+      currentListKey: this.listKey,
+      nextListKey: requestKey,
+      lastCompletedRequestKey: this.lastCompletedRequestKey,
+      hasCurrentData: this.getGroupIssueCount(undefined, undefined, false) !== undefined,
+    });
     if (hasWarmCollection) {
       return Promise.resolve(undefined as unknown as TIssuesResponse);
     }
@@ -1244,39 +1252,45 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   beginIssuesFetch(listKey: string, loadType: TLoader, shouldClearPaginationOptions: boolean): TLoader {
     const isSameList = this.listKey === listKey;
     const hasCurrentData = this.groupedIssueIds !== undefined;
+    const identityChanged =
+      !!this.listKey && collectionIdentityFromListKey(this.listKey) !== collectionIdentityFromListKey(listKey);
+    const snapshotKey = this.listSnapshots[listKey]
+      ? listKey
+      : identityChanged
+        ? findListSnapshotKey(this.listSnapshotOrder, listKey)
+        : undefined;
+    const snapshot = snapshotKey ? this.listSnapshots[snapshotKey] : undefined;
+    const decision = resolveBeginIssuesFetch({
+      currentListKey: this.listKey,
+      nextListKey: listKey,
+      hasCurrentData,
+      hasSnapshot: !!snapshot,
+      loadType,
+    });
 
     if (!isSameList) {
       if (this.listKey && this.groupedIssueIds !== undefined) this.saveListSnapshot(this.listKey);
       this.controller.abort();
       this.controller = new AbortController();
-      const snapshot = this.listSnapshots[listKey];
-      const sameCollection =
-        !!this.listKey && collectionIdentityFromListKey(this.listKey) === collectionIdentityFromListKey(listKey);
       this.listKey = listKey;
-      if (snapshot) {
+      if (decision.action === "restore-snapshot" && snapshot) {
         this.restoreListSnapshot(snapshot);
-        const nextLoader = loadType === "init-loader" ? "mutation" : loadType;
-        this.setLoader(nextLoader);
-        return nextLoader;
+        this.setLoader(decision.loader);
+        return decision.loader;
       }
-      // Layout/param changes on the same entity keep chrome populated (stale-while-revalidate).
-      if (sameCollection && hasCurrentData && loadType === "init-loader") {
-        this.setLoader("mutation");
-        return "mutation";
+      if (decision.action === "stale-while-revalidate") {
+        this.setLoader(decision.loader);
+        return decision.loader;
       }
       this.clear(shouldClearPaginationOptions);
-      this.setLoader(loadType);
-      return loadType;
+      this.setLoader(decision.loader);
+      return decision.loader;
     }
 
     this.listKey = listKey;
-    if (hasCurrentData && loadType === "init-loader") {
-      this.setLoader("mutation");
-      return "mutation";
-    }
-    if (!hasCurrentData) this.clear(shouldClearPaginationOptions);
-    this.setLoader(loadType);
-    return loadType;
+    if (decision.action === "clear") this.clear(shouldClearPaginationOptions);
+    this.setLoader(decision.loader);
+    return decision.loader;
   }
 
   /**

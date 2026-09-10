@@ -4,20 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useMemo } from "react";
+import { startTransition, useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { ProjectIcon } from "@plane/propel/icons";
 import type { ICustomSearchSelectOption } from "@plane/types";
 import { CustomSearchSelect } from "@plane/ui";
 // hooks
-import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
-import { getProjectFeatureNavigation } from "@/plane-web/components/projects/navigation/helper";
 import { SwitcherLabel } from "../common/switcher-label";
 import { ProjectHeaderButton } from "./project-header-button";
-import { getProjectSwitchUrl } from "./tab-navigation-utils";
+import { usePrefetchProject } from "./use-prefetch-project";
+import { useProjectSwitchHref } from "./use-project-switch-href";
 
 type TProjectHeaderProps = {
   workspaceSlug: string;
@@ -30,9 +29,8 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
   const router = useAppRouter();
   // store hooks
   const { joinedProjectIds, getPartialProjectById } = useProject();
-  const {
-    project: { getProjectUserProperties },
-  } = useMember();
+  const getProjectHref = useProjectSwitchHref(workspaceSlug);
+  const prefetchProject = usePrefetchProject(workspaceSlug);
 
   const currentProjectDetails = getPartialProjectById(projectId);
 
@@ -65,16 +63,12 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
   const handleProjectChange = useCallback(
     (value: string) => {
       if (value === currentProjectDetails?.id) return;
-      const destinationProject = getPartialProjectById(value);
-      const destinationDefaultTab = getProjectUserProperties(value)?.preferences?.navigation?.default_tab;
-      const destinationTabKeys = destinationProject
-        ? getProjectFeatureNavigation(workspaceSlug, value, destinationProject)
-            .filter((item) => item.shouldRender)
-            .map((item) => item.key)
-        : undefined;
-      router.push(getProjectSwitchUrl(workspaceSlug, value, destinationDefaultTab, destinationTabKeys));
+      prefetchProject(value);
+      startTransition(() => {
+        router.push(getProjectHref(value));
+      });
     },
-    [currentProjectDetails?.id, getPartialProjectById, getProjectUserProperties, router, workspaceSlug]
+    [currentProjectDetails?.id, getProjectHref, prefetchProject, router]
   );
 
   // Early return if no project details

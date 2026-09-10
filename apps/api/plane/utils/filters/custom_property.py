@@ -3,29 +3,26 @@
 # See the LICENSE file for details.
 
 import re
-from datetime import datetime
-from functools import reduce
-from operator import or_
 from uuid import UUID
 
 from django.db.models import Q
-from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from plane.db.models import IssueProperty, IssuePropertyType
+from plane.utils.property_types import handler_for
 
 CUSTOM_PROPERTY_FILTER_RE = re.compile(
     r"^customproperty_(?P<property_id>[0-9a-fA-F-]{36})__(?P<lookup>exact|in|range)$"
 )
 
 ALLOWED_LOOKUPS_BY_TYPE = {
-    IssuePropertyType.TEXT: {"exact"},
-    IssuePropertyType.URL: {"exact"},
-    IssuePropertyType.NUMBER: {"exact"},
-    IssuePropertyType.BOOLEAN: {"exact"},
-    IssuePropertyType.DATE: {"exact", "range"},
-    IssuePropertyType.DROPDOWN: {"exact", "in"},
-    IssuePropertyType.MEMBER: {"exact", "in"},
+    IssuePropertyType.TEXT: handler_for(IssuePropertyType.TEXT).allowed_lookups,
+    IssuePropertyType.URL: handler_for(IssuePropertyType.URL).allowed_lookups,
+    IssuePropertyType.NUMBER: handler_for(IssuePropertyType.NUMBER).allowed_lookups,
+    IssuePropertyType.BOOLEAN: handler_for(IssuePropertyType.BOOLEAN).allowed_lookups,
+    IssuePropertyType.DATE: handler_for(IssuePropertyType.DATE).allowed_lookups,
+    IssuePropertyType.DROPDOWN: handler_for(IssuePropertyType.DROPDOWN).allowed_lookups,
+    IssuePropertyType.MEMBER: handler_for(IssuePropertyType.MEMBER).allowed_lookups,
 }
 
 # Stub FilterSet field names used for allowlist validation
@@ -52,52 +49,6 @@ def transform_custom_property_field_for_validation(field_name: str) -> str:
     return f"customproperty_value__{lookup}"
 
 
-def _parse_scalar_list(value):
-    if value is None:
-        return []
-    if isinstance(value, (list, tuple)):
-        return [v for v in value if v is not None and str(v).strip() != ""]
-    if isinstance(value, str):
-        if value.strip() == "":
-            return []
-        if "," in value:
-            return [part.strip() for part in value.split(",") if part.strip() != ""]
-        return [value]
-    return [value]
-
-
-def _parse_datetime_value(raw):
-    if isinstance(raw, datetime):
-        return raw
-    parsed = parse_datetime(str(raw))
-    if parsed is not None:
-        return parsed
-    parsed_date = parse_date(str(raw))
-    if parsed_date:
-        return datetime.combine(parsed_date, datetime.min.time())
-    raise DRFValidationError(
-        {
-            "message": f"Invalid date value '{raw}' for custom property filter",
-            "code": "invalid_custom_property_value",
-        }
-    )
-
-
-def _parse_boolean_value(raw):
-    if isinstance(raw, bool):
-        return raw
-    if str(raw).lower() in ("true", "1", "yes"):
-        return True
-    if str(raw).lower() in ("false", "0", "no"):
-        return False
-    raise DRFValidationError(
-        {
-            "message": f"Invalid boolean value '{raw}' for custom property filter",
-            "code": "invalid_custom_property_value",
-        }
-    )
-
-
 def _base_property_q(property_id: UUID) -> Q:
     return Q(
         property_values__property_id=property_id,
@@ -105,99 +56,19 @@ def _base_property_q(property_id: UUID) -> Q:
     )
 
 
-def _uuid_match_q(values) -> Q:
-    uuid_values = []
-    str_values = []
-    for value in values:
-        try:
-            uuid_values.append(UUID(str(value)))
-            str_values.append(str(value))
-        except (TypeError, ValueError):
-            raise DRFValidationError(
-                {
-                    "message": f"Invalid UUID value '{value}' for custom property filter",
-                    "code": "invalid_custom_property_value",
-                }
-            )
-
-    value_q = Q(property_values__value_uuid__in=uuid_values)
-    json_clauses = [Q(property_values__value_json__contains=[s]) for s in str_values]
-    if json_clauses:
-        value_q |= reduce(or_, json_clauses)
-    return value_q
-
-
 def _build_value_q(property_obj: IssueProperty, lookup: str, raw_value) -> Q:
-    property_type = property_obj.property_type
-    allowed = ALLOWED_LOOKUPS_BY_TYPE.get(property_type, set())
-    if lookup not in allowed:
+    handler = handler_for(property_obj.property_type)
+    if lookup not in handler.allowed_lookups:
         raise DRFValidationError(
             {
                 "message": (
                     f"Lookup '{lookup}' is not allowed for custom property "
-                    f"'{property_obj.name}' of type '{property_type}'"
+                    f"'{property_obj.name}' of type '{property_obj.property_type}'"
                 ),
                 "code": "invalid_custom_property_lookup",
             }
         )
-
-    if property_type in (IssuePropertyType.TEXT, IssuePropertyType.URL):
-        values = _parse_scalar_list(raw_value)
-        if not values:
-            return Q()
-        # Treat exact as case-insensitive contains for text search usability
-        return Q(property_values__value_text__icontains=str(values[0]))
-
-    if property_type == IssuePropertyType.NUMBER:
-        values = _parse_scalar_list(raw_value)
-        if not values:
-            return Q()
-        try:
-            number = float(values[0])
-        except (TypeError, ValueError):
-            raise DRFValidationError(
-                {
-                    "message": f"Invalid number value '{values[0]}' for custom property filter",
-                    "code": "invalid_custom_property_value",
-                }
-            )
-        return Q(property_values__value_number=number)
-
-    if property_type == IssuePropertyType.BOOLEAN:
-        values = _parse_scalar_list(raw_value)
-        if not values:
-            return Q()
-        return Q(property_values__value_boolean=_parse_boolean_value(values[0]))
-
-    if property_type == IssuePropertyType.DATE:
-        values = _parse_scalar_list(raw_value)
-        if not values:
-            return Q()
-        if lookup == "range":
-            if len(values) < 2:
-                raise DRFValidationError(
-                    {
-                        "message": "Date range filter requires start and end values",
-                        "code": "invalid_custom_property_value",
-                    }
-                )
-            start = _parse_datetime_value(values[0])
-            end = _parse_datetime_value(values[1])
-            return Q(property_values__value_datetime__range=(start, end))
-        return Q(property_values__value_datetime=_parse_datetime_value(values[0]))
-
-    if property_type in (IssuePropertyType.DROPDOWN, IssuePropertyType.MEMBER):
-        values = _parse_scalar_list(raw_value)
-        if not values:
-            return Q()
-        return _uuid_match_q(values)
-
-    raise DRFValidationError(
-        {
-            "message": f"Unsupported custom property type '{property_type}'",
-            "code": "invalid_custom_property_type",
-        }
-    )
+    return handler.filter_q(property_obj, lookup, raw_value)
 
 
 def build_custom_property_filter_q(field_name: str, raw_value, property_cache: dict | None = None) -> Q:

@@ -79,12 +79,14 @@ export const useProjectIssueProperties = () => {
 
   const fetchAll = async (workspaceSlug: string | string[] | undefined, projectId: string | string[] | undefined) => {
     if (workspaceSlug && projectId) {
-      await fetchStates(workspaceSlug, projectId);
-      await fetchMembers(workspaceSlug, projectId);
-      await fetchLabels(workspaceSlug, projectId);
-      await fetchCycles(workspaceSlug, projectId);
-      await fetchModules(workspaceSlug, projectId);
-      await fetchEstimates(workspaceSlug, projectId);
+      await Promise.all([
+        fetchStates(workspaceSlug, projectId),
+        fetchMembers(workspaceSlug, projectId),
+        fetchLabels(workspaceSlug, projectId),
+        fetchCycles(workspaceSlug, projectId),
+        fetchModules(workspaceSlug, projectId),
+        fetchEstimates(workspaceSlug, projectId),
+      ]);
     }
   };
 

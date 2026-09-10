@@ -12,6 +12,7 @@ import type { ICustomSearchSelectOption } from "@plane/types";
 import { BreadcrumbNavigationSearchDropdown, Breadcrumbs } from "@plane/ui";
 import { SwitcherLabel } from "@/components/common/switcher-label";
 // hooks
+import { useProjectSwitchHref } from "@/components/navigation/use-project-switch-href";
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
 import type { TProject } from "@plane/types";
@@ -22,24 +23,30 @@ type TProjectBreadcrumbProps = {
   handleOnClick?: () => void;
 };
 
+function renderProjectIcon(projectDetails: TProject) {
+  return (
+    <span className="grid size-4 flex-shrink-0 place-items-center">
+      <Logo logo={projectDetails.logo_props} size={14} />
+    </span>
+  );
+}
+
 export const ProjectBreadcrumb = observer(function ProjectBreadcrumb(props: TProjectBreadcrumbProps) {
   const { workspaceSlug, projectId, handleOnClick } = props;
   // router
   const router = useAppRouter();
   // store hooks
   const { joinedProjectIds, getPartialProjectById } = useProject();
+  const getProjectHref = useProjectSwitchHref(workspaceSlug);
   const currentProjectDetails = getPartialProjectById(projectId);
-
-  // store hooks
 
   if (!currentProjectDetails) return null;
 
-  // derived values
   const switcherOptions = joinedProjectIds
-    .map((projectId) => {
-      const project = getPartialProjectById(projectId);
+    .map((joinedProjectId) => {
+      const project = getPartialProjectById(joinedProjectId);
       return {
-        value: projectId,
+        value: joinedProjectId,
         query: project?.name,
         content: (
           <SwitcherLabel
@@ -53,13 +60,6 @@ export const ProjectBreadcrumb = observer(function ProjectBreadcrumb(props: TPro
     })
     .filter((option) => option !== undefined) as ICustomSearchSelectOption[];
 
-  // helpers
-  const renderIcon = (projectDetails: TProject) => (
-    <span className="grid size-4 flex-shrink-0 place-items-center">
-      <Logo logo={projectDetails.logo_props} size={14} />
-    </span>
-  );
-
   return (
     <>
       <Breadcrumbs.Item
@@ -68,13 +68,13 @@ export const ProjectBreadcrumb = observer(function ProjectBreadcrumb(props: TPro
             selectedItem={currentProjectDetails.id}
             navigationItems={switcherOptions}
             onChange={(value: string) => {
-              router.push(`/${workspaceSlug}/projects/${value}/issues`);
+              router.push(getProjectHref(value));
             }}
             title={currentProjectDetails?.name}
-            icon={renderIcon(currentProjectDetails)}
+            icon={renderProjectIcon(currentProjectDetails)}
             handleOnClick={() => {
               if (handleOnClick) handleOnClick();
-              else router.push(`/${workspaceSlug}/projects/${currentProjectDetails.id}/issues/`);
+              else router.push(getProjectHref(currentProjectDetails.id));
             }}
             shouldTruncate
           />

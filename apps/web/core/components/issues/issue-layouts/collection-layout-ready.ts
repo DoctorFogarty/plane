@@ -6,6 +6,14 @@
 
 import type { IIssueFilters } from "@plane/types";
 
+export function shouldShowIssueLayoutLoader(
+  isInitialLoading: boolean,
+  listKey: string | undefined,
+  listBelongsToRoute: boolean
+) {
+  return isInitialLoading || (listKey !== undefined && !listBelongsToRoute);
+}
+
 export function shouldRenderCollectionLoader(args: {
   workspaceSlug?: string;
   projectId?: string;

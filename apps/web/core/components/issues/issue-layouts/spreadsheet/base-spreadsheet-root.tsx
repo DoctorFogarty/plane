@@ -6,7 +6,7 @@
 /* eslint-disable no-shadow, react-hooks/exhaustive-deps */
 
 import type { FC } from "react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useLayoutEffect } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -68,7 +68,7 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
     EUserPermissionsLevel.PROJECT
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     fetchIssues("init-loader", { canGroup: false, perPageCount: 100 }, viewId);
   }, [fetchIssues, storeType, viewId]);
 
