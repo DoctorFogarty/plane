@@ -36,8 +36,7 @@ export function InputSearch(props: IInputSearch) {
 
   useEffect(() => {
     if (isOpen && !isMobile) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      inputRef.current && inputRef.current.focus();
+      inputRef.current?.focus();
     }
   }, [isOpen, isMobile]);
 

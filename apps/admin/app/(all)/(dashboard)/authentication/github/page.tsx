@@ -60,14 +60,13 @@ const InstanceGithubAuthenticationPage = observer(function InstanceGithubAuthent
       },
     });
 
-    await updateConfigPromise
-      .then(() => {
-        setIsSubmitting(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setIsSubmitting(false);
-      });
+    try {
+      await updateConfigPromise;
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isGithubEnabled = enableGithubConfig === "1";

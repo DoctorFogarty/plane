@@ -23,15 +23,19 @@ export function FilterItemContainer(props: FilterItemContainerProps) {
   const { children, conditionValue, showTransition, variant = "default", tooltipContent } = props;
   // refs
   const itemRef = useRef<HTMLDivElement>(null);
+  const showTransitionRef = useRef(showTransition);
+  const conditionValueRef = useRef(conditionValue);
+  showTransitionRef.current = showTransition;
+  conditionValueRef.current = conditionValue;
 
   // effects
   useEffect(() => {
-    if (!showTransition) return;
+    if (!showTransitionRef.current) return;
 
     const element = itemRef.current;
     if (!element) return;
 
-    if (hasValidValue(conditionValue)) return;
+    if (hasValidValue(conditionValueRef.current)) return;
 
     const applyInitialStyles = () => {
       element.style.opacity = "0";
@@ -51,7 +55,6 @@ export function FilterItemContainer(props: FilterItemContainerProps) {
     return () => {
       applyInitialStyles();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

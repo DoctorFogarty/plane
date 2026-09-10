@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "@headlessui/react";
 import useSWR, { mutate } from "swr";
 import { ISSUE_GITHUB_DEVELOPMENT } from "@plane/constants";
@@ -170,18 +170,20 @@ export function ConnectCodeModal(props: Props) {
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
 
-  const remoteBranchList = remoteBranches?.branches || [];
-  const remoteBranchNames = new Set(remoteBranchList.map((branch) => branch.name));
-  const compareBranches = [
-    ...linkedBranches
-      .filter((branch) => !remoteBranchNames.has(branch.name))
-      .map((branch) => ({
-        name: branch.name,
-        protected: false,
-        commit_sha: branch.head_sha || "",
-      })),
-    ...remoteBranchList,
-  ];
+  const compareBranches = useMemo(() => {
+    const remoteBranchList = remoteBranches?.branches || [];
+    const remoteBranchNames = new Set(remoteBranchList.map((branch) => branch.name));
+    return [
+      ...linkedBranches
+        .filter((branch) => !remoteBranchNames.has(branch.name))
+        .map((branch) => ({
+          name: branch.name,
+          protected: false,
+          commit_sha: branch.head_sha || "",
+        })),
+      ...remoteBranchList,
+    ];
+  }, [linkedBranches, remoteBranches]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -223,8 +225,7 @@ export function ConnectCodeModal(props: Props) {
       if (current && (names.includes(current) || names.length === 0)) return current;
       return names[0] ?? linkedName;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- compareBranches is an inline array
-  }, [defaultBranchName, isOpen, linkedBranches, mode, remoteBranches, repositoryId]);
+  }, [compareBranches, defaultBranchName, isOpen, linkedBranches, mode, remoteBranches, repositoryId]);
 
   const handleClose = () => {
     if (ignoreCloseRef.current || isSubmitting) return;

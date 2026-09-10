@@ -56,7 +56,7 @@ type EmptySpaceItemProps = {
 };
 
 function EmptySpaceItem({ title, description, Icon, action, href }: EmptySpaceItemProps) {
-  let spaceItem = (
+  const spaceItem = (
     <div className={`group relative flex ${description ? "items-start" : "items-center"} space-x-3 py-4`}>
       <div className="flex-shrink-0">
         <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent-primary">
@@ -74,16 +74,26 @@ function EmptySpaceItem({ title, description, Icon, action, href }: EmptySpaceIt
   );
 
   if (href) {
-    spaceItem = <Link href={href}>{spaceItem}</Link>;
+    return (
+      <li>
+        <Link href={href} onClick={action}>
+          {spaceItem}
+        </Link>
+      </li>
+    );
   }
 
-  return (
-    <>
-      <li className="cursor-pointer" onClick={action} role="button">
-        {spaceItem}
+  if (action) {
+    return (
+      <li>
+        <button type="button" className="w-full cursor-pointer text-left" onClick={action}>
+          {spaceItem}
+        </button>
       </li>
-    </>
-  );
+    );
+  }
+
+  return <li>{spaceItem}</li>;
 }
 
 export { EmptySpace, EmptySpaceItem };

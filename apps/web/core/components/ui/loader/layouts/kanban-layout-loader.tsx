@@ -55,11 +55,14 @@ export function KanbanColumnLoader({
 KanbanIssueBlockLoader.displayName = "KanbanIssueBlockLoader";
 
 export function KanbanLayoutLoader({ cardsInEachColumn = [2, 3, 2, 4, 3] }: { cardsInEachColumn?: number[] }) {
+  const columnOccurrences = new Map<number, number>();
   return (
     <ContentWrapper className="flex-row gap-5 overflow-x-auto py-1.5">
-      {cardsInEachColumn.map((cardsInColumn, columnIndex) => (
-        <KanbanColumnLoader key={columnIndex} cardsInColumn={cardsInColumn} />
-      ))}
+      {cardsInEachColumn.map((cardsInColumn) => {
+        const occurrence = (columnOccurrences.get(cardsInColumn) ?? 0) + 1;
+        columnOccurrences.set(cardsInColumn, occurrence);
+        return <KanbanColumnLoader key={`kanban-col-${cardsInColumn}-${occurrence}`} cardsInColumn={cardsInColumn} />;
+      })}
     </ContentWrapper>
   );
 }

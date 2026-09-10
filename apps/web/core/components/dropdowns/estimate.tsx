@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -25,6 +25,10 @@ import { DropdownButton } from "./buttons";
 import { BUTTON_VARIANTS_WITH_TEXT } from "./constants";
 // types
 import type { TDropdownProps } from "./types";
+
+function ComboDropDownRoot(props: ComponentPropsWithoutRef<"div">) {
+  return <div {...props} />;
+}
 
 type Props = TDropdownProps & {
   button?: ReactNode;
@@ -119,7 +123,7 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
             </div>
           ),
         };
-      else undefined;
+      return undefined;
     })
     .filter((estimatePointDropdownOption) => estimatePointDropdownOption != undefined) as DropdownOptions;
   options?.unshift({
@@ -220,7 +224,7 @@ export const EstimateDropdown = observer(function EstimateDropdown(props: Props)
 
   return (
     <ComboDropDown
-      as="div"
+      as={ComboDropDownRoot}
       ref={dropdownRef}
       tabIndex={tabIndex}
       className={cn("h-full w-full", className)}

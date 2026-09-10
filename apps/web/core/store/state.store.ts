@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -271,13 +270,13 @@ export class StateStore implements IStateStore {
     return statesResponse;
   };
 
-  createState = async (workspaceSlug: string, projectId: string, data: Partial<IState>) =>
-    await this.stateService.createState(workspaceSlug, projectId, data).then((response) => {
-      runInAction(() => {
-        set(this.stateMap, [response?.id], response);
-      });
-      return response;
+  createState = async (workspaceSlug: string, projectId: string, data: Partial<IState>) => {
+    const response = await this.stateService.createState(workspaceSlug, projectId, data);
+    runInAction(() => {
+      set(this.stateMap, [response?.id], response);
     });
+    return response;
+  };
 
   updateState = async (workspaceSlug: string, projectId: string, stateId: string, data: Partial<IState>) => {
     const originalState = this.stateMap[stateId];
@@ -303,10 +302,9 @@ export class StateStore implements IStateStore {
 
   deleteState = async (workspaceSlug: string, projectId: string, stateId: string, fallbackStateId?: string) => {
     if (!this.stateMap?.[stateId]) return;
-    await this.stateService.deleteState(workspaceSlug, projectId, stateId, fallbackStateId).then(() => {
-      runInAction(() => {
-        delete this.stateMap[stateId];
-      });
+    await this.stateService.deleteState(workspaceSlug, projectId, stateId, fallbackStateId);
+    runInAction(() => {
+      delete this.stateMap[stateId];
     });
   };
 
@@ -345,13 +343,13 @@ export class StateStore implements IStateStore {
     }
   };
 
-  createGroup = async (workspaceSlug: string, projectId: string, data: Partial<IStateGroup>) =>
-    await this.stateService.createStateGroup(workspaceSlug, projectId, data).then((response) => {
-      runInAction(() => {
-        set(this.groupMap, [response.id], response);
-      });
-      return response;
+  createGroup = async (workspaceSlug: string, projectId: string, data: Partial<IStateGroup>) => {
+    const response = await this.stateService.createStateGroup(workspaceSlug, projectId, data);
+    runInAction(() => {
+      set(this.groupMap, [response.id], response);
     });
+    return response;
+  };
 
   updateGroup = async (workspaceSlug: string, projectId: string, groupId: string, data: Partial<IStateGroup>) => {
     const originalGroup = this.groupMap[groupId];

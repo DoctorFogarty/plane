@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable react/no-array-index-key */
-
 import { observer } from "mobx-react";
 // plane utils
 import { cn } from "@plane/utils";
@@ -24,7 +22,7 @@ export const WeekChartView = observer(function WeekChartView(_props: any) {
   return (
     <div className={`absolute top-0 left-0 flex h-max min-h-full w-max`}>
       {currentViewData &&
-        weekBlocks?.map((block, rootIndex) => (
+        weekBlocks?.map((block) => (
           <div
             key={`month-${block?.startDate.toString()}-${block?.endDate.toString()}`}
             className="relative flex flex-col outline-[0.25px] outline-subtle-1"
@@ -52,9 +50,9 @@ export const WeekChartView = observer(function WeekChartView(_props: any) {
               </div>
               {/** Days Sub title */}
               <div className="flex h-5 w-full">
-                {block?.children?.map((weekDay, index) => (
+                {block?.children?.map((weekDay) => (
                   <div
-                    key={`sub-title-${rootIndex}-${index}`}
+                    key={`sub-title-${weekDay.date.getTime()}`}
                     className={cn(
                       "flex flex-shrink-0 justify-between p-1 text-center capitalize outline-[0.25px] outline-subtle-1",
                       {
@@ -79,9 +77,9 @@ export const WeekChartView = observer(function WeekChartView(_props: any) {
             </div>
             {/** Day Columns */}
             <div className="flex h-full w-full flex-grow bg-surface-1">
-              {block?.children?.map((weekDay, index) => (
+              {block?.children?.map((weekDay) => (
                 <div
-                  key={`column-${rootIndex}-${index}`}
+                  key={`column-${weekDay.date.getTime()}`}
                   className={cn("h-full overflow-hidden outline-[0.25px] outline-subtle", {
                     "bg-accent-primary/20": weekDay.today,
                   })}

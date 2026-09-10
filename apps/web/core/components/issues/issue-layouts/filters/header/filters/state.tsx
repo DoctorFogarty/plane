@@ -35,8 +35,7 @@ export const FilterState = observer(function FilterState(props: Props) {
     const filteredOptions = (states ?? []).filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return sortBy(filteredOptions, [(s) => !(appliedFilters ?? []).includes(s.id)]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [appliedFilters, searchQuery, states]);
 
   const handleViewToggle = () => {
     if (!sortedOptions) return;
@@ -60,7 +59,7 @@ export const FilterState = observer(function FilterState(props: Props) {
                 {sortedOptions.slice(0, itemsToRender).map((state) => (
                   <FilterOption
                     key={state.id}
-                    isChecked={appliedFilters?.includes(state.id) ? true : false}
+                    isChecked={Boolean(appliedFilters?.includes(state.id))}
                     onClick={() => handleUpdate(state.id)}
                     icon={
                       <StateGroupIcon

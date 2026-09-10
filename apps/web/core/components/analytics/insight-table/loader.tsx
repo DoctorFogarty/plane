@@ -15,22 +15,26 @@ interface TableSkeletonProps {
 }
 
 export function TableLoader({ columns, rows }: TableSkeletonProps) {
+  const columnKeys = columns.map(
+    (column, columnIndex) => column.id ?? column.header?.toString() ?? `skeleton-header-${columnIndex}`
+  );
+  const rowKeys = Array.from({ length: rows }, (_, rowIndex) => `skeleton-row-${rowIndex}`);
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          {columns.map((column, index) => (
-            <TableHead key={column.header?.toString() ?? index}>
-              {typeof column.header === "string" ? column.header : ""}
-            </TableHead>
-          ))}
+          {columns.map((column, columnIndex) => {
+            const columnKey = columnKeys[columnIndex];
+            return <TableHead key={columnKey}>{typeof column.header === "string" ? column.header : ""}</TableHead>;
+          })}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {Array.from({ length: rows }).map((_, rowIndex) => (
-          <TableRow key={rowIndex}>
-            {columns.map((_, colIndex) => (
-              <TableCell key={colIndex}>
+        {rowKeys.map((rowKey) => (
+          <TableRow key={rowKey}>
+            {columnKeys.map((columnKey) => (
+              <TableCell key={`${rowKey}-${columnKey}`}>
                 <Loader.Item height="20px" width="100%" />
               </TableCell>
             ))}

@@ -5,6 +5,7 @@
  */
 
 import { createContext } from "react";
+import type { IInstance, IUser } from "@plane/types";
 // plane web store
 import { RootStore } from "@/store/root.store";
 
@@ -23,8 +24,7 @@ function initializeStore() {
 
 export type StoreProviderProps = {
   children: React.ReactNode;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialState?: any;
+  initialState?: { instance?: IInstance; user?: IUser };
 };
 
 export function StoreProvider({ children, initialState = undefined }: StoreProviderProps) {

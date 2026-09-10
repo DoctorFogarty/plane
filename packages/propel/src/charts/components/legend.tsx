@@ -55,15 +55,19 @@ const CustomLegend = React.forwardRef(function CustomLegend(
       })}
     >
       {payload.map((item, index) => (
-        <div
+        <button
+          type="button"
           key={item.value}
-          className={cn("flex items-center gap-1.5 text-13 font-medium whitespace-nowrap text-tertiary", {
-            "px-2": layout === "horizontal",
-            "py-2": layout === "vertical",
-            "pt-0 pl-0": index === 0,
-            "pr-0 pb-0": index === payload.length - 1,
-            "cursor-pointer": !!props.onClick,
-          })}
+          className={cn(
+            "flex items-center gap-1.5 border-0 bg-transparent p-0 text-13 font-medium whitespace-nowrap text-tertiary",
+            {
+              "px-2": layout === "horizontal",
+              "py-2": layout === "vertical",
+              "pt-0 pl-0": index === 0,
+              "pr-0 pb-0": index === payload.length - 1,
+              "cursor-pointer": !!props.onClick,
+            }
+          )}
           onClick={(e) => onClick?.(item, index, e)}
           onMouseEnter={(e) => onMouseEnter?.(item, index, e)}
           onMouseLeave={(e) => onMouseLeave?.(item, index, e)}
@@ -76,7 +80,7 @@ const CustomLegend = React.forwardRef(function CustomLegend(
           />
           {/* @ts-expect-error recharts types are not up to date */}
           {formatter?.(item.value, { value: item.value }, index) ?? item.payload?.name}
-        </div>
+        </button>
       ))}
     </div>
   );

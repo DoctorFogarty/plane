@@ -81,7 +81,7 @@ export function ShortcutsModal(props: Props) {
                         placeholder="Search for shortcuts"
                         className="w-full border-none bg-transparent py-1 text-11 text-secondary outline-none"
                         autoFocus
-                        tabIndex={1}
+                        tabIndex={0}
                       />
                     </div>
                   </div>

@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/no-autofocus */
-
 import { useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -72,22 +70,22 @@ export const NewFavoriteFolder = observer(function NewFavoriteFolder(props: TPro
         message: t("folder_name_cannot_be_empty"),
       });
 
-    addFavorite(workspaceSlug.toString(), formData)
-      .then(() => {
+    void (async () => {
+      try {
+        await addFavorite(workspaceSlug.toString(), formData);
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: t("success"),
           message: t("favorite_created_successfully"),
         });
-        return;
-      })
-      .catch(() => {
+      } catch {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("error"),
           message: t("something_went_wrong"),
         });
-      });
+      }
+    })();
     setCreateNewFolder(false);
     setValue("name", "");
   };
@@ -111,22 +109,22 @@ export const NewFavoriteFolder = observer(function NewFavoriteFolder(props: TPro
         message: t("folder_name_cannot_be_empty"),
       });
 
-    updateFavorite(workspaceSlug.toString(), favoriteId, payload)
-      .then(() => {
+    void (async () => {
+      try {
+        await updateFavorite(workspaceSlug.toString(), favoriteId, payload);
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: t("success"),
           message: t("favorite_updated_successfully"),
         });
-        return;
-      })
-      .catch(() => {
+      } catch {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("error"),
           message: t("something_went_wrong"),
         });
-      });
+      }
+    })();
     setCreateNewFolder(false);
     setValue("name", "");
   };

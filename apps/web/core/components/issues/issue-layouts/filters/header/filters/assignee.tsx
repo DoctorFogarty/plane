@@ -45,8 +45,7 @@ export const FilterAssignees = observer(function FilterAssignees(props: Props) {
       (memberId) => memberId !== currentUser?.id,
       (memberId) => getUserDetails(memberId)?.display_name.toLowerCase(),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [appliedFilters, currentUser?.id, getUserDetails, memberIds, searchQuery]);
 
   const handleViewToggle = () => {
     if (!sortedOptions) return;
@@ -74,7 +73,7 @@ export const FilterAssignees = observer(function FilterAssignees(props: Props) {
                   return (
                     <FilterOption
                       key={`assignees-${member.id}`}
-                      isChecked={appliedFilters?.includes(member.id) ? true : false}
+                      isChecked={Boolean(appliedFilters?.includes(member.id))}
                       onClick={() => handleUpdate(member.id)}
                       icon={
                         <Avatar

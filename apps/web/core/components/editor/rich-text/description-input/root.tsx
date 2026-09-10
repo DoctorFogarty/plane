@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
@@ -184,39 +184,46 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
     hasUnsavedChanges.current = false;
   }, [entityId, initialValue, reset]);
 
-  // ADDING handleDescriptionFormSubmit TO DEPENDENCY ARRAY PRODUCES ADVERSE EFFECTS
-  // TODO: Verify the exhaustive-deps warning
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedFormSave = useCallback(
-    debounce(async () => {
-      handleSubmit(handleDescriptionFormSubmit)()
-        .catch((error) => console.error(`Failed to save description for ${entityId}:`, error))
-        .finally(() => {
-          setIsSubmitting("submitted");
-          hasUnsavedChanges.current = false;
-        });
-    }, 1500),
+  const handleDescriptionFormSubmitRef = useRef(handleDescriptionFormSubmit);
+  handleDescriptionFormSubmitRef.current = handleDescriptionFormSubmit;
+  const setIsSubmittingRef = useRef(setIsSubmitting);
+  setIsSubmittingRef.current = setIsSubmitting;
+
+  const debouncedFormSave = useMemo(
+    () =>
+      debounce(async () => {
+        handleSubmit((formData) => handleDescriptionFormSubmitRef.current(formData))()
+          .catch((error) => console.error(`Failed to save description for ${entityId}:`, error))
+          .finally(() => {
+            setIsSubmittingRef.current("submitted");
+            hasUnsavedChanges.current = false;
+          });
+      }, 1500),
     [entityId, handleSubmit]
   );
+
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+  const debouncedFormSaveRef = useRef(debouncedFormSave);
+  debouncedFormSaveRef.current = debouncedFormSave;
 
   // Save on unmount if there are unsaved changes
   useEffect(
     () => () => {
-      debouncedFormSave.cancel();
+      debouncedFormSaveRef.current.cancel();
 
       if (hasUnsavedChanges.current) {
-        handleSubmit(handleDescriptionFormSubmit)()
+        handleSubmitRef
+          .current((formData) => handleDescriptionFormSubmitRef.current(formData))()
           .catch((error) => {
             console.error("Failed to save description on unmount:", error);
           })
           .finally(() => {
-            setIsSubmitting("submitted");
+            setIsSubmittingRef.current("submitted");
             hasUnsavedChanges.current = false;
           });
       }
     },
-    // since we don't want to save on unmount if there are no unsaved changes, no deps are needed
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -274,7 +281,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
               return asset_id;
             } catch (error) {
               console.log("Error in uploading asset:", error);
-              throw new Error("Asset upload failed. Please try again later.");
+              throw new Error("Asset upload failed. Please try again later.", { cause: error });
             }
           }}
           duplicateFile={async (assetId: string) => {

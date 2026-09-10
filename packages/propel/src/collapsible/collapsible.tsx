@@ -3,11 +3,9 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable import/no-named-as-default, react/jsx-no-constructed-context-values */
-
-import React, { useState, useCallback, createContext, useContext } from "react";
+import React, { useState, useCallback, useMemo, createContext, useContext } from "react";
 import { Collapsible as BaseCollapsible } from "@base-ui-components/react/collapsible";
-import clsx from "clsx";
+import { clsx } from "clsx";
 
 // Types
 type CollapsibleContextType = {
@@ -59,8 +57,10 @@ function Root({ children, className, isOpen: controlledIsOpen, onToggle, default
     }
   }, [controlledIsOpen, onToggle]);
 
+  const contextValue = useMemo(() => ({ isOpen, onToggle: handleToggle }), [isOpen, handleToggle]);
+
   return (
-    <CollapsibleContext.Provider value={{ isOpen, onToggle: handleToggle }}>
+    <CollapsibleContext.Provider value={contextValue}>
       <BaseCollapsible.Root
         className={clsx(className)}
         defaultOpen={defaultOpen}

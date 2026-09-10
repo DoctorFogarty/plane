@@ -88,8 +88,7 @@ export const ProjectAuthWrapper = observer(function ProjectAuthWrapper(props: IP
   const isWorkspaceAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE, workspaceSlug);
   useEffect(() => {
     if (isTimelineRoute) initGantt();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTimelineRoute]);
+  }, [initGantt, isTimelineRoute]);
 
   useEffect(() => {
     const task = runIdleTask(() => setLoadDeferredMeta(true));

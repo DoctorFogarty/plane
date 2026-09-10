@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable promise/always-return */
-
 import { useState } from "react";
 import { observer } from "mobx-react";
 // types
@@ -67,27 +65,27 @@ export const WorkspaceDraftIssueDeleteIssueModal = observer(function WorkspaceDr
       return;
     }
     if (onSubmit)
-      await onSubmit()
-        .then(() => {
-          setToast({
-            type: TOAST_TYPE.SUCCESS,
-            title: `${t("success")}!`,
-            message: t("workspace_draft_issues.toasts.deleted.success"),
-          });
-          onClose();
-        })
-        .catch((errors) => {
-          const isPermissionError = errors?.error === "Only admin or creator can delete the work item";
-          const currentError = isPermissionError
-            ? PROJECT_ERROR_MESSAGES.permissionError
-            : PROJECT_ERROR_MESSAGES.issueDeleteError;
-          setToast({
-            title: t(currentError.i18n_title),
-            type: TOAST_TYPE.ERROR,
-            message: currentError.i18n_message && t(currentError.i18n_message),
-          });
-        })
-        .finally(() => onClose());
+      try {
+        await onSubmit();
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: `${t("success")}!`,
+          message: t("workspace_draft_issues.toasts.deleted.success"),
+        });
+        onClose();
+      } catch (errors) {
+        const isPermissionError = errors?.error === "Only admin or creator can delete the work item";
+        const currentError = isPermissionError
+          ? PROJECT_ERROR_MESSAGES.permissionError
+          : PROJECT_ERROR_MESSAGES.issueDeleteError;
+        setToast({
+          title: t(currentError.i18n_title),
+          type: TOAST_TYPE.ERROR,
+          message: currentError.i18n_message && t(currentError.i18n_message),
+        });
+      } finally {
+        onClose();
+      }
   };
 
   return (

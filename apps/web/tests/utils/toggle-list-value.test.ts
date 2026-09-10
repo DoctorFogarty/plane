@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { toggleListValue, toggleListValues } from "@plane/utils";
+import { setListMembership, toggleListValue, toggleListValues } from "@plane/utils";
 
 describe("toggleListValue", () => {
   it("adds a missing value without mutating the source", () => {
@@ -22,6 +22,30 @@ describe("toggleListValue", () => {
 
   it("treats undefined as an empty list", () => {
     expect(toggleListValue(undefined, "a")).toEqual(["a"]);
+  });
+});
+
+describe("setListMembership", () => {
+  it("adds a missing value without mutating the source", () => {
+    const source = ["a"];
+    expect(setListMembership(source, "b", true)).toEqual(["a", "b"]);
+    expect(source).toEqual(["a"]);
+  });
+
+  it("is a no-op when the value is already present", () => {
+    const source = ["a", "b"];
+    expect(setListMembership(source, "a", true)).toEqual(["a", "b"]);
+    expect(source).toEqual(["a", "b"]);
+  });
+
+  it("removes an existing value without mutating the source", () => {
+    const source = ["a", "b"];
+    expect(setListMembership(source, "a", false)).toEqual(["b"]);
+    expect(source).toEqual(["a", "b"]);
+  });
+
+  it("is a no-op when removing a value that is already absent", () => {
+    expect(setListMembership(["b"], "a", false)).toEqual(["b"]);
   });
 });
 

@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function FilterByAccess(props: any) {
+export function FilterByAccess(_props: unknown) {
   return <></>;
 }

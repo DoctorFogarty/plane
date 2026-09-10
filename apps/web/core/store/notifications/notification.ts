@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable no-useless-catch */
 import { set } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import type { IUserLite, TNotification, TNotificationData } from "@plane/types";
@@ -175,15 +174,11 @@ export class Notification implements INotification {
     workspaceSlug: string,
     payload: Partial<TNotification>
   ): Promise<TNotification | undefined> => {
-    try {
-      const notification = await workspaceNotificationService.updateNotificationById(workspaceSlug, this.id, payload);
-      if (notification) {
-        runInAction(() => this.mutateNotification(notification));
-      }
-      return notification;
-    } catch (error) {
-      throw error;
+    const notification = await workspaceNotificationService.updateNotificationById(workspaceSlug, this.id, payload);
+    if (notification) {
+      runInAction(() => this.mutateNotification(notification));
     }
+    return notification;
   };
 
   /**

@@ -176,18 +176,8 @@ export class ProjectViewIssuesFilter extends IssueFilterHelperStore implements I
   hydrateFilters = (workspaceSlug: string, viewId: string) => {
     if (!isEmpty(this.filters[viewId])) return;
     const viewDetails = this.rootIssueStore.rootStore.projectView.getViewById(viewId);
-    if (viewDetails) {
-      this.mutateFilters(workspaceSlug, viewId, viewDetails);
-      return;
-    }
-    this.writeEntityFilters(
-      this.filters,
-      viewId,
-      workspaceSlug,
-      EIssuesStoreType.PROJECT_VIEW,
-      this.rootIssueStore.currentUserId,
-      undefined
-    );
+    if (!viewDetails) return;
+    this.mutateFilters(workspaceSlug, viewId, viewDetails);
   };
 
   fetchFilters = async (workspaceSlug: string, projectId: string, viewId: string) => {

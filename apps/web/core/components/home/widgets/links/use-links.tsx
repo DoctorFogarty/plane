@@ -94,7 +94,7 @@ export const useLinks = (workspaceSlug: string) => {
         }
       },
     }),
-    [workspaceSlug]
+    [createLink, removeLink, t, toggleLinkModal, updateLink, workspaceSlug]
   );
 
   const handleOnClose = () => {

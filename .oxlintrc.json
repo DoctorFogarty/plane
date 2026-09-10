@@ -36,6 +36,7 @@
   "rules": {
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
+    "jsx-a11y/no-autofocus": "off",
     "unicorn/filename-case": "off",
     "unicorn/no-null": "off",
     "unicorn/prevent-abbreviations": "off",
@@ -47,6 +48,19 @@
         "caughtErrorsIgnorePattern": "^_",
         "destructuredArrayIgnorePattern": "^_",
         "ignoreRestSiblings": true
+      }
+    ],
+    "import/no-unassigned-import": [
+      "warn",
+      {
+        "allow": [
+          "**/*.css",
+          "@fontsource",
+          "@fontsource/**",
+          "@fontsource-variable",
+          "@fontsource-variable/**",
+          "@bprogress/core/css"
+        ]
       }
     ]
   }

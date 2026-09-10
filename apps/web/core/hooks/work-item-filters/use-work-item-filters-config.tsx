@@ -1,4 +1,3 @@
-/* eslint-disable no-shadow, no-unused-expressions, promise/always-return, unicorn/no-array-sort */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -164,9 +163,9 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
   const projects = useMemo(
     () =>
       projectIds
-        ? (projectIds.flatMap((projectId) => {
-            const project = getProjectById(projectId);
-            return project ? [project] : [];
+        ? (projectIds.flatMap((id) => {
+            const projectDetails = getProjectById(id);
+            return projectDetails ? [projectDetails] : [];
           }) as IProject[])
         : [],
     [projectIds, getProjectById]
@@ -184,13 +183,13 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
   const projectTypeRevisionKey = scopedProjectIds
     .map((scopedProjectId) => `${scopedProjectId}:${issueTypeStore.projectRevisionMap[scopedProjectId] ?? 0}`)
     .join("|");
-  const issueTypes = useMemo(
-    () => (projectId ? issueTypeStore.getActiveProjectIssueTypes(projectId) : []),
-    // projectTypeRevisionKey tracks atomic project-scoped type/property snapshot replacements.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectId, issueTypeStore, areIssueTypesFetched, projectTypeRevisionKey]
-  );
+  const issueTypes = useMemo(() => {
+    if (!projectId) return [];
+    if (!areIssueTypesFetched && projectTypeRevisionKey === "") return [];
+    return issueTypeStore.getActiveProjectIssueTypes(projectId);
+  }, [areIssueTypesFetched, issueTypeStore, projectId, projectTypeRevisionKey]);
   const activeCustomProperties = useMemo(() => {
+    if (!areIssueTypesFetched && projectTypeRevisionKey === "") return [];
     const propertyMap = new Map<string, TIssueProperty>();
     for (const scopedProjectId of scopedProjectIds) {
       if (!issueTypeStore.isIssueTypeEnabled(scopedProjectId)) continue;
@@ -200,10 +199,8 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
         }
       }
     }
-    return [...propertyMap.values()].sort((a, b) => a.name.localeCompare(b.name));
-    // projectTypeRevisionKey tracks atomic project-scoped type/property snapshot replacements.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopedProjectIds, issueTypeStore, areIssueTypesFetched, projectTypeRevisionKey]);
+    return [...propertyMap.values()].toSorted((a, b) => a.name.localeCompare(b.name));
+  }, [areIssueTypesFetched, issueTypeStore, projectTypeRevisionKey, scopedProjectIds]);
   const areAllConfigsInitialized = useMemo(() => isLoaderReady(projectLoader), [projectLoader]);
 
   /**
@@ -452,7 +449,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
         isEnabled: isFilterEnabled("project_id") && projects !== undefined,
         filterIcon: Briefcase,
         projects: projects,
-        getOptionIcon: (project) => <Logo logo={project.logo_props} size={12} />,
+        getOptionIcon: (projectOption) => <Logo logo={projectOption.logo_props} size={12} />,
         ...operatorConfigs,
       }),
     [isFilterEnabled, projects, operatorConfigs]

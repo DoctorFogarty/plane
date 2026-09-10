@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -83,11 +82,15 @@ export const useGroupIssuesDragNDrop = (
 
     if (isCycleChanged && workspaceSlug) {
       if (data[cycleKey]) {
-        addCycleToIssue(workspaceSlug.toString(), projectId, data[cycleKey]?.toString() ?? "", issueId).catch(() =>
-          setToast(errorToastProps)
-        );
+        addCycleToIssue(workspaceSlug.toString(), projectId, data[cycleKey]?.toString() ?? "", issueId).catch(() => {
+          setToast(errorToastProps);
+          return;
+        });
       } else {
-        removeCycleFromIssue(workspaceSlug.toString(), projectId, issueId).catch(() => setToast(errorToastProps));
+        removeCycleFromIssue(workspaceSlug.toString(), projectId, issueId).catch(() => {
+          setToast(errorToastProps);
+          return;
+        });
       }
       delete data[cycleKey];
     }
@@ -99,14 +102,22 @@ export const useGroupIssuesDragNDrop = (
         issueId,
         issueUpdates[moduleKey].ADD,
         issueUpdates[moduleKey].REMOVE
-      ).catch(() => setToast(errorToastProps));
+      ).catch(() => {
+        setToast(errorToastProps);
+        return;
+      });
       delete data[moduleKey];
     }
 
     const previousIssue = getIssueById(issueId);
     const previousParentId = previousIssue?.parent_id ?? null;
 
-    await (updateIssue && updateIssue(projectId, issueId, data).catch(() => setToast(errorToastProps)));
+    if (updateIssue) {
+      await updateIssue(projectId, issueId, data).catch(() => {
+        setToast(errorToastProps);
+        return;
+      });
+    }
 
     // Sync sub-issue maps + parent counts when nesting via drag
     if (data.hasOwnProperty("parent_id") && data.parent_id) {
@@ -174,6 +185,7 @@ export const useGroupIssuesDragNDrop = (
         type: TOAST_TYPE.ERROR,
         message: err?.detail ?? "Failed to perform this action",
       });
+      return;
     });
   };
 

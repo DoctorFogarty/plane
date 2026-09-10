@@ -62,12 +62,11 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
     e.preventDefault();
     if (!workspaceSlug || !projectId) return;
 
-    const addToFavoritePromise = addModuleToFavorites(workspaceSlug.toString(), projectId.toString(), moduleId).then(
-      () => {
-        // open favorites menu if closed
-        if (!storedValue) toggleFavoriteMenu(true);
-      }
-    );
+    const addToFavoritePromise = (async () => {
+      await addModuleToFavorites(workspaceSlug.toString(), projectId.toString(), moduleId);
+      // open favorites menu if closed
+      if (!storedValue) toggleFavoriteMenu(true);
+    })();
 
     setPromiseToast(addToFavoritePromise, {
       loading: "Adding module to favorites...",
@@ -109,21 +108,20 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
   const handleModuleDetailsChange = async (payload: Partial<IModule>) => {
     if (!workspaceSlug || !projectId) return;
 
-    await updateModuleDetails(workspaceSlug.toString(), projectId.toString(), moduleId, payload)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Module updated successfully.",
-        });
-      })
-      .catch((err) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.detail ?? "Module could not be updated. Please try again.",
-        });
+    try {
+      await updateModuleDetails(workspaceSlug.toString(), projectId.toString(), moduleId, payload);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Module updated successfully.",
       });
+    } catch (err: any) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: err?.detail ?? "Module could not be updated. Please try again.",
+      });
+    }
   };
 
   const moduleLeadDetails = moduleDetails.lead_id ? getUserDetails(moduleDetails.lead_id) : undefined;

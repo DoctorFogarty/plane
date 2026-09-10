@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/no-autofocus */
-
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Copy } from "lucide-react";

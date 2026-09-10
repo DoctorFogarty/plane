@@ -29,6 +29,33 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const numberedLines = (count: number, suffix: string) =>
+  Array.from({ length: count }, (_, lineNumber) => `Line ${lineNumber + 1}: ${suffix}`);
+
+const HORIZONTAL_ITEMS = Array.from({ length: 12 }, (_, itemNumber) => `Item ${itemNumber + 1}`);
+
+const USER_LIST = Array.from({ length: 25 }, (_, userNumber) => ({
+  id: `user-${userNumber + 1}`,
+  initial: String.fromCharCode(65 + (userNumber % 26)),
+  name: `User ${userNumber + 1}`,
+  email: `user${userNumber + 1}@example.com`,
+}));
+
+const CHAT_MESSAGES = Array.from({ length: 20 }, (_, messageNumber) => ({
+  id: `chat-message-${messageNumber + 1}`,
+  fromSelf: messageNumber % 3 === 0,
+  author: messageNumber % 3 === 0 ? "You" : `User ${messageNumber + 1}`,
+  body: `Message content for message number ${messageNumber + 1}`,
+}));
+
+const TABLE_ROWS = Array.from({ length: 50 }, (_, rowNumber) => ({
+  id: `table-row-${rowNumber + 1}`,
+  number: rowNumber + 1,
+  name: `User ${rowNumber + 1}`,
+  email: `user${rowNumber + 1}@example.com`,
+  active: rowNumber % 3 === 0,
+}));
+
 export const Default: Story = {
   render(args) {
     return (
@@ -63,8 +90,8 @@ export const Sizes: Story = {
   render() {
     const content = (
       <div className="space-y-2 p-4">
-        {[...Array(10)].map((_, i) => (
-          <p key={i}>Line {i + 1}: This is some scrollable content to demonstrate different sizes.</p>
+        {numberedLines(10, "This is some scrollable content to demonstrate different sizes.").map((line) => (
+          <p key={line}>{line}</p>
         ))}
       </div>
     );
@@ -100,8 +127,8 @@ export const ScrollTypeAlways: Story = {
       <ScrollArea className="h-64 w-80 rounded-lg border" scrollType="always">
         <div className="space-y-2 p-4">
           <h3 className="text-16 font-semibold">Always Visible Scrollbar</h3>
-          {[...Array(15)].map((_, i) => (
-            <p key={i}>Line {i + 1}: The scrollbar is always visible.</p>
+          {numberedLines(15, "The scrollbar is always visible.").map((line) => (
+            <p key={line}>{line}</p>
           ))}
         </div>
       </ScrollArea>
@@ -116,8 +143,8 @@ export const ScrollTypeScroll: Story = {
         <div className="space-y-2 p-4">
           <h3 className="text-16 font-semibold">Scroll to Show</h3>
           <p className="text-13 text-placeholder">Scrollbar appears when scrolling</p>
-          {[...Array(15)].map((_, i) => (
-            <p key={i}>Line {i + 1}: Try scrolling to see the scrollbar appear.</p>
+          {numberedLines(15, "Try scrolling to see the scrollbar appear.").map((line) => (
+            <p key={line}>{line}</p>
           ))}
         </div>
       </ScrollArea>
@@ -132,8 +159,8 @@ export const ScrollTypeHover: Story = {
         <div className="space-y-2 p-4">
           <h3 className="text-16 font-semibold">Hover to Show</h3>
           <p className="text-13 text-placeholder">Scrollbar appears on hover</p>
-          {[...Array(15)].map((_, i) => (
-            <p key={i}>Line {i + 1}: Hover over the area to see the scrollbar.</p>
+          {numberedLines(15, "Hover over the area to see the scrollbar.").map((line) => (
+            <p key={line}>{line}</p>
           ))}
         </div>
       </ScrollArea>
@@ -146,9 +173,9 @@ export const HorizontalScroll: Story = {
     return (
       <ScrollArea className="h-32 w-96 rounded-lg border" orientation="horizontal">
         <div className="flex w-[1200px] gap-4 p-4">
-          {[...Array(12)].map((_, i) => (
-            <div key={i} className="flex h-20 w-32 flex-shrink-0 items-center justify-center rounded-sm bg-layer-1">
-              Item {i + 1}
+          {HORIZONTAL_ITEMS.map((label) => (
+            <div key={label} className="flex h-20 w-32 flex-shrink-0 items-center justify-center rounded-sm bg-layer-1">
+              {label}
             </div>
           ))}
         </div>
@@ -164,11 +191,11 @@ export const BothDirections: Story = {
         <div className="w-[800px] space-y-2 p-4">
           <h3 className="text-16 font-semibold">Both Directions</h3>
           <p className="text-13 text-placeholder">Content scrolls both vertically and horizontally</p>
-          {[...Array(20)].map((_, i) => (
-            <p key={i}>
-              Line {i + 1}: This line is very long and extends beyond the container width to demonstrate horizontal
-              scrolling along with vertical scrolling.
-            </p>
+          {numberedLines(
+            20,
+            "This line is very long and extends beyond the container width to demonstrate horizontal scrolling along with vertical scrolling."
+          ).map((line) => (
+            <p key={line}>{line}</p>
           ))}
         </div>
       </ScrollArea>
@@ -183,17 +210,17 @@ export const ListExample: Story = {
         <div className="p-4">
           <h3 className="mb-4 text-16 font-semibold">User List</h3>
           <div className="space-y-2">
-            {[...Array(25)].map((_, i) => (
+            {USER_LIST.map((user) => (
               <div
-                key={i}
+                key={user.id}
                 className="flex cursor-pointer items-center gap-3 rounded-sm bg-layer-1 p-3 hover:bg-surface-2"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-primary font-medium text-on-color">
-                  {String.fromCharCode(65 + (i % 26))}
+                  {user.initial}
                 </div>
                 <div>
-                  <div className="font-medium">User {i + 1}</div>
-                  <div className="text-13 text-placeholder">user{i + 1}@example.com</div>
+                  <div className="font-medium">{user.name}</div>
+                  <div className="text-13 text-placeholder">{user.email}</div>
                 </div>
               </div>
             ))}
@@ -252,13 +279,13 @@ export const ChatMessages: Story = {
     return (
       <ScrollArea className="h-96 w-full max-w-md rounded-lg border">
         <div className="space-y-4 p-4">
-          {[...Array(20)].map((_, i) => (
-            <div key={i} className={`flex ${i % 3 === 0 ? "justify-end" : "justify-start"}`}>
+          {CHAT_MESSAGES.map((message) => (
+            <div key={message.id} className={`flex ${message.fromSelf ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[70%] rounded-lg p-3 ${i % 3 === 0 ? "bg-accent-primary text-on-color" : "bg-layer-1"}`}
+                className={`max-w-[70%] rounded-lg p-3 ${message.fromSelf ? "bg-accent-primary text-on-color" : "bg-layer-1"}`}
               >
-                <div className="text-13">{i % 3 === 0 ? "You" : `User ${i + 1}`}</div>
-                <div className="mt-1">Message content for message number {i + 1}</div>
+                <div className="text-13">{message.author}</div>
+                <div className="mt-1">{message.body}</div>
               </div>
             </div>
           ))}
@@ -282,16 +309,16 @@ export const DataTable: Story = {
             </tr>
           </thead>
           <tbody>
-            {[...Array(50)].map((_, i) => (
-              <tr key={i} className="border-t border-subtle hover:bg-layer-1">
-                <td className="px-4 py-2">#{i + 1}</td>
-                <td className="px-4 py-2">User {i + 1}</td>
-                <td className="px-4 py-2">user{i + 1}@example.com</td>
+            {TABLE_ROWS.map((row) => (
+              <tr key={row.id} className="border-t border-subtle hover:bg-layer-1">
+                <td className="px-4 py-2">#{row.number}</td>
+                <td className="px-4 py-2">{row.name}</td>
+                <td className="px-4 py-2">{row.email}</td>
                 <td className="px-4 py-2">
                   <span
-                    className={`rounded-sm px-2 py-1 text-11 ${i % 3 === 0 ? "bg-success-primary text-success-primary" : "bg-gray-500/20 text-gray-500"}`}
+                    className={`rounded-sm px-2 py-1 text-11 ${row.active ? "bg-success-primary text-success-primary" : "bg-gray-500/20 text-gray-500"}`}
                   >
-                    {i % 3 === 0 ? "Active" : "Inactive"}
+                    {row.active ? "Active" : "Inactive"}
                   </span>
                 </td>
               </tr>

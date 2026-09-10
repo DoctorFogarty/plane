@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
@@ -46,7 +45,6 @@ export const CycleOptions = observer(function CycleOptions(props: CycleOptionsPr
   //state hooks
   const [query, setQuery] = useState("");
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
   // store hooks
   const { getProjectCycleIds, getCycleById } = useCycle();
   const { isMobile } = usePlatformOS();
@@ -67,7 +65,7 @@ export const CycleOptions = observer(function CycleOptions(props: CycleOptionsPr
   const cycleIds = (getProjectCycleIds(projectId) ?? [])?.filter((cycleId) => {
     const cycleDetails = getCycleById(cycleId);
     if (currentCycleId && currentCycleId === cycleId) return false;
-    return cycleDetails?.status ? (cycleDetails?.status.toLowerCase() != "completed" ? true : false) : true;
+    return cycleDetails?.status ? cycleDetails.status.toLowerCase() != "completed" : true;
   });
 
   const searchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -121,7 +119,6 @@ export const CycleOptions = observer(function CycleOptions(props: CycleOptionsPr
           <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
           <Combobox.Input
             as="input"
-            ref={inputRef}
             autoFocus={!isMobile}
             className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
             value={query}

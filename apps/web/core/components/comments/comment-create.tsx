@@ -91,8 +91,11 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
   const isEmpty = isCommentEmpty(commentHTML ?? undefined);
 
   return (
-    <div
+    <form
       className={cn("sticky bottom-0 z-[4] bg-surface-1 sm:static")}
+      onSubmit={(e) => {
+        e.preventDefault();
+      }}
       onKeyDown={(e) => {
         if (
           e.key === "Enter" &&
@@ -153,6 +156,6 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
           />
         )}
       />
-    </div>
+    </form>
   );
 });

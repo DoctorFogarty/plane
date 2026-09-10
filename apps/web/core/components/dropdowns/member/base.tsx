@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { ComponentPropsWithoutRef } from "react";
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import type { LucideIcon } from "lucide-react";
@@ -22,6 +23,10 @@ import { BUTTON_VARIANTS_WITH_TEXT } from "../constants";
 import { ButtonAvatars } from "./avatar";
 import { MemberOptions } from "./member-options";
 import type { MemberDropdownProps } from "./types";
+
+function ComboDropDownRoot(props: ComponentPropsWithoutRef<"div">) {
+  return <div {...props} />;
+}
 
 type TMemberDropdownBaseProps = {
   getUserDetails: (userId: string) => IUserLite | undefined;
@@ -88,22 +93,26 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
     if (!multiple) handleClose();
   };
 
-  const getDisplayName = (value: string | string[] | null, showUserDetails: boolean, placeholder: string = "") => {
-    if (Array.isArray(value)) {
-      if (value.length > 0) {
-        if (value.length === 1) {
-          return getUserDetails(value[0])?.display_name || placeholder;
+  const getDisplayName = (
+    memberValue: string | string[] | null,
+    shouldShowUserDetails: boolean,
+    memberPlaceholder: string = ""
+  ) => {
+    if (Array.isArray(memberValue)) {
+      if (memberValue.length > 0) {
+        if (memberValue.length === 1) {
+          return getUserDetails(memberValue[0])?.display_name || memberPlaceholder;
         } else {
-          return showUserDetails ? `${value.length} ${t("members").toLocaleLowerCase()}` : "";
+          return shouldShowUserDetails ? `${memberValue.length} ${t("members").toLocaleLowerCase()}` : "";
         }
       } else {
-        return placeholder;
+        return memberPlaceholder;
       }
     } else {
-      if (showUserDetails && value) {
-        return getUserDetails(value)?.display_name || placeholder;
+      if (shouldShowUserDetails && memberValue) {
+        return getUserDetails(memberValue)?.display_name || memberPlaceholder;
       } else {
-        return placeholder;
+        return memberPlaceholder;
       }
     }
   };
@@ -165,7 +174,7 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
 
   return (
     <ComboDropDown
-      as="div"
+      as={ComboDropDownRoot}
       ref={dropdownRef}
       {...comboboxProps}
       className={cn("h-full", className)}

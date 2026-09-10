@@ -69,43 +69,32 @@ export function autolink(options: AutolinkOptions): Plugin {
             return false;
           }
 
-          find(lastWordBeforeSpace)
-            .filter((link) => link.isLink)
-            // Calculate link position.
-            .map((link) => ({
-              ...link,
-              from: lastWordAndBlockOffset + link.start + 1,
-              to: lastWordAndBlockOffset + link.end + 1,
-            }))
-            // ignore link inside code mark
-            .filter((link) => {
-              if (!newState.schema.marks.code) {
-                return true;
-              }
+          for (const link of find(lastWordBeforeSpace)) {
+            if (!link.isLink) continue;
 
-              return !newState.doc.rangeHasMark(link.from, link.to, newState.schema.marks.code);
-            })
-            // validate link
-            .filter((link) => {
-              if (options.validate) {
-                return options.validate(link.value);
-              }
-              return true;
-            })
-            // Add link mark.
-            .forEach((link) => {
-              if (getMarksBetween(link.from, link.to, newState.doc).some((item) => item.mark.type === options.type)) {
-                return;
-              }
+            const from = lastWordAndBlockOffset + link.start + 1;
+            const to = lastWordAndBlockOffset + link.end + 1;
 
-              tr.addMark(
-                link.from,
-                link.to,
-                options.type.create({
-                  href: link.href,
-                })
-              );
-            });
+            if (newState.schema.marks.code && newState.doc.rangeHasMark(from, to, newState.schema.marks.code)) {
+              continue;
+            }
+
+            if (options.validate && !options.validate(link.value)) {
+              continue;
+            }
+
+            if (getMarksBetween(from, to, newState.doc).some((item) => item.mark.type === options.type)) {
+              continue;
+            }
+
+            tr.addMark(
+              from,
+              to,
+              options.type.create({
+                href: link.href,
+              })
+            );
+          }
         }
       });
 

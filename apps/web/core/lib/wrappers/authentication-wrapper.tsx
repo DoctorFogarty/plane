@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-shadow */
-
 import type { ReactNode } from "react";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { observer } from "mobx-react";

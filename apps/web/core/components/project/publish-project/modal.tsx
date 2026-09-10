@@ -97,16 +97,13 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
   const handleUpdatePublishSettings = async (payload: Partial<TProjectPublishSettings>) => {
     if (!workspaceSlug || !payload.id) return;
 
-    await updatePublishSettings(workspaceSlug.toString(), projectId, payload.id, payload).then((res) => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Success!",
-        message: "Publish settings updated successfully!",
-      });
-
-      handleClose();
-      return res;
+    await updatePublishSettings(workspaceSlug.toString(), projectId, payload.id, payload);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Success!",
+      message: "Publish settings updated successfully!",
     });
+    handleClose();
   };
 
   const handleUnPublishProject = async (publishId: string) => {
@@ -114,22 +111,22 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
 
     setIsUnPublishing(true);
 
-    await unPublishProject(workspaceSlug.toString(), projectId, publishId)
-      .catch(() =>
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Something went wrong while unpublishing the project.",
-        })
-      )
-      .finally(() => setIsUnPublishing(false));
+    try {
+      await unPublishProject(workspaceSlug.toString(), projectId, publishId);
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Something went wrong while unpublishing the project.",
+      });
+    } finally {
+      setIsUnPublishing(false);
+    }
   };
 
   const selectedLayouts = Object.entries(watch("view_props") ?? {})
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .filter(([key, value]) => value)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .map(([key, value]) => key)
+    .filter(([, value]) => value)
+    .map(([key]) => key)
     .filter((l) => VIEW_OPTIONS.find((o) => o.key === l));
 
   const handleFormSubmit = async (formData: Partial<TProjectPublishSettings>) => {

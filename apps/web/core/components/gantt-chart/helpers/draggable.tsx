@@ -54,14 +54,24 @@ export const ChartDraggable = observer(function ChartDraggable(props: Props) {
         isMoving={isMoving}
         position={block.position}
       />
-      <div
-        className={cn("relative z-[6] flex h-8 w-full items-center rounded-sm", {
+      <button
+        type="button"
+        tabIndex={enableBlockMove ? 0 : -1}
+        className={cn("relative z-[6] flex h-8 w-full items-center rounded-sm border-0 bg-transparent p-0 text-left", {
           "pointer-events-none": isMoving,
         })}
-        onMouseDown={(e) => enableBlockMove && handleBlockDrag(e, "move")}
+        onMouseDown={(e) => {
+          if (enableBlockMove) handleBlockDrag(e, "move");
+        }}
+        onKeyDown={(e) => {
+          if (!enableBlockMove) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+          }
+        }}
       >
         {blockToRender({ ...block.data, meta: block.meta })}
-      </div>
+      </button>
       {/* right resize drag handle */}
       <RightResizable
         enableBlockRightResize={enableBlockRightResize}

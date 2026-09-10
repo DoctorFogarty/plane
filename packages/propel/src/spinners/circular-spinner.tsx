@@ -6,7 +6,7 @@
 
 import * as React from "react";
 // helpers
-import clsx from "clsx";
+import { clsx } from "clsx";
 
 export interface ISpinner extends React.SVGAttributes<SVGElement> {
   height?: string;

@@ -47,20 +47,22 @@ export const WebhookSecretKey = observer(function WebhookSecretKey(props: Props)
     if (!webhookSecretKey) return;
 
     copyTextToClipboard(webhookSecretKey)
-      .then(() =>
+      .then(() => {
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: `${t("success")}`,
           message: t("workspace_settings.settings.webhooks.toasts.secret_key_copied.message"),
-        })
-      )
-      .catch(() =>
+        });
+        return;
+      })
+      .catch(() => {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: `${t("error")}!`,
           message: t("workspace_settings.settings.webhooks.toasts.secret_key_not_copied.message"),
-        })
-      );
+        });
+        return;
+      });
   };
 
   const handleRegenerateSecretKey = () => {
@@ -80,14 +82,16 @@ export const WebhookSecretKey = observer(function WebhookSecretKey(props: Props)
           const csvData = getCurrentHookAsCSV(currentWorkspace, currentWebhook, webhookSecretKey);
           csvDownload(csvData, `webhook-secret-key-${Date.now()}`);
         }
+        return;
       })
-      .catch((err) =>
+      .catch((err) => {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: `${t("error")}!`,
           message: err?.error ?? t("something_went_wrong_please_try_again"),
-        })
-      )
+        });
+        return;
+      })
       .finally(() => setIsRegenerating(false));
   };
 

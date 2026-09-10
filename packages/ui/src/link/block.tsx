@@ -24,18 +24,22 @@ export function LinkItemBlock(props: TLinkItemBlockProps) {
   const { title, url, createdAt, menuItems, onClick } = props;
   // icons
   const Icon = getIconForLink(url);
+
   return (
-    <div
-      onClick={onClick}
-      className="group flex h-[56px] w-[230px] cursor-pointer items-center gap-4 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4"
-    >
-      <div className="grid size-8 flex-shrink-0 place-items-center rounded-sm bg-surface-2 p-2">
-        <Icon className="size-4 stroke-2 text-tertiary group-hover:text-primary" />
-      </div>
-      <div className="flex-1 truncate">
-        <div className="truncate text-13 font-medium">{title}</div>
-        {createdAt && <div className="text-11 font-medium text-placeholder">{calculateTimeAgo(createdAt)}</div>}
-      </div>
+    <div className="group flex h-[56px] w-[230px] items-center gap-4 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 border-0 bg-transparent p-0 text-left"
+      >
+        <div className="grid size-8 flex-shrink-0 place-items-center rounded-sm bg-surface-2 p-2">
+          <Icon className="size-4 stroke-2 text-tertiary group-hover:text-primary" />
+        </div>
+        <div className="flex-1 truncate">
+          <div className="truncate text-13 font-medium">{title}</div>
+          {createdAt && <div className="text-11 font-medium text-placeholder">{calculateTimeAgo(createdAt)}</div>}
+        </div>
+      </button>
       {menuItems && (
         <div className="hidden group-hover:block">
           <CustomMenu placement="bottom-end" menuItemsClassName="z-20" closeOnSelect verticalEllipsis>

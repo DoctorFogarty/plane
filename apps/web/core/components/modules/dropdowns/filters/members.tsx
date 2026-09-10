@@ -45,8 +45,7 @@ export const FilterMembers = observer(function FilterMembers(props: Props) {
       (memberId) => memberId !== currentUser?.id,
       (memberId) => getUserDetails(memberId)?.display_name.toLowerCase(),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, memberIds, appliedFilters, currentUser?.id, getUserDetails]);
 
   const handleViewToggle = () => {
     if (!sortedOptions) return;
@@ -74,7 +73,7 @@ export const FilterMembers = observer(function FilterMembers(props: Props) {
                   return (
                     <FilterOption
                       key={`member-${member.id}`}
-                      isChecked={appliedFilters?.includes(member.id) ? true : false}
+                      isChecked={Boolean(appliedFilters?.includes(member.id))}
                       onClick={() => handleUpdate(member.id)}
                       icon={
                         <Avatar

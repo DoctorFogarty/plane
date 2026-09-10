@@ -29,6 +29,10 @@ import { MergedDateDisplay } from "./merged-date";
 // types
 import type { TButtonVariants } from "./types";
 
+function ComboDropDownRoot(props: React.ComponentPropsWithoutRef<"div">) {
+  return <div {...props} />;
+}
+
 type Props = {
   applyButtonText?: string;
   bothRequired?: boolean;
@@ -290,7 +294,7 @@ export const DateRangeDropdown = observer(function DateRangeDropdown(props: Prop
 
   return (
     <ComboDropDown
-      as="div"
+      as={ComboDropDownRoot}
       ref={dropdownRef}
       tabIndex={tabIndex}
       className={cn("h-full", className)}

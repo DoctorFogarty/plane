@@ -75,8 +75,7 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
       }
     };
     void getImageSource();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imgNodeSrc, extension.options.getImageSource, extension.options.getImageDownloadSource]);
+  }, [imgNodeSrc, extension.options]);
 
   useEffect(() => {
     const handleDuplication = async () => {
@@ -111,8 +110,7 @@ export function CustomImageNodeView(props: CustomImageNodeViewProps) {
     };
 
     void handleDuplication();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, imgNodeSrc, extension.options.duplicateImage, updateAttributes]);
+  }, [status, imgNodeSrc, extension.options, updateAttributes]);
 
   useEffect(() => {
     if (hasImageDuplicationFailed(status) && !hasRetriedOnMount.current && imgNodeSrc) {

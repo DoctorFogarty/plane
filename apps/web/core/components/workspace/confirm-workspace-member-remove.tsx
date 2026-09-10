@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/tabindex-no-positive */
-
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { AlertTriangle } from "lucide-react";
@@ -95,7 +93,7 @@ export const ConfirmWorkspaceMemberRemove = observer(function ConfirmWorkspaceMe
         <Button variant="secondary" size="lg" onClick={handleClose}>
           {t("cancel")}
         </Button>
-        <Button variant="error-fill" size="lg" tabIndex={1} onClick={handleDeletion} loading={isSubmitting}>
+        <Button variant="error-fill" size="lg" tabIndex={0} onClick={handleDeletion} loading={isSubmitting}>
           {confirmLabel}
         </Button>
       </div>

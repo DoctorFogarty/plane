@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable unicorn/no-array-sort */
 import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -83,7 +82,7 @@ export const SelectChannel = observer(function SelectChannel({ integration: _int
     void fetchWorkItemTypesPropertiesAndOptions(slug, pid);
   }, [slug, pid, fetchProjectStates, fetchProjectLabels, fetchWorkItemTypesPropertiesAndOptions]);
 
-  const channels = [...(channelPayload?.channels || [])].sort((a, b) =>
+  const channels = (channelPayload?.channels || []).toSorted((a, b) =>
     (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
   );
   const isListedChannel = channels.some((ch) => ch.id === channelId);

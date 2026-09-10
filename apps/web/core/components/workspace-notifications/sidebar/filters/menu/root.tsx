@@ -24,8 +24,8 @@ export const NotificationFilter = observer(function NotificationFilter() {
   const { t } = useTranslation();
 
   const translatedFilterTypeOptions = FILTER_TYPE_OPTIONS.map((filter) => ({
-    ...filter,
     label: t(filter.i18n_label),
+    value: filter.value,
   }));
 
   return (

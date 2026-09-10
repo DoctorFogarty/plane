@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
@@ -23,6 +23,10 @@ import type { TDropdownProps } from "@/components/dropdowns/types";
 import { useDropdown } from "@/hooks/use-dropdown";
 // plane web imports
 import { StateOption } from "@/plane-web/components/workflow";
+
+function ComboDropDownRoot(props: ComponentPropsWithoutRef<"div">) {
+  return <div {...props} />;
+}
 
 export type TWorkItemStateDropdownBaseProps = TDropdownProps & {
   alwaysAllowStateChange?: boolean;
@@ -203,7 +207,7 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
 
   return (
     <ComboDropDown
-      as="div"
+      as={ComboDropDownRoot}
       ref={dropdownRef}
       className={cn("h-full", className)}
       value={stateValue}

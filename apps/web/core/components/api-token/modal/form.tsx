@@ -111,10 +111,9 @@ export function CreateApiTokenForm(props: Props) {
       if (expiryDate) payload.expired_at = expiryDate.toISOString();
     }
 
-    await onSubmit(payload).then(() => {
-      reset(defaultValues);
-      setCustomDate(null);
-    });
+    await onSubmit(payload);
+    reset(defaultValues);
+    setCustomDate(null);
   };
 
   const today = new Date();
@@ -238,11 +237,13 @@ export function CreateApiTokenForm(props: Props) {
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 border-t-[0.5px] border-subtle px-5 py-4">
-        <div className="flex cursor-pointer items-center gap-1.5" onClick={toggleNeverExpires}>
+        <div className="flex items-center gap-1.5">
           <div className="flex cursor-pointer items-center justify-center">
-            <ToggleSwitch value={neverExpires} onChange={() => {}} size="sm" />
+            <ToggleSwitch value={neverExpires} onChange={toggleNeverExpires} size="sm" />
           </div>
-          <span className="text-11">{t("workspace_settings.settings.api_tokens.never_expires")}</span>
+          <button type="button" className="cursor-pointer text-11" onClick={toggleNeverExpires}>
+            {t("workspace_settings.settings.api_tokens.never_expires")}
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={handleClose}>

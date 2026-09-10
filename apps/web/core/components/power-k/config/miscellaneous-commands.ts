@@ -24,23 +24,21 @@ export const usePowerKMiscellaneousCommands = (): TPowerKCommandConfig[] => {
   // translation
   const { t } = useTranslation();
 
-  const copyCurrentPageUrlToClipboard = useCallback(() => {
+  const copyCurrentPageUrlToClipboard = useCallback(async () => {
     const url = new URL(window.location.href);
-    copyTextToClipboard(url.href)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: t("power_k.miscellaneous_actions.copy_current_page_url_toast_success"),
-        });
-      })
-      .catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: t("power_k.miscellaneous_actions.copy_current_page_url_toast_error"),
-        });
+    try {
+      await copyTextToClipboard(url.href);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("power_k.miscellaneous_actions.copy_current_page_url_toast_success"),
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("power_k.miscellaneous_actions.copy_current_page_url_toast_error"),
+      });
+    }
+  }, [t]);
 
   const focusTopNavSearch = useCallback(() => {
     // Focus PowerK input if available, otherwise focus regular search input

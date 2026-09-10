@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/label-has-associated-control */
 
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
@@ -242,8 +241,11 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
         ) : (
           <>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Name</label>
+              <label htmlFor="automation-form-name" className="text-sm font-medium">
+                Name
+              </label>
               <Input
+                id="automation-form-name"
                 value={form.name}
                 onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder={t("automations.create_modal.title.placeholder")}
@@ -251,8 +253,11 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Description</label>
+              <label htmlFor="automation-form-description" className="text-sm font-medium">
+                Description
+              </label>
               <TextArea
+                id="automation-form-description"
                 value={form.description}
                 onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder={t("automations.create_modal.description.placeholder")}
@@ -261,8 +266,11 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">{t("automations.trigger.label")}</label>
+              <label htmlFor="automation-form-trigger" className="text-sm font-medium">
+                {t("automations.trigger.label")}
+              </label>
               <select
+                id="automation-form-trigger"
                 className="border-custom-border-200 bg-custom-background-100 text-sm w-full rounded border px-3 py-2"
                 value={form.trigger_type}
                 disabled={Boolean(automation)}
@@ -288,8 +296,11 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">{t("automations.action.label")}</label>
+              <label htmlFor="automation-form-action" className="text-sm font-medium">
+                {t("automations.action.label")}
+              </label>
               <select
+                id="automation-form-action"
                 className="border-custom-border-200 bg-custom-background-100 text-sm w-full rounded border px-3 py-2"
                 value={form.action_type}
                 onChange={(e) =>
@@ -314,8 +325,11 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
             {form.action_type === "change_property" ? (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Property</label>
+                  <label htmlFor="automation-form-property" className="text-sm font-medium">
+                    Property
+                  </label>
                   <select
+                    id="automation-form-property"
                     className="border-custom-border-200 bg-custom-background-100 text-sm w-full rounded border px-3 py-2"
                     value={form.property}
                     onChange={(e) =>
@@ -331,9 +345,12 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Value</label>
+                  <label htmlFor="automation-form-value" className="text-sm font-medium">
+                    Value
+                  </label>
                   {form.property === "state" ? (
                     <select
+                      id="automation-form-value"
                       className="border-custom-border-200 bg-custom-background-100 text-sm w-full rounded border px-3 py-2"
                       value={form.property_value}
                       onChange={(e) => setForm((prev) => ({ ...prev, property_value: e.target.value }))}
@@ -346,6 +363,7 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
                     </select>
                   ) : (
                     <select
+                      id="automation-form-value"
                       className="border-custom-border-200 bg-custom-background-100 text-sm w-full rounded border px-3 py-2"
                       value={form.property_value}
                       onChange={(e) => setForm((prev) => ({ ...prev, property_value: e.target.value }))}
@@ -362,16 +380,22 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
             ) : form.action_type === "post_slack_message" ? (
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Slack channel id</label>
+                  <label htmlFor="automation-form-slack-channel" className="text-sm font-medium">
+                    Slack channel id
+                  </label>
                   <Input
+                    id="automation-form-slack-channel"
                     value={form.slack_channel_id}
                     onChange={(e) => setForm((prev) => ({ ...prev, slack_channel_id: e.target.value }))}
                     placeholder="C0123456789"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Message</label>
+                  <label htmlFor="automation-form-slack-text" className="text-sm font-medium">
+                    Message
+                  </label>
                   <TextArea
+                    id="automation-form-slack-text"
                     value={form.slack_text}
                     onChange={(e) => setForm((prev) => ({ ...prev, slack_text: e.target.value }))}
                     placeholder="{{name}} updated. Priority: {{priority}}"
@@ -381,8 +405,11 @@ export const AutomationFormModal = observer(function AutomationFormModal(props: 
               </div>
             ) : (
               <div className="space-y-1">
-                <label className="text-sm font-medium">Comment</label>
+                <label htmlFor="automation-form-comment" className="text-sm font-medium">
+                  Comment
+                </label>
                 <TextArea
+                  id="automation-form-comment"
                   value={form.comment_html}
                   onChange={(e) => setForm((prev) => ({ ...prev, comment_html: e.target.value }))}
                   placeholder="This item moved. Priority: {{priority}}"

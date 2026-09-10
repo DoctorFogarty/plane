@@ -136,22 +136,26 @@ export const getMonthsBetweenTwoDates = (startDate: Date, endDate: Date): IMonth
   const todayMonth = today.getMonth();
   const todayYear = today.getFullYear();
 
-  const currentDate = new Date(startYear, startMonth);
+  let year = startYear;
+  let month = startMonth;
+  const lastYear = endDate.getFullYear();
+  const lastMonth = endDate.getMonth();
 
-  while (currentDate <= endDate) {
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth();
-
+  while (year < lastYear || (year === lastYear && month <= lastMonth)) {
     monthBlocks.push({
-      year: currentYear,
-      month: currentMonth,
-      monthData: months[currentMonth],
-      title: `${months[currentMonth].title} ${currentYear}`,
-      days: getNumberOfDaysInMonth(currentMonth, currentYear),
-      today: todayMonth === currentMonth && todayYear === currentYear,
+      year,
+      month,
+      monthData: months[month],
+      title: `${months[month].title} ${year}`,
+      days: getNumberOfDaysInMonth(month, year),
+      today: todayMonth === month && todayYear === year,
     });
 
-    currentDate.setMonth(currentDate.getMonth() + 1);
+    month += 1;
+    if (month > 11) {
+      month = 0;
+      year += 1;
+    }
   }
 
   return monthBlocks;

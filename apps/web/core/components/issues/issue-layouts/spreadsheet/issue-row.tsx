@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -43,7 +42,7 @@ import { useIssuesActions } from "@/hooks/use-issues-actions";
 import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 // local components
 import type { TRenderQuickActions } from "../list/list-view-types";
-import { isIssueNew } from "../utils";
+import { bindStopPropagation, isIssueNew } from "../utils";
 import { IssueColumn } from "./issue-column";
 
 interface Props {
@@ -498,7 +497,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                 </div>
                 <div
                   className={`opacity-0 transition-opacity group-hover:opacity-100 ${isMenuActive ? "!opacity-100" : ""}`}
-                  onClick={(e) => e.stopPropagation()}
+                  ref={bindStopPropagation}
                 >
                   {quickActions({
                     issue: issueDetail,

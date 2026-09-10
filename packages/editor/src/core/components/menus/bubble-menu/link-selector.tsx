@@ -26,11 +26,17 @@ export function BubbleMenuLinkSelector(props: Props) {
   const { editor } = props;
   // states
   const [error, setError] = useState(false);
-  // floating ui
-  const { options, getReferenceProps, getFloatingProps } = useFloatingMenu({});
-  const { context } = options;
   // refs
   const inputRef = useRef<HTMLInputElement>(null);
+  // floating ui
+  const { options, getReferenceProps, getFloatingProps } = useFloatingMenu({
+    handleOpenChange: (open) => {
+      if (open) {
+        requestAnimationFrame(() => inputRef.current?.focus());
+      }
+    },
+  });
+  const { context } = options;
 
   const handleLinkSubmit = useCallback(() => {
     const input = inputRef.current;

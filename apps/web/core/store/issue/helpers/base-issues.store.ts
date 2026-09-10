@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -403,10 +402,10 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
   // The Issue Property corresponding to the order by value
   get orderByKey() {
-    const orderBy = this.orderBy;
-    if (!orderBy) return;
+    const currentOrderBy = this.orderBy;
+    if (!currentOrderBy) return;
 
-    return ISSUE_ORDERBY_KEY[orderBy];
+    return ISSUE_ORDERBY_KEY[currentOrderBy];
   }
 
   // The Issue Property corresponding to the group by value
@@ -614,7 +613,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     this.addIssue(response, shouldUpdateList);
 
     // If shouldUpdateList is true, call fetchParentStats
-    shouldUpdateList && (await this.fetchParentStats(workspaceSlug, projectId));
+    if (shouldUpdateList) await this.fetchParentStats(workspaceSlug, projectId);
 
     return response;
   }
@@ -839,34 +838,34 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     try {
       const getIssueById = this.rootIssueStore.issues.getIssueById;
       runInAction(() => {
-        for (const update of updates) {
+        for (const dateUpdate of updates) {
           const dates: Partial<TIssue> = {};
-          if (update.start_date) dates.start_date = update.start_date;
-          if (update.target_date) dates.target_date = update.target_date;
+          if (dateUpdate.start_date) dates.start_date = dateUpdate.start_date;
+          if (dateUpdate.target_date) dates.target_date = dateUpdate.target_date;
 
-          const currIssue = getIssueById(update.id);
+          const currIssue = getIssueById(dateUpdate.id);
 
           if (currIssue) {
             issueDatesBeforeChange.push({
-              id: update.id,
+              id: dateUpdate.id,
               start_date: currIssue.start_date ?? undefined,
               target_date: currIssue.target_date ?? undefined,
             });
           }
 
-          this.issueUpdate(workspaceSlug, projectId, update.id, dates, false);
+          this.issueUpdate(workspaceSlug, projectId, dateUpdate.id, dates, false);
         }
       });
 
       await this.issueService.updateIssueDates(workspaceSlug, projectId, updates);
     } catch (e) {
       runInAction(() => {
-        for (const update of issueDatesBeforeChange) {
+        for (const dateUpdate of issueDatesBeforeChange) {
           const dates: Partial<TIssue> = {};
-          if (update.start_date) dates.start_date = update.start_date;
-          if (update.target_date) dates.target_date = update.target_date;
+          if (dateUpdate.start_date) dates.start_date = dateUpdate.start_date;
+          if (dateUpdate.target_date) dates.target_date = dateUpdate.target_date;
 
-          this.issueUpdate(workspaceSlug, projectId, update.id, dates, false);
+          this.issueUpdate(workspaceSlug, projectId, dateUpdate.id, dates, false);
         }
       });
       console.error("error while updating Timeline dependencies");
@@ -935,7 +934,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     runInAction(() => {
       // If cycle Id is the current cycle Id, then, remove issue from list of issueIds
-      this.cycleId === cycleId && this.removeIssueFromList(issueId);
+      if (this.cycleId === cycleId) this.removeIssueFromList(issueId);
     });
 
     // update Issue cycle Id to null by calling current store's update Issue, without making an API call
@@ -1065,7 +1064,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     runInAction(() => {
       // if module Id is the current Module Id, then, add issue to list of issueIds
-      this.moduleId === moduleId && issueIds.forEach((issueId) => this.addIssueToList(issueId));
+      if (this.moduleId === moduleId) issueIds.forEach((issueId) => this.addIssueToList(issueId));
     });
 
     // For Each issue update module Ids by calling current store's update Issue, without making an API call
@@ -1093,7 +1092,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     runInAction(() => {
       // if module Id is the current Module Id, then remove issue from list of issueIds
-      this.moduleId === moduleId && issueIds.forEach((issueId) => this.removeIssueFromList(issueId));
+      if (this.moduleId === moduleId) issueIds.forEach((issueId) => this.removeIssueFromList(issueId));
     });
 
     // For Each issue update module Ids by calling current store's update Issue, without making an API call
@@ -1166,7 +1165,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
         // remove the new issue id to the module issues
         removeModuleIds.forEach((moduleId) => {
           // If module Id is equal to current module Id, them remove Issue from List
-          this.moduleId === moduleId && this.removeIssueFromList(issueId);
+          if (this.moduleId === moduleId) this.removeIssueFromList(issueId);
           currentModuleIds = pull(currentModuleIds, moduleId);
         });
 
@@ -1337,13 +1336,13 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
    * if only issue is passed down then, the method determines where to add the issue Id and updates the list
    * @param issue current issue state
    * @param issueBeforeUpdate issue state before the update
-   * @param action specific action can be provided to force the method to that action
+   * @param groupedAction specific action can be provided to force the method to that action
    * @returns
    */
   updateIssueList(
     issue?: TIssue,
     issueBeforeUpdate?: TIssue,
-    action?: EIssueGroupedAction.ADD | EIssueGroupedAction.DELETE
+    groupedAction?: EIssueGroupedAction.ADD | EIssueGroupedAction.DELETE
   ) {
     if (!issue && !issueBeforeUpdate) return;
 
@@ -1358,7 +1357,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
     // get issueUpdates from another method by passing down the three arguments
     // issueUpdates is nothing but an array of objects that contain the path of the issueId list that need updating and also the action that needs to be performed at the path
-    let issueUpdates = this.getUpdateDetails(issue, issueBeforeUpdate, action);
+    let issueUpdates = this.getUpdateDetails(issue, issueBeforeUpdate, groupedAction);
 
     // Hierarchy layouts: when an issue gains a parent, remove it from root lists; when it loses a parent, add it back.
     if (hierarchyLayout && issue && issueBeforeUpdate && issue.parent_id !== issueBeforeUpdate.parent_id) {
@@ -1629,27 +1628,27 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     set(this.groupedIssueCount, [ALL_ISSUES], groupedIssueCount[ALL_ISSUES]);
 
     // loop through the groups of groupedIssues.
-    for (const groupId in groupedIssues) {
-      const issueGroup = groupedIssues[groupId];
-      const issueGroupCount = groupedIssueCount[groupId];
+    for (const currentGroupId in groupedIssues) {
+      const issueGroup = groupedIssues[currentGroupId];
+      const issueGroupCount = groupedIssueCount[currentGroupId];
 
       // update the groupId's issue count
-      set(this.groupedIssueCount, [groupId], issueGroupCount);
+      set(this.groupedIssueCount, [currentGroupId], issueGroupCount);
 
       // This updates the group issue list in the store, if the issueGroup is a string
-      const storeUpdated = this.updateIssueGroup(issueGroup, [groupId]);
+      const storeUpdated = this.updateIssueGroup(issueGroup, [currentGroupId]);
       // if issueGroup is indeed a string, continue
       if (storeUpdated) continue;
 
       // if issueGroup is not a string, loop through the sub group Issues
-      for (const subGroupId in issueGroup) {
-        const issueSubGroup = (issueGroup as TGroupedIssues)[subGroupId];
-        const issueSubGroupCount = groupedIssueCount[getGroupKey(groupId, subGroupId)];
+      for (const currentSubGroupId in issueGroup) {
+        const issueSubGroup = (issueGroup as TGroupedIssues)[currentSubGroupId];
+        const issueSubGroupCount = groupedIssueCount[getGroupKey(currentGroupId, currentSubGroupId)];
 
         // update the subGroupId's issue count
-        set(this.groupedIssueCount, [getGroupKey(groupId, subGroupId)], issueSubGroupCount);
+        set(this.groupedIssueCount, [getGroupKey(currentGroupId, currentSubGroupId)], issueSubGroupCount);
         // This updates the subgroup issue list in the store
-        this.updateIssueGroup(issueSubGroup, [groupId, subGroupId]);
+        this.updateIssueGroup(issueSubGroup, [currentGroupId, currentSubGroupId]);
       }
     }
   }
@@ -1680,33 +1679,33 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
    * For Every issue update, accumulate it so that when an single issue is added to two groups, it doesn't increment the total count twice
    * @param accumulator
    * @param path
-   * @param action
+   * @param groupedAction
    * @returns
    */
   accumulateIssueUpdates(
     accumulator: { [key: string]: EIssueGroupedAction },
     path: string[],
-    action: EIssueGroupedAction
+    groupedAction: EIssueGroupedAction
   ) {
     const [groupId, subGroupId] = path;
 
-    if (action !== EIssueGroupedAction.ADD && action !== EIssueGroupedAction.DELETE) return;
+    if (groupedAction !== EIssueGroupedAction.ADD && groupedAction !== EIssueGroupedAction.DELETE) return;
 
     // if both groupId && subGroupId exists update the subgroup key
     if (subGroupId && groupId) {
       const groupKey = getGroupKey(groupId, subGroupId);
-      this.updateUpdateAccumulator(accumulator, groupKey, action);
+      this.updateUpdateAccumulator(accumulator, groupKey, groupedAction);
     }
 
     // after above, if groupId exists update the group key
     if (groupId) {
-      this.updateUpdateAccumulator(accumulator, groupId, action);
+      this.updateUpdateAccumulator(accumulator, groupId, groupedAction);
     }
 
     // if groupId is not ALL_ISSUES then update the  All_ISSUES key
     // (if groupId is equal to ALL_ISSUES, it would have updated in the previous condition)
     if (groupId !== ALL_ISSUES) {
-      this.updateUpdateAccumulator(accumulator, ALL_ISSUES, action);
+      this.updateUpdateAccumulator(accumulator, ALL_ISSUES, groupedAction);
     }
   }
 
@@ -1714,24 +1713,24 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
    * This method's job is just to check and update the accumulator key
    * @param accumulator accumulator object
    * @param key object key like, subgroupKey, Group Key or ALL_ISSUES
-   * @param action
+   * @param groupedAction
    * @returns
    */
   updateUpdateAccumulator(
     accumulator: { [key: string]: EIssueGroupedAction },
     key: string,
-    action: EIssueGroupedAction
+    groupedAction: EIssueGroupedAction
   ) {
     // if the key for accumulator is undefined, they update it with the action
     if (!accumulator[key]) {
-      accumulator[key] = action;
+      accumulator[key] = groupedAction;
       return;
     }
 
     // if the key for accumulator is not the current action,
     // Meaning if the key already has an action ADD and the current one is REMOVE,
     // The key is deleted as both the actions cancel each other out
-    if (accumulator[key] !== action) {
+    if (accumulator[key] !== groupedAction) {
       delete accumulator[key];
     }
   }
@@ -1744,10 +1743,10 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   updateIssueCount(accumulatedUpdatesForCount: { [key: string]: EIssueGroupedAction }) {
     const updateKeys = Object.keys(accumulatedUpdatesForCount);
     for (const updateKey of updateKeys) {
-      const update = accumulatedUpdatesForCount[updateKey];
-      if (!update) continue;
+      const countUpdate = accumulatedUpdatesForCount[updateKey];
+      if (!countUpdate) continue;
 
-      const increment = update === EIssueGroupedAction.ADD ? 1 : -1;
+      const increment = countUpdate === EIssueGroupedAction.ADD ? 1 : -1;
       // get current count at the key
       const issueCount = get(this.groupedIssueCount, updateKey) ?? 0;
       // update the count at the key
@@ -1759,18 +1758,19 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
    * This method is used to get update Details that would be used to update the issue Ids at the path
    * @param issue current state of issue
    * @param issueBeforeUpdate state of the issue before the update
-   * @param action optional action, to force the method to return back that action
+   * @param groupedAction optional action, to force the method to return back that action
    * @returns an array of object that contains the path at which issue to be updated and the action to be performed at the path
    */
   getUpdateDetails = (
     issue?: Partial<TIssue>,
     issueBeforeUpdate?: Partial<TIssue>,
-    action?: EIssueGroupedAction.ADD | EIssueGroupedAction.DELETE
+    groupedAction?: EIssueGroupedAction.ADD | EIssueGroupedAction.DELETE
   ): { path: string[]; action: EIssueGroupedAction }[] => {
     // check the before and after states to return if there needs to be a re-sorting of issueId list if the issue property that orderBy  depends on has changed
     const orderByUpdates = this.getOrderByUpdateDetails(issue, issueBeforeUpdate);
     // if unGrouped, then return the path as ALL_ISSUES along with orderByUpdates
-    if (!this.issueGroupKey) return action ? [{ path: [ALL_ISSUES], action }, ...orderByUpdates] : orderByUpdates;
+    if (!this.issueGroupKey)
+      return groupedAction ? [{ path: [ALL_ISSUES], action: groupedAction }, ...orderByUpdates] : orderByUpdates;
 
     const issueGroupKeyValue = issue?.[this.issueGroupKey] as string | string[] | null | undefined;
     const issueBeforeUpdateGroupKey = issueBeforeUpdate?.[this.issueGroupKey] as string | string[] | null | undefined;
@@ -1778,7 +1778,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     const groupActionsArray = getDifference(
       this.getArrayStringArray(issue, issueGroupKeyValue, this.groupBy),
       this.getArrayStringArray(issueBeforeUpdate, issueBeforeUpdateGroupKey, this.groupBy),
-      action
+      groupedAction
     );
 
     // if not subGrouped, then use the differences to construct an updateDetails Array
@@ -1801,7 +1801,7 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     const subGroupActionsArray = getDifference(
       this.getArrayStringArray(issue, issueSubGroupKey, this.subGroupBy),
       this.getArrayStringArray(issueBeforeUpdate, issueBeforeUpdateSubGroupKey, this.subGroupBy),
-      action
+      groupedAction
     );
 
     // Use the differences to construct an updateDetails Array

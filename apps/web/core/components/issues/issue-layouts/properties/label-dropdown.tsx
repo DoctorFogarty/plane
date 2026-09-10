@@ -24,6 +24,7 @@ import { sortBySelectedFirst } from "@plane/utils";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
 import { useUserPermissions } from "@/hooks/store/user";
+import { bindStopPropagation } from "@/components/issues/issue-layouts/utils";
 import { useDropdownKeyDown } from "@/hooks/use-dropdown-key-down";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 
@@ -99,18 +100,18 @@ export function LabelDropdown(props: ILabelDropdownProps) {
 
   const options = useMemo(
     () =>
-      projectLabels.map((label) => ({
-        value: label?.id,
-        query: label?.name,
+      projectLabels.map((issueLabel) => ({
+        value: issueLabel?.id,
+        query: issueLabel?.name,
         content: (
           <div className="flex items-center justify-start gap-2 overflow-hidden">
             <span
               className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
               style={{
-                backgroundColor: label?.color,
+                backgroundColor: issueLabel?.color,
               }}
             />
-            <div className="line-clamp-1 inline-block truncate">{label?.name}</div>
+            <div className="line-clamp-1 inline-block truncate">{issueLabel?.name}</div>
           </div>
         ),
       })),
@@ -163,8 +164,8 @@ export function LabelDropdown(props: ILabelDropdownProps) {
   const handleAddLabel = async (labelName: string) => {
     if (!projectId) return;
     setSubmitting(true);
-    const label = await createLabel(workspaceSlug, projectId, { name: labelName, color: getRandomLabelColor() });
-    onChange([...value, label.id]);
+    const createdLabel = await createLabel(workspaceSlug, projectId, { name: labelName, color: getRandomLabelColor() });
+    onChange([...value, createdLabel.id]);
     setQuery("");
     setSubmitting(false);
   };
@@ -232,15 +233,13 @@ export function LabelDropdown(props: ILabelDropdownProps) {
     ]
   );
 
-  const preventPropagation = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   return (
-    <div className={`${fullHeight ? "h-full" : "h-5"}`} onClick={preventPropagation}>
+    <div className={`${fullHeight ? "h-full" : "h-5"}`} ref={bindStopPropagation}>
       <ComboDropDown
         as="div"
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-controls="issue-label-dropdown-options"
         ref={dropdownRef}
         className={`h-full w-auto max-w-full flex-shrink-0 text-left ${className}`}
         value={value}
@@ -252,7 +251,7 @@ export function LabelDropdown(props: ILabelDropdownProps) {
         multiple
       >
         {isOpen && (
-          <Combobox.Options className="fixed z-10" static>
+          <Combobox.Options id="issue-label-dropdown-options" className="fixed z-10" static>
             <div
               className={`z-10 my-1 h-auto w-48 rounded-sm border border-strong bg-surface-1 px-2 py-2.5 text-caption-sm-regular whitespace-nowrap shadow-raised-200 focus:outline-none ${optionsClassName}`}
               ref={setPopperElement}
@@ -306,7 +305,8 @@ export function LabelDropdown(props: ILabelDropdownProps) {
                 ) : submitting ? (
                   <Loader className="h-3.5 w-3.5 animate-spin" />
                 ) : canCreateLabel ? (
-                  <p
+                  <button
+                    type="button"
                     onClick={() => {
                       if (!query.length) return;
                       handleAddLabel(query);
@@ -321,7 +321,7 @@ export function LabelDropdown(props: ILabelDropdownProps) {
                     ) : (
                       t("label.create.type")
                     )}
-                  </p>
+                  </button>
                 ) : (
                   <p className="text-left text-secondary">{t("common.search.no_matching_results")}</p>
                 )}

@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable promise/always-return */
-
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -81,31 +79,31 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
       return;
     }
     if (onSubmit)
-      await onSubmit()
-        .then(() => {
-          setToast({
-            type: TOAST_TYPE.SUCCESS,
-            title: t("common.success"),
-            message: t("entity.delete.success", {
-              entity: isSubIssue ? t("common.sub_work_item") : isEpic ? t("common.epic") : t("common.work_item"),
-            }),
-          });
-          onClose();
-        })
-        .catch((errors) => {
-          const isPermissionError =
-            errors?.error ===
-            `Only admin or creator can delete the ${isSubIssue ? "sub-work item" : isEpic ? "epic" : "work item"}`;
-          const currentError = isPermissionError
-            ? PROJECT_ERROR_MESSAGES.permissionError
-            : PROJECT_ERROR_MESSAGES.issueDeleteError;
-          setToast({
-            title: t(currentError.i18n_title),
-            type: TOAST_TYPE.ERROR,
-            message: currentError.i18n_message && t(currentError.i18n_message),
-          });
-        })
-        .finally(() => onClose());
+      try {
+        await onSubmit();
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: t("common.success"),
+          message: t("entity.delete.success", {
+            entity: isSubIssue ? t("common.sub_work_item") : isEpic ? t("common.epic") : t("common.work_item"),
+          }),
+        });
+        onClose();
+      } catch (errors) {
+        const isPermissionError =
+          errors?.error ===
+          `Only admin or creator can delete the ${isSubIssue ? "sub-work item" : isEpic ? "epic" : "work item"}`;
+        const currentError = isPermissionError
+          ? PROJECT_ERROR_MESSAGES.permissionError
+          : PROJECT_ERROR_MESSAGES.issueDeleteError;
+        setToast({
+          title: t(currentError.i18n_title),
+          type: TOAST_TYPE.ERROR,
+          message: currentError.i18n_message && t(currentError.i18n_message),
+        });
+      } finally {
+        onClose();
+      }
   };
 
   return (

@@ -37,22 +37,21 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
   const transferIssue = async (payload: { new_cycle_id: string }) => {
     if (!workspaceSlug || !projectId || !cycleId) return;
 
-    await transferIssuesFromCycle(workspaceSlug.toString(), projectId.toString(), cycleId.toString(), payload)
-      .then(async () => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Work items have been transferred successfully",
-        });
-        await getCycleDetails(payload.new_cycle_id);
-      })
-      .catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Unable to transfer work items. Please try again.",
-        });
+    try {
+      await transferIssuesFromCycle(workspaceSlug.toString(), projectId.toString(), cycleId.toString(), payload);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Work items have been transferred successfully",
       });
+      await getCycleDetails(payload.new_cycle_id);
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Unable to transfer work items. Please try again.",
+      });
+    }
   };
 
   /**To update issue counts in target cycle and current cycle */

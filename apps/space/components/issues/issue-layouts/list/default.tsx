@@ -10,6 +10,7 @@ import { observer } from "mobx-react";
 import type {
   GroupByColumnTypes,
   TGroupedIssues,
+  TSubGroupedIssues,
   IIssueDisplayProperties,
   TIssueGroupByOptions,
   TPaginationData,
@@ -22,11 +23,11 @@ import { useMember } from "@/hooks/store/use-member";
 import { useModule } from "@/hooks/store/use-module";
 import { useStates } from "@/hooks/store/use-state";
 //
-import { getGroupByColumns } from "../utils";
+import { getGroupByColumns, getListGroupIssueIds } from "../utils";
 import { ListGroup } from "./list-group";
 
 export interface IList {
-  groupedIssueIds: TGroupedIssues;
+  groupedIssueIds: TGroupedIssues | TSubGroupedIssues;
   groupBy: TIssueGroupByOptions | undefined;
   displayProperties: IIssueDisplayProperties | undefined;
   showEmptyGroup?: boolean;
@@ -75,7 +76,7 @@ export const List = observer(function List(props: IList) {
             {groupList.map((group) => (
               <ListGroup
                 key={group.id}
-                groupIssueIds={groupedIssueIds?.[group.id]}
+                groupIssueIds={getListGroupIssueIds(groupedIssueIds, group.id)}
                 groupBy={groupBy}
                 group={group}
                 displayProperties={displayProperties}

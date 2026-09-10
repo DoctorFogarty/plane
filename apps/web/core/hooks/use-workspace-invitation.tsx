@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable promise/always-return */
-
 import type { Control, FieldArrayWithId, FormState, UseFormWatch } from "react-hook-form";
 import { useFieldArray, useForm } from "react-hook-form";
 // plane imports
@@ -77,9 +75,11 @@ export const useWorkspaceInvitationActions = (props: TUseWorkspaceInvitationProp
   };
 
   const onSubmitForm = async (data: InvitationFormValues) => {
-    await onSubmit(data)?.then(() => {
+    const result = onSubmit(data);
+    if (result) {
+      await result;
       reset(SEND_WORKSPACE_INVITATION_MODAL_DEFAULT_VALUES);
-    });
+    }
   };
 
   return {

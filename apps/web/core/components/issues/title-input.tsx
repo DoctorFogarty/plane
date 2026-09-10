@@ -50,6 +50,24 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
   const hasUnsavedChanges = useRef(false);
   // ref to store current title value for cleanup function
   const currentTitleRef = useRef(title);
+  const persistTitleRef = useRef({
+    issueId,
+    issueOperations,
+    projectId,
+    setIsSubmitting,
+    title,
+    value,
+    workspaceSlug,
+  });
+  persistTitleRef.current = {
+    issueId,
+    issueOperations,
+    projectId,
+    setIsSubmitting,
+    title,
+    value,
+    workspaceSlug,
+  };
   // hooks
   const debouncedValue = useDebounce(title, 1500);
 
@@ -64,42 +82,43 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
 
   useEffect(() => {
     const textarea = document.querySelector("#title-input");
-    if (debouncedValue && debouncedValue !== value) {
+    const persist = persistTitleRef.current;
+    if (debouncedValue && debouncedValue !== persist.value) {
       if (debouncedValue.trim().length > 0) {
-        issueOperations.update(workspaceSlug, projectId, issueId, { name: debouncedValue }).finally(() => {
-          setIsSubmitting("saved");
-          hasUnsavedChanges.current = false;
-          if (textarea && !textarea.matches(":focus")) {
-            const trimmedTitle = debouncedValue.trim();
-            if (trimmedTitle !== title) setTitle(trimmedTitle);
-          }
-        });
+        persist.issueOperations
+          .update(persist.workspaceSlug, persist.projectId, persist.issueId, { name: debouncedValue })
+          .finally(() => {
+            persist.setIsSubmitting("saved");
+            hasUnsavedChanges.current = false;
+            if (textarea && !textarea.matches(":focus")) {
+              const trimmedTitle = debouncedValue.trim();
+              if (trimmedTitle !== persist.title) setTitle(trimmedTitle);
+            }
+          });
       } else {
-        setTitle(value || "");
-        setIsSubmitting("saved");
+        setTitle(persist.value || "");
+        persist.setIsSubmitting("saved");
         hasUnsavedChanges.current = false;
       }
     }
-    // DO NOT Add more dependencies here. It will cause multiple requests to be sent.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValue]);
 
   // Save on unmount if there are unsaved changes
   useEffect(
     () => () => {
       if (hasUnsavedChanges.current && currentTitleRef.current.trim().length > 0) {
-        issueOperations
-          .update(workspaceSlug, projectId, issueId, { name: currentTitleRef.current.trim() })
+        const persist = persistTitleRef.current;
+        persist.issueOperations
+          .update(persist.workspaceSlug, persist.projectId, persist.issueId, { name: currentTitleRef.current.trim() })
           .catch((error) => {
             console.error("Failed to save title on unmount:", error);
           })
           .finally(() => {
-            setIsSubmitting("saved");
+            persist.setIsSubmitting("saved");
             hasUnsavedChanges.current = false;
           });
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 

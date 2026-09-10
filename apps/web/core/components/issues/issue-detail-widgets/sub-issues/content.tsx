@@ -59,6 +59,7 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
   });
   // store hooks
   const {
+    fetchSubIssues,
     toggleCreateIssueModal,
     toggleDeleteIssueModal,
     subIssues: { subIssueHelpersByIssueId, setSubIssueHelpers },
@@ -83,25 +84,28 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
     [issueCrudState]
   );
 
-  const handleFetchSubIssues = useCallback(async () => {
-    const currentSubIssueHelpers = subIssueHelpersByIssueId(`${parentIssueId}_root`);
-    if (!currentSubIssueHelpers.issue_visibility.includes(parentIssueId)) {
+  useEffect(() => {
+    const helperKey = `${parentIssueId}_root`;
+    if (subIssueHelpersByIssueId(helperKey).issue_visibility.includes(parentIssueId)) return;
+
+    let cancelled = false;
+    const load = async () => {
       try {
-        setSubIssueHelpers(`${parentIssueId}_root`, "preview_loader", parentIssueId);
-        await subIssueOperations.fetchSubIssues(workspaceSlug, projectId, parentIssueId);
-        setSubIssueHelpers(`${parentIssueId}_root`, "issue_visibility", parentIssueId);
+        setSubIssueHelpers(helperKey, "preview_loader", parentIssueId, true);
+        await fetchSubIssues(workspaceSlug, projectId, parentIssueId);
+        if (!cancelled) setSubIssueHelpers(helperKey, "issue_visibility", parentIssueId, true);
       } catch (error) {
         console.error("Error fetching sub-work items:", error);
       } finally {
-        setSubIssueHelpers(`${parentIssueId}_root`, "preview_loader", "");
+        if (!cancelled) setSubIssueHelpers(helperKey, "preview_loader", parentIssueId, false);
       }
-    }
-  }, [parentIssueId, projectId, setSubIssueHelpers, subIssueHelpersByIssueId, subIssueOperations, workspaceSlug]);
+    };
 
-  useEffect(() => {
-    handleFetchSubIssues();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parentIssueId]);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchSubIssues, parentIssueId, projectId, setSubIssueHelpers, subIssueHelpersByIssueId, workspaceSlug]);
 
   // render conditions
   const shouldRenderDeleteIssueModal =

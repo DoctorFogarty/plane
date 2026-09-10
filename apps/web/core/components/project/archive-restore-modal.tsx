@@ -103,7 +103,7 @@ export function ArchiveRestoreProjectModal(props: Props) {
           <Button
             variant="primary"
             size="lg"
-            tabIndex={1}
+            tabIndex={0}
             onClick={archive ? handleArchiveProject : handleRestoreProject}
             loading={isLoading}
           >

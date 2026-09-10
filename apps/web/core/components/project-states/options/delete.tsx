@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable promise/always-return */
-
 import { useState, useTransition } from "react";
 import { observer } from "mobx-react";
 import { STATE_TRACKER_ELEMENTS } from "@plane/constants";
@@ -57,8 +55,9 @@ export const StateDeleteConfirmModal = observer(function StateDeleteConfirmModal
 
     setIsSubmitting(true);
     startTransition(() => {
-      void deleteStateCallback(state.id, selectedFallbackId)
-        .then(() => {
+      void (async () => {
+        try {
+          await deleteStateCallback(state.id, selectedFallbackId);
           setToast({
             type: TOAST_TYPE.SUCCESS,
             title: t("toast.success"),
@@ -66,15 +65,16 @@ export const StateDeleteConfirmModal = observer(function StateDeleteConfirmModal
           });
           onClose();
           onDeleted?.();
-        })
-        .catch(() => {
+        } catch {
           setToast({
             type: TOAST_TYPE.ERROR,
             title: t("toast.error"),
             message: t("project_settings.states.delete.failed"),
           });
-        })
-        .finally(() => setIsSubmitting(false));
+        } finally {
+          setIsSubmitting(false);
+        }
+      })();
     });
   };
 

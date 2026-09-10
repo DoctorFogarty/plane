@@ -30,14 +30,14 @@ export const DefaultWorkspaceViewQuickActions = observer(function DefaultWorkspa
   const { t } = useTranslation();
 
   const viewLink = `${workspaceSlug}/workspace-views/${view.key}`;
-  const handleCopyText = () =>
-    copyUrlToClipboard(viewLink).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Link Copied!",
-        message: "View link copied to clipboard.",
-      });
+  const handleCopyText = async () => {
+    await copyUrlToClipboard(viewLink);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Link Copied!",
+      message: "View link copied to clipboard.",
     });
+  };
   const handleOpenInNewTab = () => window.open(`/${viewLink}`, "_blank");
 
   const MENU_ITEMS: TContextMenuItem[] = [

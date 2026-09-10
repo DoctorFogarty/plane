@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable react-hooks/exhaustive-deps */
 
 import React, { useState, useCallback } from "react";
 import { Command } from "cmdk";
@@ -109,7 +108,7 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
     setActivePage(null);
     context.setActiveCommand(null);
     context.setShouldShowContextBasedActions(true);
-  }, [context]);
+  }, [context, setActivePage]);
 
   return (
     <Transition.Root show={isOpen} as={React.Fragment} afterLeave={resetClosedState}>

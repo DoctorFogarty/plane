@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -79,7 +78,7 @@ export const IssueParentSelect = observer(function IssueParentSelect(props: TIss
         issueId={issueId}
         isOpen={isParentIssueModalOpen === issueId}
         handleClose={() => toggleParentIssueModal(null)}
-        onChange={(issue: any) => handleParentIssue(issue?.id)}
+        onChange={(parent: any) => handleParentIssue(parent?.id)}
         searchEpic={searchEpicParents}
       />
       <button
@@ -114,8 +113,8 @@ export const IssueParentSelect = observer(function IssueParentSelect(props: TIss
             </Tooltip>
             {!disabled && (
               <Tooltip tooltipContent={t("common.remove")} position="bottom" isMobile={isMobile}>
-                <span
-                  role="button"
+                <button
+                  type="button"
                   tabIndex={0}
                   aria-label={t("common.remove")}
                   className="inline-flex cursor-pointer"
@@ -124,15 +123,9 @@ export const IssueParentSelect = observer(function IssueParentSelect(props: TIss
                     e.stopPropagation();
                     handleRemoveSubIssue(workspaceSlug, projectId, parentIssue.id, issueId);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key !== "Enter" && e.key !== " ") return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleRemoveSubIssue(workspaceSlug, projectId, parentIssue.id, issueId);
-                  }}
                 >
                   <CloseIcon className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
-                </span>
+                </button>
               </Tooltip>
             )}{" "}
           </div>

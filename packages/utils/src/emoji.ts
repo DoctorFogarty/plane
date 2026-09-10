@@ -42,7 +42,7 @@ export const emojiCodeToUnicode = (emoji: string): string => {
   const uniCodeEmoji = emoji
     .toString()
     .split("-")
-    .map((emoji) => parseInt(emoji, 10).toString(16))
+    .map((code) => parseInt(code, 10).toString(16))
     .join("-");
 
   return uniCodeEmoji;

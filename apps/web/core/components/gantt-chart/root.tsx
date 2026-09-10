@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable react-hooks/exhaustive-deps */
-
 import { useEffect } from "react";
 import { observer } from "mobx-react";
 // components
@@ -71,7 +69,7 @@ export const GanttChartRoot = observer(function GanttChartRoot(props: GanttChart
   // update the timeline store with updated blockIds
   useEffect(() => {
     setBlockIds(blockIds);
-  }, [blockIds]);
+  }, [blockIds, setBlockIds]);
 
   return (
     <GanttSidebarWidthProvider>

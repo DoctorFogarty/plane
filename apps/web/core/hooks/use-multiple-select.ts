@@ -71,14 +71,13 @@ export const useMultipleSelect = (props: Props) => {
 
   const entitiesList: TEntityDetails[] = useMemo(
     () =>
-      groups
-        ?.map((groupID) =>
+      groups?.flatMap(
+        (groupID) =>
           entities?.[groupID]?.map((entityID) => ({
             entityID,
             groupID,
-          }))
-        )
-        .flat(1),
+          })) ?? []
+      ),
     [entities, groups]
   );
 

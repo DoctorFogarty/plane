@@ -164,12 +164,13 @@ export class PdfExportService extends Effect.Service<PdfExportService>()("PdfExp
         // Resolve URLs first
         const resolvedUrlMap = yield* tryAsync(
           async () => {
-            const urlMap = new Map<string, string>();
-            for (const assetId of assetIds) {
-              const url = await pageService.resolveImageAssetUrl?.(workspaceSlug, assetId, projectId);
-              if (url) urlMap.set(assetId, url);
-            }
-            return urlMap;
+            const resolvedEntries = await Promise.all(
+              assetIds.map(async (assetId) => {
+                const url = await pageService.resolveImageAssetUrl?.(workspaceSlug, assetId, projectId);
+                return url ? ([assetId, url] as const) : null;
+              })
+            );
+            return new Map(resolvedEntries.filter((entry): entry is readonly [string, string] => entry !== null));
           },
           () => new Map<string, string>()
         ).pipe(recoverWithDefault(new Map<string, string>()));

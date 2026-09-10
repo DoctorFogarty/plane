@@ -1,4 +1,3 @@
-/* eslint-disable no-shadow, no-unused-expressions, promise/always-return */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -61,14 +60,14 @@ export const GanttDnDHOC = observer(function GanttDnDHOC(props: Props) {
       dropTargetForElements({
         element,
         canDrop: ({ source }) => source?.data?.id !== id && source?.data?.dragInstanceId === "GANTT_REORDER",
-        getData: ({ input, element }) => {
+        getData: ({ input, element: targetElement }) => {
           const data = { id };
 
           const block = enableReorderOnly ? [] : (["reorder-above", "reorder-below"] as const);
 
           return attachInstruction(data, {
             input,
-            element,
+            element: targetElement,
             currentLevel: 0,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",

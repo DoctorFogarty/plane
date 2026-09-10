@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { SyntheticEvent } from "react";
 import React, { useRef } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
@@ -41,6 +40,12 @@ type Props = {
   moduleId: string;
 };
 
+function handleCardLinkClick(e: React.MouseEvent<HTMLAnchorElement>) {
+  if ((e.target as HTMLElement).closest("[data-stop-module-link]")) {
+    e.preventDefault();
+  }
+}
+
 export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
   const { moduleId } = props;
   // refs
@@ -71,11 +76,10 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
     e.preventDefault();
     if (!workspaceSlug || !projectId) return;
 
-    const addToFavoritePromise = addModuleToFavorites(workspaceSlug.toString(), projectId.toString(), moduleId).then(
-      () => {
-        if (!storedValue) toggleFavoriteMenu(true);
-      }
-    );
+    const addToFavoritePromise = (async () => {
+      await addModuleToFavorites(workspaceSlug.toString(), projectId.toString(), moduleId);
+      if (!storedValue) toggleFavoriteMenu(true);
+    })();
 
     setPromiseToast(addToFavoritePromise, {
       loading: "Adding module to favorites...",
@@ -114,29 +118,23 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
     });
   };
 
-  const handleEventPropagation = (e: SyntheticEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   const handleModuleDetailsChange = async (payload: Partial<IModule>) => {
     if (!workspaceSlug || !projectId) return;
 
-    await updateModuleDetails(workspaceSlug.toString(), projectId.toString(), moduleId, payload)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Module updated successfully.",
-        });
-      })
-      .catch((err) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.detail ?? "Module could not be updated. Please try again.",
-        });
+    try {
+      await updateModuleDetails(workspaceSlug.toString(), projectId.toString(), moduleId, payload);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Module updated successfully.",
       });
+    } catch (err: any) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: err?.detail ?? "Module could not be updated. Please try again.",
+      });
+    }
   };
 
   const openModuleOverview = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -185,14 +183,18 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
 
   return (
     <div className="relative" data-prevent-progress>
-      <Link ref={parentRef} href={`/${workspaceSlug}/projects/${moduleDetails.project_id}/modules/${moduleDetails.id}`}>
+      <Link
+        ref={parentRef}
+        href={`/${workspaceSlug}/projects/${moduleDetails.project_id}/modules/${moduleDetails.id}`}
+        onClick={handleCardLinkClick}
+      >
         <Card>
           <div>
             <div className="flex items-center justify-between gap-2">
               <Tooltip tooltipContent={moduleDetails.name} position="top" isMobile={isMobile}>
                 <span className="truncate text-14 font-medium">{moduleDetails.name}</span>
               </Tooltip>
-              <div className="flex items-center gap-2" onClick={handleEventPropagation}>
+              <div className="flex items-center gap-2" data-stop-module-link>
                 {moduleStatus && (
                   <ModuleStatusDropdown
                     isDisabled={isDisabled}
@@ -223,7 +225,7 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
               )}
             </div>
             <LinearProgressIndicator size="lg" data={progressIndicatorData} />
-            <div className="flex items-center justify-between py-0.5" onClick={handleEventPropagation}>
+            <div className="flex items-center justify-between py-0.5" data-stop-module-link>
               <DateRangeDropdown
                 buttonContainerClassName={`h-6 w-full flex ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"} items-center gap-1.5 text-tertiary border-[0.5px] border-strong rounded-sm text-11`}
                 buttonVariant="transparent-with-text"

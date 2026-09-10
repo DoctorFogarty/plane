@@ -89,8 +89,7 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
 
   useEffect(() => {
     if (descriptionHtmlData) handleDescriptionHTMLDataChange(descriptionHtmlData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [descriptionHtmlData]);
+  }, [descriptionHtmlData, handleDescriptionHTMLDataChange]);
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (editorRef.current?.isEditorReadyToDiscard()) {
@@ -119,38 +118,37 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
 
     setIAmFeelingLucky(true);
 
-    aiService
-      .createGptTask(workspaceSlug.toString(), {
+    try {
+      const res = await aiService.createGptTask(workspaceSlug.toString(), {
         prompt: issueName,
         task: "Generate a proper description for this work item.",
-      })
-      .then((res) => {
-        if (res.response === "")
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: "Error!",
-            message:
-              "Work item title isn't informative enough to generate the description. Please try with a different title.",
-          });
-        else handleAiAssistance(res.response_html);
-      })
-      .catch((err) => {
-        const error = err?.data?.error;
+      });
+      if (res.response === "")
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Error!",
+          message:
+            "Work item title isn't informative enough to generate the description. Please try with a different title.",
+        });
+      else handleAiAssistance(res.response_html);
+    } catch (err) {
+      const error = err?.data?.error;
 
-        if (err.status === 429)
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: "Error!",
-            message: error || "You have reached the maximum number of requests of 50 requests per month per user.",
-          });
-        else
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: "Error!",
-            message: error || "Some error occurred. Please try again.",
-          });
-      })
-      .finally(() => setIAmFeelingLucky(false));
+      if (err.status === 429)
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Error!",
+          message: error || "You have reached the maximum number of requests of 50 requests per month per user.",
+        });
+      else
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Error!",
+          message: error || "Some error occurred. Please try again.",
+        });
+    } finally {
+      setIAmFeelingLucky(false);
+    }
   };
 
   return (
@@ -222,7 +220,7 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
                     return asset_id;
                   } catch (error) {
                     console.log("Error in uploading issue asset:", error);
-                    throw new Error("Asset upload failed. Please try again later.");
+                    throw new Error("Asset upload failed. Please try again later.", { cause: error });
                   }
                 }}
                 duplicateFile={async (assetId: string) => {

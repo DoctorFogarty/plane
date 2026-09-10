@@ -42,8 +42,7 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
 
   useEffect(() => {
     if (windowSize[0] < 768 && !sidebarCollapsed) toggleSidebar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [windowSize]);
+  }, [windowSize, sidebarCollapsed, toggleSidebar]);
 
   return (
     <>

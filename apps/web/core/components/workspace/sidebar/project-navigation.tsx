@@ -1,4 +1,3 @@
-/* eslint-disable no-shadow, no-unused-expressions, promise/always-return, unicorn/no-array-sort */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -74,7 +73,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
       navItems.push(...additionalNavigationItems(workspaceSlug, projectId));
     }
 
-    return [...navItems].sort((a: TNavigationItem, b: TNavigationItem) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    return navItems.toSorted((a: TNavigationItem, b: TNavigationItem) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }, [workspaceSlug, projectId, additionalNavigationItems, project]);
 
   const isActive = useCallback(
@@ -95,7 +94,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
   return (
     <>
       {navigationItemsMemo.map((item) => {
-        if (!item.shouldRender) return;
+        if (!item.shouldRender) return null;
 
         const hasAccess = allowPermissions(item.access, EUserPermissionsLevel.PROJECT, workspaceSlug, project.id);
         if (!hasAccess) return null;

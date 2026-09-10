@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
@@ -52,7 +52,7 @@ function WorkspaceJoinPage() {
 
   const joinPath = slug && code ? `/workspace-join/?slug=${slug}&code=${code}` : null;
 
-  const handleJoin = async () => {
+  const handleJoin = useCallback(async () => {
     if (!slug || !code) return;
     setIsSubmitting(true);
     try {
@@ -68,15 +68,14 @@ function WorkspaceJoinPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [slug, code, router]);
 
   // Auto-join when an authenticated user lands on a valid invite link
   useEffect(() => {
     if (!currentUser?.id || !inviteLinkDetail || hasAutoJoined || isSubmitting || error) return;
     setHasAutoJoined(true);
     void handleJoin();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id, inviteLinkDetail, hasAutoJoined, error]);
+  }, [currentUser?.id, inviteLinkDetail, hasAutoJoined, error, isSubmitting, handleJoin]);
 
   const handleClaim = async () => {
     if (!slug || !code || !email.trim() || !joinPath) return;

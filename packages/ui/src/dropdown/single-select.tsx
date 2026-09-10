@@ -6,7 +6,7 @@
 
 import { Combobox } from "@headlessui/react";
 import { sortBy } from "lodash-es";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useId, useMemo, useRef, useState } from "react";
 import { usePopper } from "react-popper";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
@@ -52,6 +52,7 @@ export function Dropdown(props: ISingleSelectDropdown) {
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
   // refs
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const optionsId = useId();
   // popper-js refs
   const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(null);
 
@@ -93,8 +94,8 @@ export function Dropdown(props: ISingleSelectDropdown) {
     if (!options) return undefined;
 
     const filteredOptions = queryArray
-      ? (options || []).filter((options) => {
-          const queryString = queryArray.map((query) => options.data[query]).join(" ");
+      ? (options || []).filter((option) => {
+          const queryString = queryArray.map((field) => option.data[field]).join(" ");
           return queryString.toLowerCase().includes(query.toLowerCase());
         })
       : options;
@@ -106,7 +107,7 @@ export function Dropdown(props: ISingleSelectDropdown) {
       (option) => !(value ?? []).includes(option.data[option.value]),
       () => sortByKey && sortByKey.toLowerCase(),
     ]);
-  }, [query, options]);
+  }, [query, options, queryArray, value, sortByKey, firstItem, disableSorting]);
 
   // hooks
   const handleKeyDown = useDropdownKeyPressed(toggleDropdown, handleClose);
@@ -126,6 +127,9 @@ export function Dropdown(props: ISingleSelectDropdown) {
       tabIndex={tabIndex}
       onKeyDown={handleKeyDown}
       disabled={disabled}
+      role="combobox"
+      aria-expanded={isOpen}
+      aria-controls={optionsId}
     >
       <DropdownButton
         value={value}
@@ -139,7 +143,7 @@ export function Dropdown(props: ISingleSelectDropdown) {
       />
 
       {isOpen && (
-        <Combobox.Options className="fixed z-10" static>
+        <Combobox.Options id={optionsId} className="fixed z-10" static>
           <div
             className={cn(
               "my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2 text-11 shadow-raised-200 focus:outline-none",

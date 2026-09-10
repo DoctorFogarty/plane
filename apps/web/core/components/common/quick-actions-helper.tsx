@@ -143,8 +143,7 @@ export const useLayoutMenuItems = (props: UseLayoutMenuItemsProps): MenuResult =
   return { items, modals: null };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const useIntakeHeaderMenuItems = (props: {
+export const useIntakeHeaderMenuItems = (_props: {
   workspaceSlug: string;
   projectId: string;
   handleCopyLink: () => void;

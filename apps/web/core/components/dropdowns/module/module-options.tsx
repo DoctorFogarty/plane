@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/no-autofocus */
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
@@ -39,8 +38,6 @@ interface Props {
 
 export const ModuleOptions = observer(function ModuleOptions(props: Props) {
   const { getModuleById, moduleIds, multiple, placement, referenceElement, value } = props;
-  // refs
-  const inputRef = useRef<HTMLInputElement | null>(null);
   // states
   const [query, setQuery] = useState("");
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
@@ -111,7 +108,6 @@ export const ModuleOptions = observer(function ModuleOptions(props: Props) {
           <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
           <Combobox.Input
             as="input"
-            ref={inputRef}
             autoFocus={!isMobile}
             className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
             value={query}

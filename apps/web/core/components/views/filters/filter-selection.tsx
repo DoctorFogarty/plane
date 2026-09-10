@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/no-autofocus */
 
 import { useState } from "react";
 import { observer } from "mobx-react";
@@ -61,9 +60,9 @@ export const ViewFiltersSelection = observer(function ViewFiltersSelection(props
             type="text"
             className="w-full bg-surface-2 outline-none placeholder:text-placeholder"
             placeholder="Search"
+            autoFocus={!isMobile}
             value={filtersSearchQuery}
             onChange={(e) => setFiltersSearchQuery(e.target.value)}
-            autoFocus={!isMobile}
           />
           {filtersSearchQuery !== "" && (
             <button type="button" className="grid place-items-center" onClick={() => setFiltersSearchQuery("")}>

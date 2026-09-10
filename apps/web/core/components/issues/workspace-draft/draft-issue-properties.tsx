@@ -28,6 +28,7 @@ import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useWorkspaceDraftIssues } from "@/hooks/store/workspace-draft";
 import { usePlatformOS } from "@/hooks/use-platform-os";
+import { bindStopPropagation } from "../issue-layouts/utils";
 import { IssuePropertyLabels } from "../issue-layouts/properties";
 // local components
 
@@ -130,16 +131,11 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
   const maxDate = getDate(issue.target_date);
   maxDate?.setDate(maxDate.getDate());
 
-  const handleEventPropagation = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   return (
     <div className={className}>
       {/* basic properties */}
       {/* state */}
-      <div className="h-5" onClick={handleEventPropagation}>
+      <div className="h-5" ref={bindStopPropagation}>
         <StateDropdown
           buttonContainerClassName="truncate max-w-40"
           value={issue.state_id}
@@ -152,7 +148,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
       </div>
 
       {/* priority */}
-      <div className="h-5" onClick={handleEventPropagation}>
+      <div className="h-5" ref={bindStopPropagation}>
         <PriorityDropdown
           value={issue?.priority}
           onChange={handlePriority}
@@ -175,7 +171,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
       />
 
       {/* start date */}
-      <div className="h-5" onClick={handleEventPropagation}>
+      <div className="h-5" ref={bindStopPropagation}>
         <DateDropdown
           value={issue.start_date ?? null}
           onChange={handleStartDate}
@@ -190,7 +186,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
       </div>
 
       {/* target/due date */}
-      <div className="h-5" onClick={handleEventPropagation}>
+      <div className="h-5" ref={bindStopPropagation}>
         <DateDropdown
           value={issue?.target_date ?? null}
           onChange={handleTargetDate}
@@ -209,7 +205,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
       </div>
 
       {/* assignee */}
-      <div className="h-5" onClick={handleEventPropagation}>
+      <div className="h-5" ref={bindStopPropagation}>
         <MemberDropdown
           projectId={issue?.project_id}
           value={issue?.assignee_ids}
@@ -227,7 +223,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
 
       {/* modules */}
       {projectDetails?.module_view && (
-        <div className="h-5" onClick={handleEventPropagation}>
+        <div className="h-5" ref={bindStopPropagation}>
           <ModuleDropdown
             buttonContainerClassName="truncate max-w-40"
             projectId={issue?.project_id}
@@ -244,7 +240,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
 
       {/* cycles */}
       {projectDetails?.cycle_view && (
-        <div className="h-5" onClick={handleEventPropagation}>
+        <div className="h-5" ref={bindStopPropagation}>
           <CycleDropdown
             buttonContainerClassName="truncate max-w-40"
             projectId={issue?.project_id}
@@ -259,7 +255,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
 
       {/* estimates */}
       {issue.project_id && areEstimateEnabledByProjectId(issue.project_id?.toString()) && (
-        <div className="h-5" onClick={handleEventPropagation}>
+        <div className="h-5" ref={bindStopPropagation}>
           <EstimateDropdown
             value={issue.estimate_point ?? undefined}
             onChange={handleEstimate}

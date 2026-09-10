@@ -43,8 +43,7 @@ export const FilterModule = observer(function FilterModule(props: Props) {
       (module) => !appliedFilters?.includes(module.id),
       (module) => module.name.toLowerCase(),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [appliedFilters, modules, searchQuery]);
 
   const handleViewToggle = () => {
     if (!sortedOptions) return;
@@ -68,7 +67,7 @@ export const FilterModule = observer(function FilterModule(props: Props) {
                 {sortedOptions.slice(0, itemsToRender).map((cycle) => (
                   <FilterOption
                     key={cycle.id}
-                    isChecked={appliedFilters?.includes(cycle.id) ? true : false}
+                    isChecked={Boolean(appliedFilters?.includes(cycle.id))}
                     onClick={() => handleUpdate(cycle.id)}
                     icon={<ModuleIcon className="h-3 w-3 flex-shrink-0" />}
                     title={cycle.name}

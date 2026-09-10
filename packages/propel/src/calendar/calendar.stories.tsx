@@ -97,7 +97,7 @@ export const DisabledWeekends: Story = {
           mode="single"
           selected={date}
           onSelect={setDate}
-          disabled={(date) => date.getDay() === 0 || date.getDay() === 6}
+          disabled={(day) => day.getDay() === 0 || day.getDay() === 6}
           className="rounded-md border"
         />
       </div>
@@ -121,7 +121,7 @@ export const MinMaxDates: Story = {
           mode="single"
           selected={date}
           onSelect={setDate}
-          disabled={(date) => date < tenDaysAgo || date > tenDaysFromNow}
+          disabled={(day) => day < tenDaysAgo || day > tenDaysFromNow}
           className="rounded-md border"
         />
       </div>

@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/tabindex-no-positive */
-
 import { useState } from "react";
 import { observer } from "mobx-react";
 // i18n
@@ -81,7 +79,7 @@ export const ArchiveIssueModal = observer(function ArchiveIssueModal(props: Prop
           <Button variant="secondary" size="lg" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button variant="primary" size="lg" tabIndex={1} onClick={handleArchiveIssue} loading={isArchiving}>
+          <Button variant="primary" size="lg" tabIndex={0} onClick={handleArchiveIssue} loading={isArchiving}>
             {isArchiving ? t("common.archiving") : t("common.archive")}
           </Button>
         </div>

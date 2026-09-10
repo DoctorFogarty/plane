@@ -4,4 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export {};
+export type PublicAssetPath = string;

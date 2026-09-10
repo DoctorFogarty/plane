@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-shadow, promise/always-return */
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
@@ -214,11 +213,11 @@ const InviteMemberInput = observer(function InviteMemberInput(props: InviteMembe
                     style={styles.popper}
                     {...attributes.popper}
                   >
-                    {Object.entries(ROLE_DETAILS).map(([key, value]) => (
+                    {Object.entries(ROLE_DETAILS).map(([roleKey, roleDetails]) => (
                       <Listbox.Option
                         as="div"
-                        key={key}
-                        value={parseInt(key)}
+                        key={roleKey}
+                        value={parseInt(roleKey)}
                         className={({ active, selected }) =>
                           `cursor-pointer truncate rounded-sm px-1 py-1.5 select-none ${
                             active || selected ? "bg-onboarding-background-400/40" : ""
@@ -228,8 +227,8 @@ const InviteMemberInput = observer(function InviteMemberInput(props: InviteMembe
                         {({ selected }) => (
                           <div className="flex items-center gap-2 p-1 text-wrap">
                             <div className="flex flex-col">
-                              <div className="text-13 font-medium">{t(value.i18n_title)}</div>
-                              <div className="flex text-11 text-tertiary">{t(value.i18n_description)}</div>
+                              <div className="text-13 font-medium">{t(roleDetails.i18n_title)}</div>
+                              <div className="flex text-11 text-tertiary">{t(roleDetails.i18n_description)}</div>
                             </div>
                             {selected && <CheckIcon className="h-4 w-4 shrink-0" />}
                           </div>
@@ -299,28 +298,27 @@ export function InviteMembers(props: Props) {
     let payload = { ...formData };
     payload = { emails: payload.emails.filter((email) => email.email !== "") };
 
-    await workspaceService
-      .inviteWorkspace(workspace.slug, {
-        emails: payload.emails.map((email) => ({
-          email: email.email,
-          role: email.role,
+    try {
+      await workspaceService.inviteWorkspace(workspace.slug, {
+        emails: payload.emails.map((invite) => ({
+          email: invite.email,
+          role: invite.role,
         })),
-      })
-      .then(async () => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Invitations sent successfully.",
-        });
-        await nextStep();
-      })
-      .catch((err) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.error,
-        });
       });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Invitations sent successfully.",
+      });
+      await nextStep();
+    } catch (err) {
+      const error = err as { error?: string };
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: error?.error,
+      });
+    }
   };
 
   const appendField = () => {

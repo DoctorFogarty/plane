@@ -4,12 +4,11 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 type Props = {
   parentStateId: string;
   className?: string;
 };
 
-export function WorkFlowDisabledMessage(props: Props) {
+export function WorkFlowDisabledMessage(_props: Props) {
   return <></>;
 }

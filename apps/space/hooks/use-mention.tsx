@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-shadow */
-
 import { useRef } from "react";
 import useSWR from "swr";
 // plane imports
@@ -34,8 +32,8 @@ export const useMention = () => {
     if (!userDataLoading && userRef.current) {
       return [userRef.current.id];
     } else {
-      const user = await waitForUserDate();
-      return [user.id];
+      const resolvedUser = await waitForUserDate();
+      return [resolvedUser.id];
     }
   };
 

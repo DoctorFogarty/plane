@@ -49,7 +49,7 @@ export const FilterExtraOptions = observer(function FilterExtraOptions(props: Pr
         return (
           <FilterOption
             key={option.key}
-            isChecked={selectedExtraOptions?.[option.key] ? true : false}
+            isChecked={Boolean(selectedExtraOptions?.[option.key])}
             onClick={() => handleUpdate(option.key, !selectedExtraOptions?.[option.key])}
             title={t(option.titleTranslationKey)}
           />

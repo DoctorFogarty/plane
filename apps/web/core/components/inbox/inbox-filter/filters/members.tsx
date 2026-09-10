@@ -20,6 +20,8 @@ import { useMember } from "@/hooks/store/use-member";
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";
 import { useUser } from "@/hooks/store/user";
 
+const EMPTY_MEMBER_FILTERS: string[] = [];
+
 type Props = {
   filterKey: TInboxIssueFilterMemberKeys;
   label?: string;
@@ -37,7 +39,7 @@ export const FilterMember = observer(function FilterMember(props: Props) {
   const [itemsToRender, setItemsToRender] = useState(5);
   const [previewEnabled, setPreviewEnabled] = useState(true);
   // derived values
-  const filterValue = inboxFilters?.[filterKey] || [];
+  const filterValue = inboxFilters?.[filterKey] || EMPTY_MEMBER_FILTERS;
   const appliedFiltersCount = filterValue?.length ?? 0;
 
   const sortedOptions = useMemo(() => {
@@ -50,8 +52,7 @@ export const FilterMember = observer(function FilterMember(props: Props) {
       (memberId) => memberId !== currentUser?.id,
       (memberId) => getUserDetails(memberId)?.display_name.toLowerCase(),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, memberIds, filterValue, currentUser?.id, getUserDetails]);
 
   const handleViewToggle = () => {
     if (!sortedOptions) return;
@@ -82,7 +83,7 @@ export const FilterMember = observer(function FilterMember(props: Props) {
                   return (
                     <FilterOption
                       key={`members-${member.id}`}
-                      isChecked={filterValue?.includes(member.id) ? true : false}
+                      isChecked={Boolean(filterValue?.includes(member.id))}
                       onClick={() => handleInboxIssueFilters(filterKey, handleFilterValue(member.id))}
                       icon={
                         <Avatar

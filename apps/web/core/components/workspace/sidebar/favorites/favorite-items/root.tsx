@@ -91,7 +91,7 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
         onDragStart: () => {
           setIsDragging(true);
         },
-        getData: ({ input, element }) => {
+        getData: ({ input, element: dropTargetElement }) => {
           const blockedStates: InstructionType[] = ["make-child"];
           if (!isLastChild) {
             blockedStates.push("reorder-below");
@@ -99,7 +99,7 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
 
           return attachInstruction(initialData, {
             input,
-            element,
+            element: dropTargetElement,
             currentLevel: 1,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
@@ -107,8 +107,8 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
           });
         },
         onDrag: ({ self, source, location }) => {
-          const instruction = getInstructionFromPayload(self, source, location);
-          setInstruction(instruction);
+          const nextInstruction = getInstructionFromPayload(self, source, location);
+          setInstruction(nextInstruction);
         },
         onDragLeave: () => {
           setInstruction(undefined);
@@ -119,8 +119,7 @@ export const FavoriteRoot = observer(function FavoriteRoot(props: Props) {
         },
       })
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elementRef?.current, isDragging, isLastChild, favorite.id]);
+  }, [elementRef, favorite, handleDrop, isDragging, isLastChild, itemIcon, itemLink, itemTitle, parentId]);
 
   useOutsideClickDetector(actionSectionRef, () => setIsMenuActive(false));
 

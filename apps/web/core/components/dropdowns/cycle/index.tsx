@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/no-static-element-interactions */
 
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -23,6 +22,10 @@ import { DropdownButton } from "../buttons";
 import { BUTTON_VARIANTS_WITH_TEXT } from "../constants";
 import type { TDropdownProps } from "../types";
 import { CycleOptions } from "./cycle-options";
+
+function ComboDropDownRoot(props: ComponentPropsWithoutRef<"div">) {
+  return <div {...props} />;
+}
 
 type Props = TDropdownProps & {
   button?: ReactNode;
@@ -144,7 +147,7 @@ export const CycleDropdown = observer(function CycleDropdown(props: Props) {
 
   return (
     <ComboDropDown
-      as="div"
+      as={ComboDropDownRoot}
       ref={dropdownRef}
       className={cn("h-full", className)}
       value={value}

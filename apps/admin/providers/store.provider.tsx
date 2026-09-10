@@ -28,8 +28,7 @@ function initializeStore(initialData = {}) {
 
 export type StoreProviderProps = {
   children: React.ReactNode;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialState?: any;
+  initialState?: Record<string, unknown>;
 };
 
 export function StoreProvider({ children, initialState = {} }: StoreProviderProps) {

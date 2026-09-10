@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -33,7 +32,7 @@ import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/iss
 import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-stats";
 // types
 import { WithDisplayPropertiesHOC } from "../properties/with-display-properties-HOC";
-import { calculateIdentifierWidth } from "../utils";
+import { bindStopPropagation, calculateIdentifierWidth } from "../utils";
 import type { TRenderQuickActions } from "./list-view-types";
 
 const CHECKBOX_GUTTER = <div className="grid size-4 flex-shrink-0 place-items-center" />;
@@ -277,10 +276,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   "md:flex": isSidebarCollapsed,
                   "lg:flex": !isSidebarCollapsed,
                 })}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
+                ref={bindStopPropagation}
               >
                 {quickActions({
                   issue,

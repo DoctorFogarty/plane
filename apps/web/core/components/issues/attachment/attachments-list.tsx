@@ -32,8 +32,8 @@ export const IssueAttachmentsList = observer(function IssueAttachmentsList(props
 
   return (
     <>
-      {uploadStatus?.map((uploadStatus) => (
-        <IssueAttachmentsUploadDetails key={uploadStatus.id} uploadStatus={uploadStatus} />
+      {uploadStatus?.map((status) => (
+        <IssueAttachmentsUploadDetails key={status.id} uploadStatus={status} />
       ))}
       {issueAttachments?.map((attachmentId) => (
         <IssueAttachmentsDetail

@@ -73,7 +73,9 @@ export const parseChartData = (
   const updatedWidgetData: TChartDatum[] = widgetData.map((datum) => {
     const keys = Object.keys(datum);
     const missingKeys = allKeys.filter((key) => !keys.includes(key));
-    const missingValues: Record<string, number> = Object.fromEntries(missingKeys.map((key) => [key, 0]));
+    for (const key of missingKeys) {
+      datum[key] = 0;
+    }
 
     if (xAxisProperty) {
       // capitalize first letter if xAxisProperty is in TO_CAPITALIZE_PROPERTIES and no groupByProperty is set
@@ -87,10 +89,7 @@ export const parseChartData = (
       }
     }
 
-    return {
-      ...datum,
-      ...missingValues,
-    };
+    return datum;
   });
 
   // capitalize first letter if groupByProperty is in TO_CAPITALIZE_PROPERTIES
@@ -131,7 +130,7 @@ export const generateExtendedColors = (baseColorSet: string[], targetCount: numb
   const avgLight = baseHSL.reduce((sum, hsl) => sum + hsl.l, 0) / baseHSL.length;
 
   // Sort base colors by hue for better distribution
-  const sortedBaseHSL = [...baseHSL].sort((a, b) => a.h - b.h);
+  const sortedBaseHSL = baseHSL.toSorted((a, b) => a.h - b.h);
 
   // Generate additional colors for each base color
   const colorsNeeded = targetCount - baseCount;

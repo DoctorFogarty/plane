@@ -21,7 +21,6 @@ export function WorkspaceAdditionalLayouts(_props: TWorkspaceLayoutProps) {
   return <></>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function AdditionalHeaderItems(view: IProjectView) {
+export function AdditionalHeaderItems(_view: IProjectView) {
   return <></>;
 }

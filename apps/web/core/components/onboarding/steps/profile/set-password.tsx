@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
-
 import React, { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "@plane/i18n";
 import { LockIcon, ChevronDownIcon } from "@plane/propel/icons";
@@ -71,9 +69,10 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
 
   return (
     <div className={`flex flex-col overflow-hidden rounded-lg bg-surface-2 transition-all duration-300 ease-in-out`}>
-      <div
+      <button
+        type="button"
         className={cn(
-          "flex items-center justify-between px-3 py-2 text-13 transition-colors duration-200",
+          "flex w-full items-center justify-between px-3 py-2 text-13 transition-colors duration-200",
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
           isExpanded && "pb-1"
         )}
@@ -87,7 +86,7 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
         <div className="flex items-center gap-2 text-placeholder">
           <ChevronDownIcon className={chevronIconClasses} />
         </div>
-      </div>
+      </button>
 
       <div className={expandedContentClasses}>
         <div className="flex transform flex-col gap-2 pt-1 transition-all duration-300 ease-in-out">

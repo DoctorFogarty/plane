@@ -43,6 +43,13 @@ export const LeftResizable = observer(function LeftResizable(props: LeftResizabl
         </div>
       )}
       <div
+        role="slider"
+        aria-label="Resize start date"
+        aria-orientation="horizontal"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={0}
+        tabIndex={0}
         onMouseDown={(e) => {
           handleBlockDrag(e, "left");
         }}
@@ -50,6 +57,12 @@ export const LeftResizable = observer(function LeftResizable(props: LeftResizabl
           setIsHovering(true);
         }}
         onMouseOut={() => {
+          setIsHovering(false);
+        }}
+        onFocus={() => {
+          setIsHovering(true);
+        }}
+        onBlur={() => {
           setIsHovering(false);
         }}
         className="absolute top-1/2 -left-1.5 z-[6] h-full w-3 -translate-y-1/2 cursor-col-resize rounded-md"

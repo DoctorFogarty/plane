@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-shadow, jsx-a11y/prefer-tag-over-role, promise/always-return, react-hooks/exhaustive-deps */
-
 import React, { useState, useRef, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -192,17 +190,24 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
       }
     }
     if (projectId && routeProjectId !== projectId) fetchCycles(workspaceSlug?.toString(), projectId);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [
+    fetchCycles,
+    getValues,
+    isDirty,
+    projectId,
+    reset,
+    routeProjectId,
+    setWorkItemTemplateId,
+    workItemTemplateId,
+    workspaceSlug,
+  ]);
 
   // Reset form when data prop changes
   useEffect(() => {
     if (data) {
       reset({ ...DEFAULT_WORK_ITEM_FORM_VALUES, project_id: projectId, ...data });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...dataResetProperties]);
+  }, [data, dataResetProperties, projectId, reset]);
 
   // Prefetch work item types for the active project so type/property defaults can bind
   useEffect(() => {
@@ -252,9 +257,15 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     setValue("type_id", nextTypeId, { shouldValidate: true });
     resetPropertyValuesToDefaults(projectId, nextTypeId);
     previousProjectIdRef.current = projectId;
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.id, projectId, issueTypeStore.fetchedMap[projectId ?? ""], issueTypeStore.enabledMap[projectId ?? ""]]);
+  }, [
+    data?.id,
+    getIssueTypeIdOnProjectChange,
+    issueTypeStore,
+    projectId,
+    resetPropertyValuesToDefaults,
+    setValue,
+    watch,
+  ]);
 
   useEffect(() => {
     if (workItemTemplateId && editorRef.current) {
@@ -264,8 +275,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
         editorRef,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workItemTemplateId]);
+  }, [handleTemplateChange, reset, workItemTemplateId, workspaceSlug]);
 
   const handleFormSubmit = async (formData: Partial<TIssue>, is_draft_issue = false) => {
     // Check if the editor is ready to discard
@@ -301,34 +311,33 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     // this condition helps to move the issues from draft to project issues
     if (formData.hasOwnProperty("is_draft")) submitData.is_draft = formData.is_draft;
 
-    await onSubmit(submitData, is_draft_issue)
-      .then(() => {
-        setGptAssistantModal(false);
-        if (isCreateMoreToggleEnabled && workItemTemplateId) {
-          handleTemplateChange({
-            workspaceSlug: workspaceSlug?.toString(),
-            reset,
-            editorRef,
-          });
-        } else {
-          const nextProjectId = getValues<"project_id">("project_id");
-          const nextTypeId = getValues<"type_id">("type_id");
-          reset({
-            ...DEFAULT_WORK_ITEM_FORM_VALUES,
-            ...(isCreateMoreToggleEnabled ? { ...data } : {}),
-            project_id: nextProjectId,
-            type_id: nextTypeId,
-            description_html: data?.description_html ?? "<p></p>",
-          });
-          editorRef?.current?.clearEditor();
-          if (isCreateMoreToggleEnabled) {
-            resetPropertyValuesToDefaults(nextProjectId, nextTypeId);
-          }
+    try {
+      await onSubmit(submitData, is_draft_issue);
+      setGptAssistantModal(false);
+      if (isCreateMoreToggleEnabled && workItemTemplateId) {
+        handleTemplateChange({
+          workspaceSlug: workspaceSlug?.toString(),
+          reset,
+          editorRef,
+        });
+      } else {
+        const nextProjectId = getValues<"project_id">("project_id");
+        const nextTypeId = getValues<"type_id">("type_id");
+        reset({
+          ...DEFAULT_WORK_ITEM_FORM_VALUES,
+          ...(isCreateMoreToggleEnabled ? { ...data } : {}),
+          project_id: nextProjectId,
+          type_id: nextTypeId,
+          description_html: data?.description_html ?? "<p></p>",
+        });
+        editorRef?.current?.clearEditor();
+        if (isCreateMoreToggleEnabled) {
+          resetPropertyValuesToDefaults(nextProjectId, nextTypeId);
         }
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleMoveToProjects = async () => {
@@ -420,15 +429,15 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
     const issue = getIssueById(parentId);
     if (!issue) return;
 
-    const projectDetails = getProjectById(issue.project_id);
-    if (!projectDetails) return;
+    const parentProjectDetails = getProjectById(issue.project_id);
+    if (!parentProjectDetails) return;
 
     const stateDetails = getStateById(issue.state_id);
 
     setSelectedParentIssue(
-      convertWorkItemDataToSearchResponse(workspaceSlug?.toString(), issue, projectDetails, stateDetails)
+      convertWorkItemDataToSearchResponse(workspaceSlug?.toString(), issue, parentProjectDetails, stateDetails)
     );
-  }, [watch, getIssueById, getProjectById, selectedParentIssue, getStateById]);
+  }, [getIssueById, getProjectById, getStateById, selectedParentIssue, setSelectedParentIssue, watch, workspaceSlug]);
 
   // executing this useEffect when isDirty changes
   useEffect(() => {
@@ -436,8 +445,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
 
     if (isDirty && condition) onChange(watch());
     else onChange(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDirty]);
+  }, [condition, isDirty, onChange, watch]);
 
   useEffect(() => {
     const formElement = formRef?.current;
@@ -466,7 +474,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
         <div className="w-full rounded-lg">
           <form
             ref={formRef}
-            onSubmit={handleSubmit((data) => handleFormSubmit(data))}
+            onSubmit={handleSubmit((formValues) => handleFormSubmit(formValues))}
             className="flex w-full flex-col"
           >
             <div className="rounded-t-lg bg-surface-1 p-5">
@@ -611,17 +619,14 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
                   tabIndex={getIndex("create_more")}
                 >
                   {!data?.id && (
-                    <div
+                    <button
+                      type="button"
                       className="inline-flex cursor-pointer items-center gap-1.5"
                       onClick={() => onCreateMoreToggleChange(!isCreateMoreToggleEnabled)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") onCreateMoreToggleChange(!isCreateMoreToggleEnabled);
-                      }}
-                      role="button"
                     >
                       <ToggleSwitch value={isCreateMoreToggleEnabled} onChange={() => {}} size="sm" />
                       <span className="text-caption-sm-regular">{t("create_more")}</span>
-                    </div>
+                    </button>
                   )}
                   <div className="flex items-center gap-2">
                     <div tabIndex={getIndex("discard_button")}>

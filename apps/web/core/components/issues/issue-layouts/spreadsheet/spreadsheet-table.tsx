@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable react/no-array-index-key */
-
 import type { MutableRefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -194,8 +192,8 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
       )}
       {canLoadMoreIssues && (
         <tfoot ref={setIntersectionElement}>
-          {Array.from({ length: 3 }).map((_, index) => (
-            <SpreadsheetIssueRowLoader key={index} columnCount={displayPropertiesCount} />
+          {["spreadsheet-loader-a", "spreadsheet-loader-b", "spreadsheet-loader-c"].map((loaderKey) => (
+            <SpreadsheetIssueRowLoader key={loaderKey} columnCount={displayPropertiesCount} />
           ))}
         </tfoot>
       )}

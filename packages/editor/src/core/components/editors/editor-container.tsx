@@ -6,7 +6,7 @@
 
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import type { Editor } from "@tiptap/react";
-import type { ReactNode } from "react";
+import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef } from "react";
 // plane utils
 import { cn } from "@plane/utils";
@@ -31,6 +31,57 @@ type Props = {
   provider?: HocuspocusProvider | undefined;
   state?: TCollabValue["state"];
 };
+
+function hideEditorSideMenu() {
+  const dragHandleElement = document.querySelector("#editor-side-menu");
+  if (!dragHandleElement?.classList.contains("side-menu-hidden")) {
+    dragHandleElement?.classList.add("side-menu-hidden");
+  }
+}
+
+function insertEmptyNodeAtBottomIfNeeded(editor: Editor) {
+  if (!editor) return;
+  if (!editor.isEditable) return;
+  try {
+    if (editor.isFocused) return; // If editor is already focused, do nothing
+
+    const { selection } = editor.state;
+    const currentNode = selection.$from.node();
+
+    editor.chain().focus("end", { scrollIntoView: false }).run(); // Focus the editor at the end
+
+    if (
+      currentNode.content.size === 0 && // Check if the current node is empty
+      !(
+        editor.isActive(CORE_EXTENSIONS.ORDERED_LIST) ||
+        editor.isActive(CORE_EXTENSIONS.BULLET_LIST) ||
+        editor.isActive(CORE_EXTENSIONS.TASK_ITEM) ||
+        editor.isActive(CORE_EXTENSIONS.TABLE) ||
+        editor.isActive(CORE_EXTENSIONS.BLOCKQUOTE) ||
+        editor.isActive(CORE_EXTENSIONS.CODE_BLOCK)
+      ) // Check if it's an empty node within an orderedList, bulletList, taskItem, table, quote or code block
+    ) {
+      return;
+    }
+
+    // Get the last child node in the document
+    const doc = editor.state.doc;
+    const lastNode = doc.lastChild;
+
+    // Check if its last node and add new node
+    if (lastNode) {
+      const isLastNodeParagraph = lastNode.type.name === CORE_EXTENSIONS.PARAGRAPH;
+      // Insert a new paragraph if the last node is not a paragraph and not a doc node
+      if (!isLastNodeParagraph && lastNode.type.name !== CORE_EXTENSIONS.DOCUMENT) {
+        // Only insert a new paragraph if the last node is not an empty paragraph and not a doc node
+        const endPosition = editor.state.doc.content.size;
+        editor.chain().insertContentAt(endPosition, { type: "paragraph" }).focus("end").run();
+      }
+    }
+  } catch (error) {
+    console.error("An error occurred while handling container click to insert new empty node at bottom:", error);
+  }
+}
 
 export function EditorContainer(props: Props) {
   const { children, displayConfig, editor, editorContainerClassName, id, isTouchDevice, provider, state } = props;
@@ -108,65 +159,20 @@ export function EditorContainer(props: Props) {
     }
   }, [scrollToNode, provider, state]);
 
-  const handleContainerClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+  const handleContainerClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return;
-    if (!editor) return;
-    if (!editor.isEditable) return;
-    try {
-      if (editor.isFocused) return; // If editor is already focused, do nothing
-
-      const { selection } = editor.state;
-      const currentNode = selection.$from.node();
-
-      editor?.chain().focus("end", { scrollIntoView: false }).run(); // Focus the editor at the end
-
-      if (
-        currentNode.content.size === 0 && // Check if the current node is empty
-        !(
-          editor.isActive(CORE_EXTENSIONS.ORDERED_LIST) ||
-          editor.isActive(CORE_EXTENSIONS.BULLET_LIST) ||
-          editor.isActive(CORE_EXTENSIONS.TASK_ITEM) ||
-          editor.isActive(CORE_EXTENSIONS.TABLE) ||
-          editor.isActive(CORE_EXTENSIONS.BLOCKQUOTE) ||
-          editor.isActive(CORE_EXTENSIONS.CODE_BLOCK)
-        ) // Check if it's an empty node within an orderedList, bulletList, taskItem, table, quote or code block
-      ) {
-        return;
-      }
-
-      // Get the last child node in the document
-      const doc = editor.state.doc;
-      const lastNode = doc.lastChild;
-
-      // Check if its last node and add new node
-      if (lastNode) {
-        const isLastNodeParagraph = lastNode.type.name === CORE_EXTENSIONS.PARAGRAPH;
-        // Insert a new paragraph if the last node is not a paragraph and not a doc node
-        if (!isLastNodeParagraph && lastNode.type.name !== CORE_EXTENSIONS.DOCUMENT) {
-          // Only insert a new paragraph if the last node is not an empty paragraph and not a doc node
-          const endPosition = editor?.state.doc.content.size;
-          editor?.chain().insertContentAt(endPosition, { type: "paragraph" }).focus("end").run();
-        }
-      }
-    } catch (error) {
-      console.error("An error occurred while handling container click to insert new empty node at bottom:", error);
-    }
-  };
-
-  const handleContainerMouseLeave = () => {
-    const dragHandleElement = document.querySelector("#editor-side-menu");
-    if (!dragHandleElement?.classList.contains("side-menu-hidden")) {
-      dragHandleElement?.classList.add("side-menu-hidden");
-    }
+    insertEmptyNodeAtBottomIfNeeded(editor);
   };
 
   return (
     <>
+      {/* Clicking empty editor chrome inserts a paragraph. Keyboard users already type in the editor. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         ref={containerRef}
         id={`editor-container-${id}`}
         onClick={handleContainerClick}
-        onMouseLeave={handleContainerMouseLeave}
+        onMouseLeave={hideEditorSideMenu}
         className={cn(
           `editor-container relative cursor-text line-spacing-${displayConfig.lineSpacing ?? DEFAULT_DISPLAY_CONFIG.lineSpacing}`,
           {

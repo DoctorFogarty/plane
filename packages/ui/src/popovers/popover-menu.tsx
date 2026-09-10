@@ -42,9 +42,10 @@ export function PopoverMenu<T>(props: TPopoverMenu<T>) {
       popoverButtonRef={popoverButtonRef}
     >
       <Fragment>
-        {data.map((item, index) => (
-          <Fragment key={keyExtractor(item, index)}>{render(item, index)}</Fragment>
-        ))}
+        {data.map((item, index) => {
+          const itemKey = keyExtractor(item, index);
+          return <Fragment key={itemKey}>{render(item, index)}</Fragment>;
+        })}
       </Fragment>
     </Popover>
   );

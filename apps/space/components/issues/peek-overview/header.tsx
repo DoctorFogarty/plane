@@ -48,15 +48,13 @@ export const PeekOverviewHeader = observer(function PeekOverviewHeader(props: Pr
   const { peekMode, setPeekMode } = useIssueDetails();
   const isClipboardWriteAllowed = useClipboardWritePermission();
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     const urlToCopy = window.location.href;
-
-    copyTextToClipboard(urlToCopy).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Link copied!",
-        message: "Work item link copied to clipboard.",
-      });
+    await copyTextToClipboard(urlToCopy);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Link copied!",
+      message: "Work item link copied to clipboard.",
     });
   };
 
@@ -120,7 +118,7 @@ export const PeekOverviewHeader = observer(function PeekOverviewHeader(props: Pr
             type="button"
             onClick={handleCopyLink}
             className="shrink-0 text-tertiary hover:text-secondary focus:outline-none"
-            tabIndex={1}
+            tabIndex={0}
           >
             <LinkIcon className="h-4 w-4 -rotate-45" />
           </button>

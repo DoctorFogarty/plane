@@ -43,19 +43,23 @@ export const PagesListHeader = observer(function PagesListHeader() {
       access: pageType === "private" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
     };
 
-    await createPage(payload)
-      .then((res) => {
-        const pageId = `/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/${res?.id}`;
-        router.push(pageId);
-      })
-      .catch((err) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: err?.data?.error || "Page could not be created. Please try again.",
-        });
-      })
-      .finally(() => setIsCreatingPage(false));
+    try {
+      const res = await createPage(payload);
+      const pageId = `/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/${res?.id}`;
+      router.push(pageId);
+    } catch (err) {
+      const errorMessage =
+        typeof err === "object" && err !== null && "data" in err
+          ? (err as { data?: { error?: string } }).data?.error
+          : undefined;
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: errorMessage || "Page could not be created. Please try again.",
+      });
+    } finally {
+      setIsCreatingPage(false);
+    }
   };
 
   return (

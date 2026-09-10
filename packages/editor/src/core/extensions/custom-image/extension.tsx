@@ -65,14 +65,14 @@ export function CustomImageExtension(props: Props) {
     addCommands() {
       return {
         insertImageComponent:
-          (props) =>
+          (commandProps) =>
           ({ commands }) => {
             // Early return if there's an invalid file being dropped
             if (
-              props?.file &&
+              commandProps?.file &&
               !isFileValid({
                 acceptedMimeTypes: ACCEPTED_IMAGE_MIME_TYPES,
-                file: props.file,
+                file: commandProps.file,
                 maxFileSize: this.storage.maxFileSize,
                 onError: (_error, message) => alert(message),
               })
@@ -87,14 +87,14 @@ export function CustomImageExtension(props: Props) {
             const imageComponentImageFileMap = getImageComponentImageFileMap(this.editor);
 
             if (imageComponentImageFileMap) {
-              if (props?.event === "drop" && props.file) {
+              if (commandProps?.event === "drop" && commandProps.file) {
                 imageComponentImageFileMap.set(fileId, {
-                  file: props.file,
-                  event: props.event,
+                  file: commandProps.file,
+                  event: commandProps.event,
                 });
-              } else if (props.event === "insert") {
+              } else if (commandProps.event === "insert") {
                 imageComponentImageFileMap.set(fileId, {
-                  event: props.event,
+                  event: commandProps.event,
                   hasOpenedFileInputOnce: false,
                 });
               }
@@ -105,8 +105,8 @@ export function CustomImageExtension(props: Props) {
               [ECustomImageAttributeNames.STATUS]: ECustomImageStatus.PENDING,
             };
 
-            if (props.pos) {
-              return commands.insertContentAt(props.pos, {
+            if (commandProps.pos) {
+              return commands.insertContentAt(commandProps.pos, {
                 type: this.name,
                 attrs: attributes,
               });
@@ -126,8 +126,8 @@ export function CustomImageExtension(props: Props) {
       };
     },
     addNodeView() {
-      return ReactNodeViewRenderer((props) => (
-        <CustomImageNodeView {...props} node={props.node as CustomImageNodeViewProps["node"]} />
+      return ReactNodeViewRenderer((nodeViewProps) => (
+        <CustomImageNodeView {...nodeViewProps} node={nodeViewProps.node as CustomImageNodeViewProps["node"]} />
       ));
     },
   });

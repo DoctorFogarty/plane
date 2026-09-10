@@ -18,7 +18,6 @@ export type TWorkItemTemplateSelect = {
   handleFormChange?: () => void;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function WorkItemTemplateSelect(props: TWorkItemTemplateSelect) {
+export function WorkItemTemplateSelect(_props: TWorkItemTemplateSelect) {
   return <></>;
 }

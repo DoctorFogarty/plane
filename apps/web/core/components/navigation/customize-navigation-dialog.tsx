@@ -4,9 +4,8 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable unicorn/consistent-function-scoping, unicorn/no-array-sort, jsx-a11y/label-has-associated-control */
-
 import { useCallback, useMemo, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { GripVertical, X } from "lucide-react";
@@ -44,6 +43,12 @@ const PERSONAL_ITEMS: Array<{ key: TPersonalNavigationItemKey; labelTranslationK
   { key: "your_work", labelTranslationKey: "sidebar.your_work" },
   { key: "drafts", labelTranslationKey: "drafts" },
 ];
+
+function handleProjectCountKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+  if (["e", "E", "+", "-", "."].includes(e.key)) {
+    e.preventDefault();
+  }
+}
 
 export const CustomizeNavigationDialog = observer(function CustomizeNavigationDialog(
   props: TCustomizeNavigationDialogProps
@@ -103,7 +108,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
       };
     });
 
-    return items.sort((a, b) => a.sortOrder - b.sortOrder);
+    return items.toSorted((a, b) => a.sortOrder - b.sortOrder);
   }, [workspaceSlug, allowPermissions, workspacePreferences]);
 
   // Handle checkbox toggle
@@ -146,22 +151,15 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
       const sortOrder = typeof itemState === "boolean" ? 0 : (itemState?.sort_order ?? 0);
 
       return {
-        ...item,
+        key: item.key,
+        labelTranslationKey: item.labelTranslationKey,
         isEnabled,
         sortOrder,
       };
     });
 
-    return items.sort((a, b) => a.sortOrder - b.sortOrder);
+    return items.toSorted((a, b) => a.sortOrder - b.sortOrder);
   }, [personalPreferences, filteredPersonalItems]);
-
-  // Prevent typing invalid characters in number input
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Block: e, E, +, -, .
-    if (["e", "E", "+", "-", "."].includes(e.key)) {
-      e.preventDefault();
-    }
-  };
 
   // Handle project count input change
   const handleProjectCountChange = (value: string) => {
@@ -215,12 +213,16 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                   <div className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-200 hover:bg-surface-2">
                     <GripVertical className="size-4 cursor-grab text-placeholder transition-colors active:cursor-grabbing" />
                     <Checkbox
+                      id={`personal-nav-${item.key}`}
                       checked={!!personalPreferences.items[item.key]?.enabled}
                       onChange={(e) => togglePersonalItem(item.key, e.target.checked)}
                     />
                     <div className="flex flex-1 items-center gap-2">
                       {getSidebarNavigationItemIcon(item.key)}
-                      <label className="flex-1 cursor-pointer text-13 text-primary">
+                      <label
+                        htmlFor={`personal-nav-${item.key}`}
+                        className="flex-1 cursor-pointer text-13 text-primary"
+                      >
                         {t(item.labelTranslationKey)}
                       </label>
                     </div>
@@ -268,7 +270,10 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
               <div className="space-y-3">
                 {/* Navigation Mode Radio Buttons */}
                 <div className="space-y-2">
-                  <label className="flex cursor-pointer gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
+                  <label
+                    className="flex cursor-pointer gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2"
+                    aria-label={t("horizontal_navigation_bar")}
+                  >
                     <input
                       type="radio"
                       name="navigation-mode"
@@ -285,7 +290,10 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                     </div>
                   </label>
 
-                  <label className="flex cursor-pointer gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
+                  <label
+                    className="flex cursor-pointer gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2"
+                    aria-label={t("accordion_navigation_control")}
+                  >
                     <input
                       type="radio"
                       name="navigation-mode"
@@ -317,13 +325,16 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
                     <div className="pl-8">
                       <div className="flex w-full flex-col gap-1">
                         <div className="flex w-full flex-col gap-2 pb-1.5">
-                          <label className="w-full text-11 text-secondary">{t("enter_number_of_projects")}</label>
+                          <label htmlFor="limited-projects-count" className="w-full text-11 text-secondary">
+                            {t("enter_number_of_projects")}
+                          </label>
                           <input
+                            id="limited-projects-count"
                             type="number"
                             min="1"
                             step="1"
                             value={projectCountInput}
-                            onKeyDown={handleKeyDown}
+                            onKeyDown={handleProjectCountKeyDown}
                             onChange={(e) => handleProjectCountChange(e.target.value)}
                             className={cn(
                               "w-full rounded-md px-2 py-1 text-13",

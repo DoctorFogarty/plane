@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
-
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 // icons
@@ -67,7 +65,7 @@ export function InstanceSetupForm() {
   const lastNameParam = searchParams?.get("last_name") || undefined;
   const companyParam = searchParams?.get("company") || undefined;
   const emailParam = searchParams?.get("email") || undefined;
-  const isTelemetryEnabledParam = (searchParams?.get("is_telemetry_enabled") === "True" ? true : false) || true;
+  const isTelemetryEnabledParam = searchParams?.get("is_telemetry_enabled") === "True" || true;
   const errorCode = searchParams?.get("error_code") || undefined;
   const errorMessage = searchParams?.get("error_message") || undefined;
   const passwordWarning = searchParams?.get("password_warning") || undefined;
@@ -88,8 +86,12 @@ export function InstanceSetupForm() {
     setFormData((prev) => ({ ...prev, [key]: value }));
 
   useEffect(() => {
-    if (csrfToken === undefined)
-      authService.requestCSRFToken().then((data) => data?.csrf_token && setCsrfToken(data.csrf_token));
+    if (csrfToken !== undefined) return;
+    const loadCsrfToken = async () => {
+      const data = await authService.requestCSRFToken();
+      if (data?.csrf_token) setCsrfToken(data.csrf_token);
+    };
+    void loadCsrfToken();
   }, [csrfToken]);
 
   useEffect(() => {
@@ -137,15 +139,13 @@ export function InstanceSetupForm() {
 
   const isButtonDisabled = useMemo(
     () =>
-      !isSubmitting &&
-      formData.first_name &&
-      formData.email &&
-      formData.password &&
-      ready &&
-      assessment?.acceptable === true &&
-      formData.password === formData.confirm_password
-        ? false
-        : true,
+      isSubmitting ||
+      !formData.first_name ||
+      !formData.email ||
+      !formData.password ||
+      !ready ||
+      assessment?.acceptable !== true ||
+      formData.password !== formData.confirm_password,
     [
       assessment?.acceptable,
       formData.confirm_password,
@@ -243,7 +243,7 @@ export function InstanceSetupForm() {
                 placeholder="name@company.com"
                 value={formData.email}
                 onChange={(e) => handleFormChange("email", e.target.value)}
-                hasError={errorData.type && errorData.type === EErrorCodes.INVALID_EMAIL ? true : false}
+                hasError={errorData.type === EErrorCodes.INVALID_EMAIL}
                 autoComplete="off"
               />
               {errorData.type && errorData.type === EErrorCodes.INVALID_EMAIL && errorData.message && (

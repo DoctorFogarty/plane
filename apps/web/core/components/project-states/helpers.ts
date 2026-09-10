@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable unicorn/no-array-sort */
-
 import type { IState, IStateGroup, TStateGroups } from "@plane/types";
 
 export type TStateDeleteDisabledReason = "default";
@@ -47,7 +45,7 @@ export function getDefaultFallbackStateId(states: IState[], stateToDelete: IStat
 }
 
 export function sortStatesBySequence(states: IState[]): IState[] {
-  return [...states].sort((a, b) => a.sequence - b.sequence);
+  return states.toSorted((a, b) => a.sequence - b.sequence);
 }
 
 export function getFirstGroupIdForCategory(groups: IStateGroup[], category: TStateGroups): string | undefined {

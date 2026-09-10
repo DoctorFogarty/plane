@@ -6,8 +6,9 @@
 
 import type { RequestHandler, Router, Request } from "express";
 import type { WebSocket } from "ws";
+import * as reflectMetadata from "reflect-metadata";
 
-import "reflect-metadata";
+void reflectMetadata;
 
 export type HttpMethod = "get" | "post" | "put" | "delete" | "patch" | "options" | "head" | "ws";
 

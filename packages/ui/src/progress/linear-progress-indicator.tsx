@@ -26,8 +26,6 @@ export function LinearProgressIndicator({
   barClassName = "",
 }: Props) {
   const total = data.reduce((acc: any, cur: any) => acc + cur.value, 0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let progress = 0;
 
   const bars = data.map((item: any) => {
     const width = `${(item.value / total) * 100}%`;
@@ -36,7 +34,6 @@ export function LinearProgressIndicator({
       width,
       backgroundColor: item.color,
     };
-    progress += item.value;
     if (noTooltip) return <div style={style} key={item.id} />;
     else
       return (

@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-shadow */
-
 import { isNil } from "lodash-es";
 // types
 import { EIconSize, ISSUE_PRIORITIES } from "@plane/constants";
@@ -15,6 +13,7 @@ import type {
   TCycleGroups,
   IIssueDisplayProperties,
   TGroupedIssues,
+  TSubGroupedIssues,
 } from "@plane/types";
 // ui
 import { Avatar } from "@plane/ui";
@@ -147,13 +146,16 @@ const getLabelsColumns = (label: IIssueLabelStore) => {
 
   const labels = [...storeLabels, { id: "None", name: "None", color: "#666" }];
 
-  return labels.map((label) => ({
-    id: label.id,
-    name: label.name,
+  return labels.map((issueLabel) => ({
+    id: issueLabel.id,
+    name: issueLabel.name,
     icon: (
-      <div className="h-[12px] w-[12px] rounded-full" style={{ backgroundColor: label.color ? label.color : "#666" }} />
+      <div
+        className="h-[12px] w-[12px] rounded-full"
+        style={{ backgroundColor: issueLabel.color ? issueLabel.color : "#666" }}
+      />
     ),
-    payload: label?.id === "None" ? {} : { label_ids: [label.id] },
+    payload: issueLabel?.id === "None" ? {} : { label_ids: [issueLabel.id] },
   }));
 };
 
@@ -162,11 +164,11 @@ const getAssigneeColumns = (member: IIssueMemberStore) => {
 
   if (!members) return;
 
-  const assigneeColumns: any = members.map((member) => ({
-    id: member.id,
-    name: member?.member__display_name || "",
-    icon: <Avatar name={member?.member__display_name} src={undefined} size="md" />,
-    payload: { assignee_ids: [member.id] },
+  const assigneeColumns: IGroupByColumn[] = members.map((issueMember) => ({
+    id: issueMember.id,
+    name: issueMember?.member__display_name || "",
+    icon: <Avatar name={issueMember?.member__display_name} src={undefined} size="md" />,
+    payload: { assignee_ids: [issueMember.id] },
   }));
 
   assigneeColumns.push({ id: "None", name: "None", icon: <Avatar size="md" />, payload: {} });
@@ -179,10 +181,10 @@ const getCreatedByColumns = (member: IIssueMemberStore) => {
 
   if (!members) return;
 
-  return members.map((member) => ({
-    id: member.id,
-    name: member?.member__display_name || "",
-    icon: <Avatar name={member?.member__display_name} src={undefined} size="md" />,
+  return members.map((issueMember) => ({
+    id: issueMember.id,
+    name: issueMember?.member__display_name || "",
+    icon: <Avatar name={issueMember?.member__display_name} src={undefined} size="md" />,
     payload: {},
   }));
 };
@@ -248,4 +250,15 @@ export const isSubGrouped = (groupedIssueIds: TGroupedIssues) => {
   }
 
   return true;
+};
+
+export const getListGroupIssueIds = (
+  groupedIssueIds: TGroupedIssues | TSubGroupedIssues | undefined,
+  groupId: string
+): string[] | undefined => {
+  if (!groupedIssueIds) return undefined;
+  const value = groupedIssueIds[groupId];
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value;
+  return Object.values(value).flatMap((ids) => (Array.isArray(ids) ? ids : []));
 };

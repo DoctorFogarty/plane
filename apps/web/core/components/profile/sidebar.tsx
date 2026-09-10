@@ -69,12 +69,15 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
     },
   ];
 
+  const profileSidebarCollapsedRef = useRef(profileSidebarCollapsed);
+  profileSidebarCollapsedRef.current = profileSidebarCollapsed;
+
   useEffect(() => {
     const handleToggleProfileSidebar = () => {
       if (window && window.innerWidth < 768) {
         toggleProfileSidebar(true);
       }
-      if (window && profileSidebarCollapsed && window.innerWidth >= 768) {
+      if (window && profileSidebarCollapsedRef.current && window.innerWidth >= 768) {
         toggleProfileSidebar(false);
       }
     };
@@ -82,7 +85,7 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
     window.addEventListener("resize", handleToggleProfileSidebar);
     handleToggleProfileSidebar();
     return () => window.removeEventListener("resize", handleToggleProfileSidebar);
-  }, []);
+  }, [toggleProfileSidebar]);
 
   return (
     <div

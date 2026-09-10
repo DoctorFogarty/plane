@@ -12,7 +12,6 @@ type Props = {
   onClose: () => void;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function PublishViewModal(props: Props) {
+export function PublishViewModal(_props: Props) {
   return <></>;
 }

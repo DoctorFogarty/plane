@@ -17,6 +17,7 @@ import type {
   TIssueServiceType,
   TLoader,
 } from "@plane/types";
+import { setListMembership, toggleListValue } from "@plane/utils";
 // services
 import { IssueService } from "@/services/issue";
 // store
@@ -60,7 +61,7 @@ export interface IIssueSubIssuesStore extends IIssueSubIssuesStoreActions {
   subIssueHelpersByIssueId: (issueId: string) => TSubIssueHelpers;
   // actions
   fetchOtherProjectProperties: (workspaceSlug: string, projectIds: string[]) => Promise<void>;
-  setSubIssueHelpers: (parentIssueId: string, key: TSubIssueHelpersKeys, value: string) => void;
+  setSubIssueHelpers: (parentIssueId: string, key: TSubIssueHelpersKeys, value: string, present?: boolean) => void;
 }
 
 export class IssueSubIssuesStore implements IIssueSubIssuesStore {
@@ -116,12 +117,12 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
   });
 
   // actions
-  setSubIssueHelpers = (parentIssueId: string, key: TSubIssueHelpersKeys, value: string) => {
+  setSubIssueHelpers = (parentIssueId: string, key: TSubIssueHelpersKeys, value: string, present?: boolean) => {
     if (!parentIssueId || !key || !value) return;
 
     update(this.subIssueHelpers, [parentIssueId, key], (_subIssueHelpers: string[] = []) => {
-      if (_subIssueHelpers.includes(value)) return pull(_subIssueHelpers, value);
-      return concat(_subIssueHelpers, value);
+      if (present === undefined) return toggleListValue(_subIssueHelpers, value);
+      return setListMembership(_subIssueHelpers, value, present);
     });
   };
 
@@ -186,10 +187,10 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
         });
       });
 
-      const issueIds = subIssues.map((issue) => issue.id);
+      const createdIssueIds = subIssues.map((issue) => issue.id);
       update(this.subIssues, [parentIssueId], (issues) => {
-        if (!issues) return issueIds;
-        return concat(issues, issueIds);
+        if (!issues) return createdIssueIds;
+        return concat(issues, createdIssueIds);
       });
     });
 

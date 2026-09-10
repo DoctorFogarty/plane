@@ -70,26 +70,26 @@ export function CreateWebhookModal(props: ICreateWebhookModal) {
         issue_comment: formData.issue_comment ?? false,
       };
 
-    await createWebhook(workspaceSlug.toString(), payload)
-      .then(({ webHook, secretKey }) => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: t("workspace_settings.settings.webhooks.toasts.created.title"),
-          message: t("workspace_settings.settings.webhooks.toasts.created.message"),
-        });
-
-        setGeneratedKey(webHook);
-
-        const csvData = getCurrentHookAsCSV(currentWorkspace, webHook, secretKey ?? undefined);
-        csvDownload(csvData, `webhook-secret-key-${Date.now()}`);
-      })
-      .catch((error) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: t("workspace_settings.settings.webhooks.toasts.not_created.title"),
-          message: error?.error ?? t("workspace_settings.settings.webhooks.toasts.not_created.message"),
-        });
+    try {
+      const { webHook, secretKey } = await createWebhook(workspaceSlug.toString(), payload);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("workspace_settings.settings.webhooks.toasts.created.title"),
+        message: t("workspace_settings.settings.webhooks.toasts.created.message"),
       });
+
+      setGeneratedKey(webHook);
+
+      const csvData = getCurrentHookAsCSV(currentWorkspace, webHook, secretKey ?? undefined);
+      csvDownload(csvData, `webhook-secret-key-${Date.now()}`);
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("workspace_settings.settings.webhooks.toasts.not_created.title"),
+        message:
+          (error as { error?: string })?.error ?? t("workspace_settings.settings.webhooks.toasts.not_created.message"),
+      });
+    }
   };
 
   const handleClose = () => {

@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-shadow, jsx-a11y/click-events-have-key-events, jsx-a11y/no-autofocus, jsx-a11y/no-static-element-interactions */
-
 import { useState, Fragment } from "react";
 import { TwitterPicker } from "react-color";
 import { Controller, useForm } from "react-hook-form";
@@ -78,7 +76,8 @@ export function LabelCreate(props: ILabelCreate) {
 
   return (
     <>
-      <div
+      <button
+        type="button"
         className="relative flex flex-shrink-0 cursor-pointer items-center gap-1 rounded-full border border-subtle p-0.5 px-2 text-11 text-tertiary transition-all hover:bg-surface-2 hover:text-secondary"
         onClick={handleIsCreateToggle}
       >
@@ -86,7 +85,7 @@ export function LabelCreate(props: ILabelCreate) {
           {isCreateToggle ? <CloseIcon className="h-2.5 w-2.5" /> : <PlusIcon className="h-2.5 w-2.5" />}
         </div>
         <div className="flex-shrink-0">{isCreateToggle ? "Cancel" : "New"}</div>
-      </div>
+      </button>
 
       {isCreateToggle && (
         <form className="relative flex items-center gap-x-2 p-1" onSubmit={handleSubmit(handleLabel)}>
@@ -116,7 +115,7 @@ export function LabelCreate(props: ILabelCreate) {
                         style={styles.popper}
                         {...attributes.popper}
                       >
-                        <TwitterPicker triangle={"hide"} color={value} onChange={(value) => onChange(value.hex)} />
+                        <TwitterPicker triangle={"hide"} color={value} onChange={(color) => onChange(color.hex)} />
                       </div>
                     </Popover.Panel>
                   </>

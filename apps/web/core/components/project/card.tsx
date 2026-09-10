@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
-
 import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
@@ -117,14 +115,14 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
   };
 
   const projectLink = `${workspaceSlug}/projects/${project.id}/issues`;
-  const handleCopyText = () =>
-    copyUrlToClipboard(projectLink).then(() =>
-      setToast({
-        type: TOAST_TYPE.INFO,
-        title: "Link Copied!",
-        message: "Project link copied to clipboard.",
-      })
-    );
+  const handleCopyText = async () => {
+    await copyUrlToClipboard(projectLink);
+    setToast({
+      type: TOAST_TYPE.INFO,
+      title: "Link Copied!",
+      message: "Project link copied to clipboard.",
+    });
+  };
   const handleOpenInNewTab = () => window.open(`/${projectLink}`, "_blank");
 
   const MENU_ITEMS: TContextMenuItem[] = [
@@ -328,7 +326,8 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
             {isArchived ? (
               hasAdminRole && (
                 <div className="flex items-center justify-center gap-2">
-                  <div
+                  <button
+                    type="button"
                     className="flex items-center justify-center text-11 font-medium text-placeholder hover:text-secondary"
                     onClick={(e) => {
                       e.preventDefault();
@@ -340,8 +339,9 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
                       <ArchiveRestoreIcon className="h-3.5 w-3.5" />
                       Restore
                     </div>
-                  </div>
-                  <div
+                  </button>
+                  <button
+                    type="button"
                     className="flex items-center justify-center text-11 font-medium text-placeholder hover:text-secondary"
                     onClick={(e) => {
                       e.preventDefault();
@@ -350,7 +350,7 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
                     }}
                   >
                     <TrashIcon className="h-3.5 w-3.5" />
-                  </div>
+                  </button>
                 </div>
               )
             ) : (

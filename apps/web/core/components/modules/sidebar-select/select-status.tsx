@@ -51,8 +51,8 @@ export function SidebarStatusSelect({ control, submitChanges, watch }: Props) {
                 </span>
               }
               value={value}
-              onChange={(value: any) => {
-                submitChanges({ status: value });
+              onChange={(nextStatus: IModule["status"]) => {
+                submitChanges({ status: nextStatus });
               }}
             >
               {MODULE_STATUS.map((option) => (

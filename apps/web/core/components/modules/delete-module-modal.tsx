@@ -46,28 +46,27 @@ export const DeleteModuleModal = observer(function DeleteModuleModal(props: Prop
 
     setIsDeleteLoading(true);
 
-    await deleteModule(workspaceSlug.toString(), projectId.toString(), data.id)
-      .then(() => {
-        if (moduleId || peekModule) router.push(`/${workspaceSlug}/projects/${data.project_id}/modules`);
-        handleClose();
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Module deleted successfully.",
-        });
-      })
-      .catch((errors) => {
-        const isPermissionError = errors?.error === "You don't have the required permissions.";
-        const currentError = isPermissionError
-          ? PROJECT_ERROR_MESSAGES.permissionError
-          : PROJECT_ERROR_MESSAGES.moduleDeleteError;
-        setToast({
-          title: t(currentError.i18n_title),
-          type: TOAST_TYPE.ERROR,
-          message: currentError.i18n_message && t(currentError.i18n_message),
-        });
-      })
-      .finally(() => handleClose());
+    try {
+      await deleteModule(workspaceSlug.toString(), projectId.toString(), data.id);
+      if (moduleId || peekModule) router.push(`/${workspaceSlug}/projects/${data.project_id}/modules`);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Module deleted successfully.",
+      });
+    } catch (errors: any) {
+      const isPermissionError = errors?.error === "You don't have the required permissions.";
+      const currentError = isPermissionError
+        ? PROJECT_ERROR_MESSAGES.permissionError
+        : PROJECT_ERROR_MESSAGES.moduleDeleteError;
+      setToast({
+        title: t(currentError.i18n_title),
+        type: TOAST_TYPE.ERROR,
+        message: currentError.i18n_message && t(currentError.i18n_message),
+      });
+    } finally {
+      handleClose();
+    }
   };
 
   return (

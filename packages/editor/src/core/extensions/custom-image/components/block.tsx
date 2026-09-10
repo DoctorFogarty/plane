@@ -177,6 +177,22 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
     }
   }, []);
 
+  const handleImageMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest("button")) return;
+      e.stopPropagation();
+      if (isTouchDevice) {
+        e.preventDefault();
+        editor.commands.blur();
+      }
+      const pos = getPos();
+      if (pos === undefined) return;
+      const nodeSelection = NodeSelection.create(editor.state.doc, pos);
+      editor.view.dispatch(editor.state.tr.setSelection(nodeSelection));
+    },
+    [editor, getPos, isTouchDevice]
+  );
+
   useEffect(() => {
     if (isResizing) {
       window.addEventListener("mousemove", handleResize);
@@ -194,21 +210,6 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
       };
     }
   }, [isResizing, handleResize, handleResizeEnd]);
-
-  const handleImageMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (isTouchDevice) {
-        e.preventDefault();
-        editor.commands.blur();
-      }
-      const pos = getPos();
-      if (pos === undefined) return;
-      const nodeSelection = NodeSelection.create(editor.state.doc, pos);
-      editor.view.dispatch(editor.state.tr.setSelection(nodeSelection));
-    },
-    [editor, getPos, isTouchDevice]
-  );
 
   const isDuplicating = isImageDuplicating(status);
   // show the image loader if the remote image's src or preview image from filesystem is not set yet (while loading the image post upload) (or)
@@ -235,6 +236,8 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
         "ml-[100%] -translate-x-full": nodeAlignment === "right",
       })}
     >
+      {/* Mouse down selects the image node. Keyboard users select it through the editor. */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         ref={containerRef}
         className="group/image-component relative inline-block max-w-full"
@@ -333,7 +336,8 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
                 }
               )}
             />
-            <div
+            <button
+              type="button"
               className={cn(
                 "absolute bottom-0 size-4 translate-y-1/2 rounded-full border-2 border-white bg-accent-primary transition-opacity duration-100 ease-in-out",
                 {
@@ -344,6 +348,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
                   "right-0 translate-x-1/2 cursor-nwse-resize": nodeAlignment !== "right",
                 }
               )}
+              aria-label="Resize image"
               onMouseDown={handleResizeStart}
               onTouchStart={handleResizeStart}
             />

@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
-
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -66,12 +63,12 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
     <Popover delay={100} openOnHover>
       <Popover.Button
         className="w-full"
+        onClick={handleIssuePeekOverview}
         render={
           <div
             id={`issue-${issueId}`}
             className="space-between relative flex h-full w-full cursor-pointer items-center rounded-sm"
             style={blockStyle}
-            onClick={handleIssuePeekOverview}
           >
             <div className="absolute top-0 left-0 h-full w-full bg-surface-1/50" />
             <div

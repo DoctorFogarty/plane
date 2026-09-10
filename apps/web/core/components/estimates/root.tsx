@@ -137,15 +137,15 @@ export const EstimateRoot = observer(function EstimateRoot(props: TEstimateRoot)
       <UpdateEstimateModal
         workspaceSlug={workspaceSlug}
         projectId={projectId}
-        estimateId={estimateToUpdate ? estimateToUpdate : undefined}
-        isOpen={estimateToUpdate ? true : false}
+        estimateId={estimateToUpdate || undefined}
+        isOpen={Boolean(estimateToUpdate)}
         handleClose={() => setEstimateToUpdate(undefined)}
       />
       <DeleteEstimateModal
         workspaceSlug={workspaceSlug}
         projectId={projectId}
-        estimateId={estimateToDelete ? estimateToDelete : undefined}
-        isOpen={estimateToDelete ? true : false}
+        estimateId={estimateToDelete || undefined}
+        isOpen={Boolean(estimateToDelete)}
         handleClose={() => setEstimateToDelete(undefined)}
       />
     </>

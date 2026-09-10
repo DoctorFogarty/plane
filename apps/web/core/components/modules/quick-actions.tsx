@@ -54,14 +54,14 @@ export const ModuleQuickActions = observer(function ModuleQuickActions(props: Pr
   );
 
   const moduleLink = `${workspaceSlug}/projects/${projectId}/modules/${moduleId}`;
-  const handleCopyText = () =>
-    copyUrlToClipboard(moduleLink).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Link Copied!",
-        message: "Module link copied to clipboard.",
-      });
+  const handleCopyText = async () => {
+    await copyUrlToClipboard(moduleLink);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Link Copied!",
+      message: "Module link copied to clipboard.",
     });
+  };
   const handleOpenInNewTab = () => window.open(`/${moduleLink}`, "_blank");
 
   const handleRestoreModule = async () => {

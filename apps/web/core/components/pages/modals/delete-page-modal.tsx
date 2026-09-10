@@ -47,26 +47,25 @@ export const DeletePageModal = observer(function DeletePageModal(props: TConfirm
   const handleDelete = async () => {
     if (!pageId) return;
     setIsDeleting(true);
-    await removePage({ pageId })
-      .then(() => {
-        handleClose();
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Page deleted successfully.",
-        });
-
-        if (routePageId) {
-          router.back();
-        }
-      })
-      .catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Page could not be deleted. Please try again.",
-        });
+    try {
+      await removePage({ pageId });
+      handleClose();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Page deleted successfully.",
       });
+
+      if (routePageId) {
+        router.back();
+      }
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Page could not be deleted. Please try again.",
+      });
+    }
 
     setIsDeleting(false);
   };

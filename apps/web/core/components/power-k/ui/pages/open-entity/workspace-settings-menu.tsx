@@ -33,7 +33,8 @@ export const PowerKOpenWorkspaceSettingsMenu = observer(function PowerKOpenWorks
       allowPermissions(setting.access, EUserPermissionsLevel.WORKSPACE, context.params.workspaceSlug?.toString())
   );
   const settingsListWithIcons = settingsList.map((setting) => ({
-    ...setting,
+    key: setting.key,
+    href: setting.href,
     label: t(setting.i18n_label),
     icon: WORKSPACE_SETTINGS_ICONS[setting.key],
   }));

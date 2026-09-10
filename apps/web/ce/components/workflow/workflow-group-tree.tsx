@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { TIssueGroupByOptions } from "@plane/types";
 
 type Props = {
@@ -12,6 +11,6 @@ type Props = {
   groupId: string | undefined;
 };
 
-export function WorkFlowGroupTree(props: Props) {
+export function WorkFlowGroupTree(_props: Props) {
   return <></>;
 }

@@ -130,16 +130,20 @@ export const MultipleReactions: Story = {
   },
 };
 
+function handleAdd() {
+  alert("Add reaction clicked");
+}
+
+function handleAddReaction() {
+  alert("Add reaction clicked");
+}
+
 export const AddButton: Story = {
   args: {
     emoji: "➕",
     count: 0,
   },
   render() {
-    const handleAdd = () => {
-      alert("Add reaction clicked");
-    };
-
     return <EmojiReactionButton onAddReaction={handleAdd} />;
   },
 };
@@ -170,10 +174,6 @@ export const ReactionGroup: Story = {
           return r;
         })
       );
-    };
-
-    const handleAddReaction = () => {
-      alert("Add reaction clicked");
     };
 
     return (

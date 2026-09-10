@@ -3,11 +3,19 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable react-hooks/exhaustive-deps, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import { FloatingOverlay } from "@floating-ui/react";
 import type { SuggestionProps } from "@tiptap/suggestion";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { v4 as uuidv4 } from "uuid";
 import { debounce } from "lodash-es";
 // plane utils
@@ -53,46 +61,51 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
     [command, sections]
   );
 
-  useImperativeHandle(ref, () => ({
-    onKeyDown: ({ event }: { event: KeyboardEvent }) => {
-      if (!DROPDOWN_NAVIGATION_KEYS.includes(event.key)) return false;
+  useImperativeHandle(
+    ref,
+    () => ({
+      onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+        if (!DROPDOWN_NAVIGATION_KEYS.includes(event.key)) return false;
 
-      if (event.key === "Enter") {
-        selectItem(selectedIndex.section, selectedIndex.item);
+        if (event.key === "Enter") {
+          selectItem(selectedIndex.section, selectedIndex.item);
+          return true;
+        }
+
+        const newIndex = getNextValidIndex({
+          event,
+          sections,
+          selectedIndex,
+        });
+        if (newIndex) {
+          setSelectedIndex(newIndex);
+        }
+
         return true;
-      }
-
-      const newIndex = getNextValidIndex({
-        event,
-        sections,
-        selectedIndex,
-      });
-      if (newIndex) {
-        setSelectedIndex(newIndex);
-      }
-
-      return true;
-    },
-  }));
+      },
+    }),
+    [selectItem, selectedIndex, sections]
+  );
 
   // debounced search callback
-  const debouncedSearchCallback = useCallback(
-    debounce(async (searchQuery: string) => {
-      try {
-        const sectionsResponse = await searchCallback?.(searchQuery);
-        if (sectionsResponse) {
-          setSections(sectionsResponse);
-          setSelectedIndex({
-            section: 0,
-            item: 0,
-          });
+  const debouncedSearchCallback = useMemo(
+    () =>
+      debounce(async (searchQuery: string) => {
+        try {
+          const sectionsResponse = await searchCallback?.(searchQuery);
+          if (sectionsResponse) {
+            setSections(sectionsResponse);
+            setSelectedIndex({
+              section: 0,
+              item: 0,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to fetch suggestions:", error);
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error) {
-        console.error("Failed to fetch suggestions:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300),
+      }, 300),
     [searchCallback]
   );
 
@@ -143,11 +156,16 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
       />
       <div
         ref={dropdownContainer}
+        role="listbox"
+        tabIndex={-1}
         className="relative max-h-80 w-[14rem] space-y-2 overflow-y-auto rounded-md border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 shadow-raised-200"
         style={{
           zIndex: 100,
         }}
         onClick={(e) => {
+          e.stopPropagation();
+        }}
+        onKeyDown={(e) => {
           e.stopPropagation();
         }}
         onMouseDown={(e) => {

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, promise/always-return */
 
 import type { MouseEvent } from "react";
 import React, { useMemo, useState } from "react";
@@ -98,11 +97,10 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
     e.preventDefault();
     if (!workspaceSlug || !projectId) return;
 
-    const addToFavoritePromise = addCycleToFavorites(workspaceSlug?.toString(), projectId.toString(), cycleId).then(
-      () => {
-        if (!isFavoriteMenuOpen) toggleFavoriteMenu(true);
-      }
-    );
+    const addToFavoritePromise = (async () => {
+      await addCycleToFavorites(workspaceSlug?.toString(), projectId.toString(), cycleId);
+      if (!isFavoriteMenuOpen) toggleFavoriteMenu(true);
+    })();
 
     setPromiseToast(addToFavoritePromise, {
       loading: t("project_cycles.action.favorite.loading"),
@@ -177,7 +175,8 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
       )}
       <CycleAdditionalActions cycleId={cycleId} projectId={projectId} />
       {showTransferIssues && (
-        <div
+        <button
+          type="button"
           className="flex h-6 cursor-pointer items-center gap-1 px-2 text-accent-secondary"
           onClick={() => {
             setTransferIssuesModal(true);
@@ -185,7 +184,7 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
         >
           <TransferIcon className="w-4 fill-accent-primary" />
           <span>{t("project_cycles.transfer_work_items", { count: transferableIssuesCount })}</span>
-        </div>
+        </button>
       )}
       {isActive ? (
         <>

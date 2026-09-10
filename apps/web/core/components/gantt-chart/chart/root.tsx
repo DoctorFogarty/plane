@@ -4,9 +4,7 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable unicorn/consistent-function-scoping */
-
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { createPortal } from "react-dom";
 // plane imports
@@ -52,6 +50,13 @@ const timelineViewHelpers = {
   week: weekView,
   month: monthView,
   quarter: quarterView,
+};
+
+const updateCurrentLeftScrollPosition = (width: number) => {
+  const scrollContainer = document.querySelector("#gantt-container") as HTMLDivElement;
+  if (!scrollContainer) return;
+
+  scrollContainer.scrollLeft = width + scrollContainer?.scrollLeft;
 };
 
 export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRootProps) {
@@ -141,24 +146,18 @@ export const ChartViewRoot = observer(function ChartViewRoot(props: ChartViewRoo
   };
 
   const handleToday = () => updateCurrentViewRenderPayload(null, currentView);
+  const handleTodayRef = useRef(handleToday);
+  handleTodayRef.current = handleToday;
 
   // handling the scroll positioning from left and right
   useEffect(() => {
-    handleToday();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    handleTodayRef.current();
   }, []);
 
   const updateItemsContainerWidth = (width: number) => {
     const scrollContainer = document.querySelector("#gantt-container") as HTMLDivElement;
     if (!scrollContainer) return;
     setItemsContainerWidth(width + scrollContainer?.scrollLeft);
-  };
-
-  const updateCurrentLeftScrollPosition = (width: number) => {
-    const scrollContainer = document.querySelector("#gantt-container") as HTMLDivElement;
-    if (!scrollContainer) return;
-
-    scrollContainer.scrollLeft = width + scrollContainer?.scrollLeft;
   };
 
   const handleScrollToCurrentSelectedDate = (currentState: ChartDataType, date: Date) => {

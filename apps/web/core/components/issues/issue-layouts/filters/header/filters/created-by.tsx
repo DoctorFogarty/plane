@@ -43,8 +43,7 @@ export const FilterCreatedBy = observer(function FilterCreatedBy(props: Props) {
       (memberId) => memberId !== currentUser?.id,
       (memberId) => getUserDetails(memberId)?.display_name.toLowerCase(),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [appliedFilters, currentUser?.id, getUserDetails, memberIds, searchQuery]);
 
   const appliedFiltersCount = appliedFilters?.length ?? 0;
 
@@ -74,7 +73,7 @@ export const FilterCreatedBy = observer(function FilterCreatedBy(props: Props) {
                   return (
                     <FilterOption
                       key={`created-by-${member.id}`}
-                      isChecked={appliedFilters?.includes(member.id) ? true : false}
+                      isChecked={Boolean(appliedFilters?.includes(member.id))}
                       onClick={() => handleUpdate(member.id)}
                       icon={<Avatar name={member.display_name} src={getFileURL(member.avatar_url)} size="md" />}
                       title={currentUser?.id === member.id ? "You" : member?.display_name}

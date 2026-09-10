@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable no-unneeded-ternary, jsx-a11y/click-events-have-key-events, jsx-a11y/no-autofocus */
-
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
@@ -83,7 +81,8 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
   const userAvatar = watch("avatar_url");
 
   const handleSetPassword = async (password: string) => {
-    const token = await authService.requestCSRFToken().then((data) => data?.csrf_token);
+    const csrfResponse = await authService.requestCSRFToken();
+    const token = csrfResponse?.csrf_token;
     await authService.setPassword(token, { password });
   };
 
@@ -137,8 +136,7 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
 
   // Check for all available fields validation and if password field is available, then checks for password validation (strength + confirmation).
   // Also handles the condition for optional password i.e if password field is optional it only checks for above validation if it's not empty.
-  const isButtonDisabled =
-    !isSubmitting && isValid ? (isPasswordAlreadySetup ? false : isValidPassword ? false : true) : true;
+  const isButtonDisabled = !(!isSubmitting && isValid && (isPasswordAlreadySetup || isValidPassword));
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-10">
@@ -171,7 +169,6 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
           {userAvatar ? (
             <img
               src={getFileURL(userAvatar ?? "")}
-              onClick={() => setIsImageUploadModalOpen(true)}
               alt={user?.display_name}
               className="h-full w-full rounded-full object-cover"
             />

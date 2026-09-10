@@ -145,16 +145,19 @@ export const getWeeksBetweenTwoDates = (
   const diff = (day + 7 - startOfWeek) % 7; // Calculate days to subtract to get to startOfWeek
   currentDate.setDate(currentDate.getDate() - diff);
 
-  while (currentDate <= endDate) {
-    const weekStartDate = new Date(currentDate.getTime());
-    const weekEndDate = new Date(currentDate.getTime() + 6 * 24 * 60 * 60 * 1000);
+  let cursorTime = currentDate.getTime();
+  const endTime = endDate.getTime();
+
+  while (cursorTime <= endTime) {
+    const weekStartDate = new Date(cursorTime);
+    const weekEndDate = new Date(cursorTime + 6 * 24 * 60 * 60 * 1000);
 
     const monthAtStartOfTheWeek = weekStartDate.getMonth();
     const yearAtStartOfTheWeek = weekStartDate.getFullYear();
     const monthAtEndOfTheWeek = weekEndDate.getMonth();
     const yearAtEndOfTheWeek = weekEndDate.getFullYear();
 
-    const weekNumber = getWeekNumberByDate(currentDate);
+    const weekNumber = getWeekNumberByDate(weekStartDate);
 
     weeks.push({
       children: shouldPopulateDaysForWeek ? populateDaysForWeek(weekStartDate, startOfWeek) : undefined,
@@ -173,10 +176,10 @@ export const getWeeksBetweenTwoDates = (
       endYear: yearAtEndOfTheWeek,
       startDate: weekStartDate,
       endDate: weekEndDate,
-      today: today >= weekStartDate && today <= weekEndDate ? true : false,
+      today: today >= weekStartDate && today <= weekEndDate,
     });
 
-    currentDate.setDate(currentDate.getDate() + 7);
+    cursorTime += 7 * 24 * 60 * 60 * 1000;
   }
 
   return weeks;

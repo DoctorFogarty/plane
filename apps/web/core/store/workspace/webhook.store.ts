@@ -94,19 +94,19 @@ export class WebhookStore implements IWebhookStore {
    * fetch all the webhooks for a workspace
    * @param workspaceSlug
    */
-  fetchWebhooks = async (workspaceSlug: string) =>
-    await this.webhookService.fetchWebhooksList(workspaceSlug).then((response) => {
-      const webHookObject: { [webhookId: string]: IWebhook } = response.reduce((accumulator, currentWebhook) => {
-        if (currentWebhook && currentWebhook.id) {
-          return { ...accumulator, [currentWebhook.id]: currentWebhook };
-        }
-        return accumulator;
-      }, {});
-      runInAction(() => {
-        this.webhooks = webHookObject;
-      });
-      return response;
+  fetchWebhooks = async (workspaceSlug: string) => {
+    const response = await this.webhookService.fetchWebhooksList(workspaceSlug);
+    const webHookObject: { [webhookId: string]: IWebhook } = {};
+    for (const currentWebhook of response) {
+      if (currentWebhook && currentWebhook.id) {
+        webHookObject[currentWebhook.id] = currentWebhook;
+      }
+    }
+    runInAction(() => {
+      this.webhooks = webHookObject;
     });
+    return response;
+  };
 
   /**
    * fetch webhook info from API using webhook id
@@ -164,14 +164,14 @@ export class WebhookStore implements IWebhookStore {
    * @param workspaceSlug
    * @param webhookId
    */
-  removeWebhook = async (workspaceSlug: string, webhookId: string) =>
-    await this.webhookService.deleteWebhook(workspaceSlug, webhookId).then(() => {
-      const _webhooks = this.webhooks ?? {};
-      delete _webhooks[webhookId];
-      runInAction(() => {
-        this.webhooks = _webhooks;
-      });
+  removeWebhook = async (workspaceSlug: string, webhookId: string) => {
+    await this.webhookService.deleteWebhook(workspaceSlug, webhookId);
+    const _webhooks = this.webhooks ?? {};
+    delete _webhooks[webhookId];
+    runInAction(() => {
+      this.webhooks = _webhooks;
     });
+  };
 
   /**
    * regenerate secret key for a webhook using webhook id

@@ -14,6 +14,7 @@ import { ALL_ISSUES } from "@plane/constants";
 import type {
   GroupByColumnTypes,
   TGroupedIssues,
+  TSubGroupedIssues,
   TIssue,
   IIssueDisplayProperties,
   TIssueGroupByOptions,
@@ -28,7 +29,7 @@ import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useBulkOperationStatus } from "@/hooks/use-bulk-operation-status";
 // utils
 import type { GroupDropLocation } from "../utils";
-import { getGroupByColumns, isWorkspaceLevel, isSubGrouped } from "../utils";
+import { getGroupByColumns, getListGroupIssueIds, isWorkspaceLevel, isSubGrouped } from "../utils";
 import { ListGroup } from "./list-group";
 import type { TRenderQuickActions } from "./list-view-types";
 
@@ -39,7 +40,7 @@ const IssueBulkOperationsRoot = lazy(() =>
 );
 
 export interface IList {
-  groupedIssueIds: TGroupedIssues;
+  groupedIssueIds: TGroupedIssues | TSubGroupedIssues;
   group_by: TIssueGroupByOptions | null;
   orderBy: TIssueOrderByOptions | undefined;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
@@ -145,7 +146,7 @@ export const List = observer(function List(props: IList) {
                 {groups.map((group: IGroupByColumn) => (
                   <ListGroup
                     key={group.id}
-                    groupIssueIds={groupedIssueIds?.[group.id]}
+                    groupIssueIds={getListGroupIssueIds(groupedIssueIds, group.id)}
                     group_by={group_by}
                     group={group}
                     updateIssue={updateIssue}

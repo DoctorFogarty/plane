@@ -46,7 +46,7 @@ export function IssueBlocksList(props: Props) {
     isEpic = false,
   } = props;
 
-  const ids: string[] = issueIds ?? [];
+  const ids: string[] = Array.isArray(issueIds) ? issueIds : [];
   const shouldVirtualize = ids.length > LIST_VIRTUALIZE_AFTER;
 
   const virtualizer = useVirtualizer({

@@ -19,6 +19,7 @@ import type {
   TIssueServiceType,
 } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
+import { bindStopPropagation } from "@/components/issues/issue-layouts/utils";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
 import { useProjectState } from "@/hooks/store/use-project-state";
@@ -88,13 +89,7 @@ export const SubWorkItemTitleActions = observer(function SubWorkItemTitleActions
 
   return (
     // prevent click everywhere
-    <div
-      className="flex items-center gap-2"
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-      }}
-    >
+    <div className="flex items-center gap-2" ref={bindStopPropagation}>
       <SubIssueDisplayFilters
         isEpic={issueServiceType === EIssueServiceType.EPICS}
         layoutDisplayFiltersOptions={layoutDisplayFiltersOptions}

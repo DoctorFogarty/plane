@@ -39,7 +39,8 @@ export const PowerKOpenProjectSettingsMenu = observer(function PowerKOpenProject
       )
   );
   const settingsListWithIcons = settingsList.map((setting) => ({
-    ...setting,
+    key: setting.key,
+    href: setting.href,
     label: t(setting.i18n_label),
     icon: PROJECT_SETTINGS_ICONS[setting.key],
   }));

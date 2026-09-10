@@ -58,28 +58,41 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
     const stickiesItem = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["stickies"];
     if (personalPreferences.items.stickies?.enabled && stickiesItem) {
       personalItems.push({
-        ...stickiesItem,
+        key: stickiesItem.key,
+        labelTranslationKey: stickiesItem.labelTranslationKey,
+        href: stickiesItem.href,
+        access: stickiesItem.access,
+        highlight: stickiesItem.highlight,
         sort_order: personalPreferences.items.stickies.sort_order,
       });
     }
-    if (personalPreferences.items.your_work?.enabled && WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["your-work"]) {
+    const yourWorkItem = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["your-work"];
+    if (personalPreferences.items.your_work?.enabled && yourWorkItem) {
       personalItems.push({
-        ...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["your-work"],
+        key: yourWorkItem.key,
+        labelTranslationKey: yourWorkItem.labelTranslationKey,
+        href: yourWorkItem.href,
+        access: yourWorkItem.access,
+        highlight: yourWorkItem.highlight,
         sort_order: personalPreferences.items.your_work.sort_order,
       });
     }
-    if (personalPreferences.items.drafts?.enabled && WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["drafts"]) {
+    const draftsItem = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["drafts"];
+    if (personalPreferences.items.drafts?.enabled && draftsItem) {
       personalItems.push({
-        ...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["drafts"],
+        key: draftsItem.key,
+        labelTranslationKey: draftsItem.labelTranslationKey,
+        href: draftsItem.href,
+        access: draftsItem.access,
+        highlight: draftsItem.highlight,
         sort_order: personalPreferences.items.drafts.sort_order,
       });
     }
 
-    // Sort personal items by sort_order
-    personalItems.sort((a, b) => a.sort_order - b.sort_order);
+    const sortedPersonalItems = personalItems.toSorted((a, b) => a.sort_order - b.sort_order);
 
     // Merge static items with sorted personal items
-    return [...items, ...personalItems];
+    return [...items, ...sortedPersonalItems];
   }, [personalPreferences]);
 
   const sortedNavigationItems = useMemo(
@@ -87,18 +100,22 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
       WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.map((item) => {
         const preference = workspacePreferences.items[item.key];
         return {
-          ...item,
+          key: item.key,
+          labelTranslationKey: item.labelTranslationKey,
+          href: item.href,
+          access: item.access,
+          highlight: item.highlight,
           sort_order: preference ? preference.sort_order : 0,
         };
-      }).sort((a, b) => a.sort_order - b.sort_order),
+      }).toSorted((a, b) => a.sort_order - b.sort_order),
     [workspacePreferences]
   );
 
   return (
     <>
       <div className="flex flex-col gap-0.5">
-        {filteredStaticNavigationItems.map((item, _index) => (
-          <SidebarItem key={`static_${_index}`} item={item} />
+        {filteredStaticNavigationItems.map((item) => (
+          <SidebarItem key={`static_${item.key}`} item={item} />
         ))}
       </div>
       <Disclosure as="div" className="flex flex-col" defaultOpen={!!isWorkspaceMenuOpen}>
@@ -110,8 +127,8 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
             onClick={() => toggleListDisclosure(!isWorkspaceMenuOpen)}
             aria-label={t(
               isWorkspaceMenuOpen
-                ? "aria_labels.app_sidebar.close_workspace_menu"
-                : "aria_labels.app_sidebar.open_workspace_menu"
+                ? "aria_labels.projects_sidebar.close_workspace_menu"
+                : "aria_labels.projects_sidebar.open_workspace_menu"
             )}
           >
             <span className="text-13 font-semibold">{t("common.workspace")}</span>
@@ -124,8 +141,8 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
               onClick={() => toggleListDisclosure(!isWorkspaceMenuOpen)}
               aria-label={t(
                 isWorkspaceMenuOpen
-                  ? "aria_labels.app_sidebar.close_workspace_menu"
-                  : "aria_labels.app_sidebar.open_workspace_menu"
+                  ? "aria_labels.projects_sidebar.close_workspace_menu"
+                  : "aria_labels.projects_sidebar.open_workspace_menu"
               )}
             >
               <ChevronRightIcon
@@ -148,11 +165,11 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
           {isWorkspaceMenuOpen && (
             <Disclosure.Panel as="div" className="flex flex-col gap-0.5" static>
               <>
-                {WORKSPACE_SIDEBAR_STATIC_PINNED_NAVIGATION_ITEMS_LINKS.map((item, _index) => (
-                  <SidebarItem key={`static_${_index}`} item={item} />
+                {WORKSPACE_SIDEBAR_STATIC_PINNED_NAVIGATION_ITEMS_LINKS.map((item) => (
+                  <SidebarItem key={`static_${item.key}`} item={item} />
                 ))}
-                {sortedNavigationItems.map((item, _index) => (
-                  <SidebarItem key={`dynamic_${_index}`} item={item} />
+                {sortedNavigationItems.map((item) => (
+                  <SidebarItem key={`dynamic_${item.key}`} item={item} />
                 ))}
                 <SidebarNavItem>
                   <button
@@ -162,8 +179,8 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
                     id="extended-sidebar-toggle"
                     aria-label={t(
                       isExtendedSidebarOpened
-                        ? "aria_labels.app_sidebar.close_extended_sidebar"
-                        : "aria_labels.app_sidebar.open_extended_sidebar"
+                        ? "aria_labels.projects_sidebar.close_extended_sidebar"
+                        : "aria_labels.projects_sidebar.open_extended_sidebar"
                     )}
                   >
                     <Ellipsis className="size-4 flex-shrink-0" />

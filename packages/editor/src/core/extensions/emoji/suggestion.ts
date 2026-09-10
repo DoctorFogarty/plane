@@ -47,7 +47,7 @@ export const emojiSuggestion: EmojiOptions["suggestion"] = {
 
   render: () => {
     let component: ReactRenderer<CommandListInstance, EmojisListDropdownProps> | null = null;
-    let cleanup: () => void = () => {};
+    let cleanup: (() => void) | undefined;
     let editorRef: Editor | null = null;
 
     const handleClose = (editor?: Editor) => {
@@ -56,7 +56,7 @@ export const emojiSuggestion: EmojiOptions["suggestion"] = {
       (editor || editorRef)?.commands.removeActiveDropbarExtension(CORE_EXTENSIONS.EMOJI);
       const emojiStorage = editor?.storage.emoji as ExtendedEmojiStorage;
       emojiStorage.forceOpen = false;
-      cleanup();
+      cleanup?.();
     };
 
     return {
@@ -85,7 +85,7 @@ export const emojiSuggestion: EmojiOptions["suggestion"] = {
         const forceOpen = emojiStorage.forceOpen || false;
         component.updateProps({ ...props, forceOpen });
         if (!props.clientRect) return;
-        cleanup();
+        cleanup?.();
         cleanup = updateFloatingUIFloaterPosition(props.editor, component.element as HTMLElement).cleanup;
       },
       onKeyDown: ({ event }) => {

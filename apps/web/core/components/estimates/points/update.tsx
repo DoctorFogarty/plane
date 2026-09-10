@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-unused-expressions */
 
 import type { FormEvent } from "react";
 import { useState } from "react";
@@ -73,7 +72,7 @@ export const EstimatePointUpdate = observer(function EstimatePointUpdate(props: 
   const handleEstimateInputValue = (value: string) => {
     if (value.length <= MAX_ESTIMATE_POINT_INPUT_LENGTH) {
       setEstimateInputValue(() => value);
-      handleEstimatePointError && handleEstimatePointError(value, undefined);
+      if (handleEstimatePointError) handleEstimatePointError(value, undefined);
     }
   };
 
@@ -82,7 +81,7 @@ export const EstimatePointUpdate = observer(function EstimatePointUpdate(props: 
 
     if (!workspaceSlug || !projectId) return;
 
-    handleEstimatePointError && handleEstimatePointError(estimateInputValue || "", undefined, "delete");
+    if (handleEstimatePointError) handleEstimatePointError(estimateInputValue || "", undefined, "delete");
 
     if (estimateInputValue) {
       const currentEstimateType: EEstimateSystem | undefined = estimateType;

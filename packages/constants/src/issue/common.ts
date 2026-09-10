@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable typescript-eslint/no-duplicate-enum-values */
 
 import type {
   TIssueGroupByOptions,
@@ -25,20 +24,22 @@ export type TIssueFilterPriorityObject = {
   icon: string;
 };
 
-export enum EIssueGroupByToServerOptions {
-  "state" = "state_id",
-  "priority" = "priority",
-  "labels" = "labels__id",
-  "state_detail.group" = "state__group",
-  "assignees" = "assignees__id",
-  "cycle" = "cycle_id",
-  "module" = "issue_module__module_id",
-  "target_date" = "target_date",
-  "project" = "project_id",
-  "created_by" = "created_by",
-  // eslint-disable-next-line typescript-eslint/no-duplicate-enum-values, @typescript-eslint/no-duplicate-enum-values
-  "team_project" = "project_id",
-}
+export const EIssueGroupByToServerOptions = {
+  state: "state_id",
+  priority: "priority",
+  labels: "labels__id",
+  "state_detail.group": "state__group",
+  assignees: "assignees__id",
+  cycle: "cycle_id",
+  module: "issue_module__module_id",
+  target_date: "target_date",
+  project: "project_id",
+  created_by: "created_by",
+  team_project: "project_id",
+} as const;
+
+export type EIssueGroupByToServerOptions =
+  (typeof EIssueGroupByToServerOptions)[keyof typeof EIssueGroupByToServerOptions];
 
 export enum EIssueGroupBYServerToProperty {
   "state_id" = "state_id",

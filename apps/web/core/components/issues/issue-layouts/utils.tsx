@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -23,6 +22,7 @@ import type {
   TIssue,
   TIssueGroupByOptions,
   TGroupedIssues,
+  TSubGroupedIssues,
   TGetColumns,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
@@ -61,6 +61,15 @@ export type IssueUpdates = {
   };
 };
 
+const stopPropagation = (event: Event) => event.stopPropagation();
+
+export function bindStopPropagation(node: HTMLElement | null) {
+  if (!node || node.dataset.stopPropagationBound === "true") return;
+  node.dataset.stopPropagationBound = "true";
+  node.addEventListener("click", stopPropagation);
+  node.addEventListener("focusin", stopPropagation);
+}
+
 export const isWorkspaceLevel = (type: EIssuesStoreType) =>
   [
     EIssuesStoreType.PROFILE,
@@ -69,9 +78,7 @@ export const isWorkspaceLevel = (type: EIssuesStoreType) =>
     EIssuesStoreType.TEAM_VIEW,
     EIssuesStoreType.TEAM_PROJECT_WORK_ITEMS,
     EIssuesStoreType.WORKSPACE_DRAFT,
-  ].includes(type)
-    ? true
-    : false;
+  ].includes(type);
 
 type TGetGroupByColumns = {
   groupBy: GroupByColumnTypes | null;
@@ -87,7 +94,7 @@ type TGetGroupByColumns = {
 export const getGroupByColumns = ({
   groupBy,
   includeNone,
-  isWorkspaceLevel,
+  isWorkspaceLevel: workspaceLevel,
   isEpic = false,
   projectId,
 }: TGetGroupByColumns): IGroupByColumn[] | undefined => {
@@ -124,7 +131,7 @@ export const getGroupByColumns = ({
   };
 
   // Get and return the columns for the specified group by option
-  return groupByColumnMap[groupBy]?.({ isWorkspaceLevel, projectId });
+  return groupByColumnMap[groupBy]?.({ isWorkspaceLevel: workspaceLevel, projectId });
 };
 
 const getProjectColumns = (): IGroupByColumn[] | undefined => {
@@ -273,11 +280,11 @@ const getPriorityColumns = (): IGroupByColumn[] => {
   }));
 };
 
-const getLabelsColumns = ({ isWorkspaceLevel }: TGetColumns): IGroupByColumn[] => {
+const getLabelsColumns = ({ isWorkspaceLevel: workspaceLevel }: TGetColumns): IGroupByColumn[] => {
   const { workspaceLabels, projectLabels } = store.label;
   // map labels to group by columns
   const labels = [
-    ...(isWorkspaceLevel ? workspaceLabels || [] : projectLabels || []),
+    ...(workspaceLevel ? workspaceLabels || [] : projectLabels || []),
     { id: "None", name: "None", color: "#666" },
   ];
   // map labels to group by columns
@@ -291,11 +298,14 @@ const getLabelsColumns = ({ isWorkspaceLevel }: TGetColumns): IGroupByColumn[] =
   }));
 };
 
-const getAssigneeColumns = ({ isWorkspaceLevel, projectId }: TGetColumns): IGroupByColumn[] | undefined => {
+const getAssigneeColumns = ({
+  isWorkspaceLevel: workspaceLevel,
+  projectId,
+}: TGetColumns): IGroupByColumn[] | undefined => {
   // store values
   const { getUserDetails } = store.memberRoot;
   // derived values
-  const { memberIds, includeNone } = getScopeMemberIds({ isWorkspaceLevel, projectId });
+  const { memberIds, includeNone } = getScopeMemberIds({ isWorkspaceLevel: workspaceLevel, projectId });
   const assigneeColumns: IGroupByColumn[] = [];
 
   if (!memberIds) return [];
@@ -467,8 +477,8 @@ const handleSortOrder = (
 
   if (destinationIssues && destinationIssues.length > 0) {
     if (destinationIndex === 0) {
-      const destinationIssueId = destinationIssues[0];
-      const destinationIssue = getIssueById(destinationIssueId);
+      const firstDestinationIssueId = destinationIssues[0];
+      const destinationIssue = getIssueById(firstDestinationIssueId);
       if (!destinationIssue) return currentIssueState;
 
       currentIssueState = {
@@ -476,8 +486,8 @@ const handleSortOrder = (
         sort_order: destinationIssue.sort_order - sortOrderDefaultValue,
       };
     } else if (destinationIndex === destinationIssues.length) {
-      const destinationIssueId = destinationIssues[destinationIssues.length - 1];
-      const destinationIssue = getIssueById(destinationIssueId);
+      const lastDestinationIssueId = destinationIssues[destinationIssues.length - 1];
+      const destinationIssue = getIssueById(lastDestinationIssueId);
       if (!destinationIssue) return currentIssueState;
 
       currentIssueState = {
@@ -633,6 +643,17 @@ export const isSubGrouped = (groupedIssueIds: TGroupedIssues) => {
   }
 
   return true;
+};
+
+export const getListGroupIssueIds = (
+  groupedIssueIds: TGroupedIssues | TSubGroupedIssues | undefined,
+  groupId: string
+): string[] | undefined => {
+  if (!groupedIssueIds) return undefined;
+  const value = groupedIssueIds[groupId];
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value;
+  return Object.values(value).flatMap((ids) => (Array.isArray(ids) ? ids : []));
 };
 
 /**

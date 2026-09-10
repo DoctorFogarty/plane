@@ -13,8 +13,9 @@ export type TExtendedPageInstance = TPageExtended & {
 };
 
 export class ExtendedBasePage implements TExtendedPageInstance {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  constructor(store: RootStore, page: TPage, services: TBasePageServices) {}
+  constructor(_store: RootStore, _page: TPage, _services: TBasePageServices) {
+    void _store;
+  }
 
   get asJSONExtended(): TExtendedPageInstance["asJSONExtended"] {
     return {};

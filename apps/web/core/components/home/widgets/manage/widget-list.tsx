@@ -36,13 +36,14 @@ export const WidgetList = observer(function WidgetList({ workspaceSlug }: { work
 
     if (!sourceData.id) return;
     if (droppedId) {
-      reorderWidget(workspaceSlug, sourceData.id, droppedId, instruction)
+      void reorderWidget(workspaceSlug, sourceData.id, droppedId, instruction)
         .then(() => {
           setToast({
             type: TOAST_TYPE.SUCCESS,
             title: t("toast.success"),
             message: t("home.widget.reordered_successfully"),
           });
+          return;
         })
         .catch(() => {
           setToast({

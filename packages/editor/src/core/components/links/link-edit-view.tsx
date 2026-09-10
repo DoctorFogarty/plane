@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/no-autofocus, jsx-a11y/no-static-element-interactions */
 
 import type { Node } from "@tiptap/pm/model";
 import { Link2Off } from "lucide-react";
@@ -18,20 +17,24 @@ type InputViewProps = {
   value: string;
   placeholder: string;
   onChange: (value: string) => void;
+  inputId: string;
   autoFocus?: boolean;
 };
 
-function InputView({ label, value, placeholder, onChange, autoFocus }: InputViewProps) {
+function InputView({ label, value, placeholder, onChange, inputId, autoFocus }: InputViewProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="inline-block text-11 font-semibold text-placeholder">{label}</label>
+      <label htmlFor={inputId} className="inline-block text-11 font-semibold text-placeholder">
+        {label}
+      </label>
       <input
+        id={inputId}
+        autoFocus={autoFocus}
         placeholder={placeholder}
         onClick={(e) => e.stopPropagation()}
         className="w-[280px] rounded-md border border-strong bg-layer-1 p-2 text-13 text-primary outline-none"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        autoFocus={autoFocus}
       />
     </div>
   );
@@ -113,38 +116,49 @@ export function LinkEditView({ viewProps }: LinkEditViewProps) {
     return true;
   }, [linkRemoved, positionRef, editor, from, to, initialText, localText, localUrl]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.stopPropagation();
-        if (applyChanges()) {
-          closeLinkView();
-          setLocalUrl("");
-          setLocalText("");
-        }
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (applyChanges()) {
+        closeLinkView();
+        setLocalUrl("");
+        setLocalText("");
       }
     },
     [applyChanges, closeLinkView]
   );
 
   return (
-    <div
-      onKeyDown={handleKeyDown}
+    <form
+      onSubmit={handleSubmit}
       className="shadow-md animate-in fade-in flex translate-y-1 flex-col gap-3 rounded-sm border-2 border-subtle bg-layer-1 p-2"
       style={{
         transition: "all 0.1s cubic-bezier(.55, .085, .68, .53)",
       }}
-      tabIndex={0}
     >
-      <InputView label="URL" placeholder="Enter or paste URL" value={localUrl} onChange={setLocalUrl} autoFocus />
-      <InputView label="Text" placeholder="Enter Text to display" value={localText} onChange={handleTextChange} />
+      <InputView
+        inputId="editor-link-edit-url"
+        label="URL"
+        placeholder="Enter or paste URL"
+        value={localUrl}
+        onChange={setLocalUrl}
+        autoFocus
+      />
+      <InputView
+        inputId="editor-link-edit-text"
+        label="Text"
+        placeholder="Enter Text to display"
+        value={localText}
+        onChange={handleTextChange}
+      />
       <div className="bg-strong mb-1 h-[1px] w-full gap-2" />
       <div className="flex items-center gap-2 text-13 text-secondary">
         <Link2Off size={14} className="inline-block" />
-        <button onClick={removeLink} className="cursor-pointer transition-colors hover:text-placeholder">
+        <button type="button" onClick={removeLink} className="cursor-pointer transition-colors hover:text-placeholder">
           Remove Link
         </button>
       </div>
-    </div>
+    </form>
   );
 }

@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable promise/always-return */
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -82,31 +81,29 @@ export const SingleIntegrationCard = observer(function SingleIntegrationCard({ i
     if (!workspaceSlug || !integration || !workspaceIntegrations) return;
     const workspaceIntegrationId = workspaceIntegrations?.find((i) => i.integration === integration.id)?.id;
     setDeletingIntegration(true);
-    await integrationService
-      .deleteWorkspaceIntegration(workspaceSlug, workspaceIntegrationId ?? "")
-      .then(() => {
-        mutate<IWorkspaceIntegration[]>(
-          WORKSPACE_INTEGRATIONS(workspaceSlug),
-          (prevData) => prevData?.filter((i) => i.id !== workspaceIntegrationId),
-          false
-        );
-        setDeletingIntegration(false);
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Disconnected",
-          message: isSlackProvider
-            ? "Disconnected workspace from Slack."
-            : `${integration.title} integration deleted successfully.`,
-        });
-      })
-      .catch(() => {
-        setDeletingIntegration(false);
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: `${integration.title} integration could not be deleted. Please try again.`,
-        });
+    try {
+      await integrationService.deleteWorkspaceIntegration(workspaceSlug, workspaceIntegrationId ?? "");
+      mutate<IWorkspaceIntegration[]>(
+        WORKSPACE_INTEGRATIONS(workspaceSlug),
+        (prevData) => prevData?.filter((i) => i.id !== workspaceIntegrationId),
+        false
+      );
+      setDeletingIntegration(false);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Disconnected",
+        message: isSlackProvider
+          ? "Disconnected workspace from Slack."
+          : `${integration.title} integration deleted successfully.`,
       });
+    } catch {
+      setDeletingIntegration(false);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: `${integration.title} integration could not be deleted. Please try again.`,
+      });
+    }
   };
 
   const isInstalled = workspaceIntegrations?.find((i) => i.integration_detail.id === integration.id);

@@ -9,7 +9,6 @@ export type TProjectTemplateSelect = {
   onClick?: () => void;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function ProjectTemplateSelect(props: TProjectTemplateSelect) {
+export function ProjectTemplateSelect(_props: TProjectTemplateSelect) {
   return <></>;
 }

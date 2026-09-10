@@ -16,6 +16,7 @@ import { ControlLink, CustomMenu } from "@plane/ui";
 import { cn, generateWorkItemLink } from "@plane/utils";
 // helpers
 import { useSubIssueOperations } from "@/components/issues/issue-detail-widgets/sub-issues/helper";
+import { bindStopPropagation } from "@/components/issues/issue-layouts/utils";
 import { WithDisplayPropertiesHOC } from "@/components/issues/issue-layouts/properties/with-display-properties-HOC";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -88,7 +89,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
   const displayProperties = subIssueFilters?.displayProperties ?? {};
 
   //
-  const handleIssuePeekOverview = (issue: TIssue) => handleRedirection(workspaceSlug, issue, isMobile);
+  const handleIssuePeekOverview = (workItem: TIssue) => handleRedirection(workspaceSlug, workItem, isMobile);
 
   if (!issue) return <></>;
 
@@ -125,7 +126,8 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
                       <Loader width={14} strokeWidth={2} className="animate-spin" />
                     </div>
                   ) : (
-                    <div
+                    <button
+                      type="button"
                       className="flex h-full w-full cursor-pointer items-center justify-center text-placeholder hover:text-tertiary"
                       onClick={async (e) => {
                         e.preventDefault();
@@ -144,7 +146,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
                         })}
                         strokeWidth={2.5}
                       />
-                    </div>
+                    </button>
                   )}
                 </>
               )}
@@ -170,13 +172,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
               </Tooltip>
             </div>
 
-            <div
-              className="flex-shrink-0 text-13"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            >
+            <div className="flex-shrink-0 text-13" ref={bindStopPropagation}>
               <SubIssuesListItemProperties
                 workspaceSlug={workspaceSlug}
                 parentIssueId={parentIssueId}

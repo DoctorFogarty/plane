@@ -17,11 +17,12 @@ interface Props {
 }
 
 export function IssueBlocksList(props: Props) {
-  const { issueIds = [], groupId, displayProperties } = props;
+  const { issueIds, groupId, displayProperties } = props;
+  const ids = Array.isArray(issueIds) ? issueIds : [];
 
   return (
     <div className="relative size-full">
-      {issueIds?.map((issueId) => (
+      {ids.map((issueId) => (
         <IssueBlock key={issueId} issueId={issueId} displayProperties={displayProperties} groupId={groupId} />
       ))}
     </div>

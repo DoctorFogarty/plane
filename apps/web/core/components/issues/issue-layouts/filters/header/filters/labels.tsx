@@ -43,8 +43,7 @@ export const FilterLabels = observer(function FilterLabels(props: Props) {
       (label) => !(appliedFilters ?? []).includes(label.id),
       (label) => label.name.toLowerCase(),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [appliedFilters, labels, searchQuery]);
 
   const handleViewToggle = () => {
     if (!sortedOptions) return;
@@ -68,7 +67,7 @@ export const FilterLabels = observer(function FilterLabels(props: Props) {
                 {sortedOptions.slice(0, itemsToRender).map((label) => (
                   <FilterOption
                     key={label?.id}
-                    isChecked={appliedFilters?.includes(label?.id) ? true : false}
+                    isChecked={Boolean(appliedFilters?.includes(label?.id))}
                     onClick={() => handleUpdate(label?.id)}
                     icon={<LabelIcons color={label.color} />}
                     title={label.name}

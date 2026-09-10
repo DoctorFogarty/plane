@@ -151,43 +151,19 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
   //   const MENU_ITEMS = useWorkItemDetailMenuItems(menuItemProps);
   const baseMenuItems = useWorkItemDetailMenuItems(menuItemProps);
 
-  const MENU_ITEMS = baseMenuItems
-    .map((item) => {
-      // Customize edit action for work item
-      if (item.key === "edit") {
-        return {
-          ...item,
-          shouldRender: isEditingAllowed && !isPeekMode,
-        };
-      }
-      // Customize delete action for work item
-      if (item.key === "delete") {
-        return {
-          ...item,
-        };
-      }
-      // Hide copy link in peek mode
-      if (item.key === "copy-link") {
-        return {
-          ...item,
-          shouldRender: !isPeekMode,
-        };
-      }
-      return item;
-    })
-    .filter(function MENU_ITEMS(item) {
-      return item.shouldRender !== false;
-    });
+  const MENU_ITEMS = baseMenuItems.filter((item) => {
+    if (item.key === "edit") return isEditingAllowed && !isPeekMode;
+    if (item.key === "copy-link") return !isPeekMode;
+    return item.shouldRender !== false;
+  });
 
-  const CONTEXT_MENU_ITEMS = MENU_ITEMS.map(function CONTEXT_MENU_ITEMS(item) {
-    return {
-      ...item,
-
+  const CONTEXT_MENU_ITEMS = MENU_ITEMS.map((item) =>
+    Object.assign({}, item, {
       onClick: () => {
         item.action();
       },
-    };
-  });
+    })
+  );
 
   return (
     <>

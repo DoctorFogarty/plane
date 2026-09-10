@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { PanelLeft } from "lucide-react";
 // plane imports
@@ -38,27 +38,41 @@ export const InboxIssueRoot = observer(function InboxIssueRoot(props: TInboxIssu
   // hooks
   const { loader, error, currentTab, currentInboxProjectId, handleCurrentTab, fetchInboxIssues } = useProjectInbox();
   const issueTypeStore = useIssueType();
+  const currentTabRef = useRef(currentTab);
+  currentTabRef.current = currentTab;
+  const currentInboxProjectIdRef = useRef(currentInboxProjectId);
+  currentInboxProjectIdRef.current = currentInboxProjectId;
+  const navigationTabRef = useRef(navigationTab);
+  navigationTabRef.current = navigationTab;
+  const handleCurrentTabRef = useRef(handleCurrentTab);
+  handleCurrentTabRef.current = handleCurrentTab;
+  const fetchInboxIssuesRef = useRef(fetchInboxIssues);
+  fetchInboxIssuesRef.current = fetchInboxIssues;
+  const issueTypeStoreRef = useRef(issueTypeStore);
+  issueTypeStoreRef.current = issueTypeStore;
 
   useEffect(() => {
     if (!workspaceSlug || !projectId) return;
-    void issueTypeStore.fetchWorkItemTypesPropertiesAndOptions(workspaceSlug.toString(), projectId.toString());
+    void issueTypeStoreRef.current.fetchWorkItemTypesPropertiesAndOptions(
+      workspaceSlug.toString(),
+      projectId.toString()
+    );
     if (!inboxAccessible) return;
     // Check if project has changed
-    const hasProjectChanged = currentInboxProjectId && currentInboxProjectId !== projectId;
+    const hasProjectChanged = currentInboxProjectIdRef.current && currentInboxProjectIdRef.current !== projectId;
 
-    if (navigationTab && navigationTab !== currentTab) {
-      handleCurrentTab(workspaceSlug, projectId, navigationTab);
+    if (navigationTabRef.current && navigationTabRef.current !== currentTabRef.current) {
+      handleCurrentTabRef.current(workspaceSlug, projectId, navigationTabRef.current);
     } else if (hasProjectChanged) {
-      handleCurrentTab(workspaceSlug, projectId, EInboxIssueCurrentTab.OPEN);
+      handleCurrentTabRef.current(workspaceSlug, projectId, EInboxIssueCurrentTab.OPEN);
     } else {
-      fetchInboxIssues(
+      fetchInboxIssuesRef.current(
         workspaceSlug.toString(),
         projectId.toString(),
         undefined,
-        navigationTab || EInboxIssueCurrentTab.OPEN
+        navigationTabRef.current || EInboxIssueCurrentTab.OPEN
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inboxAccessible, workspaceSlug, projectId]);
 
   // loader
@@ -82,10 +96,9 @@ export const InboxIssueRoot = observer(function InboxIssueRoot(props: TInboxIssu
     <>
       {!inboxIssueId && (
         <div className="flex h-12 w-full items-center border-b border-subtle px-4 lg:hidden">
-          <PanelLeft
-            onClick={() => setIsMobileSidebar(!isMobileSidebar)}
-            className={cn("h-4 w-4", isMobileSidebar ? "text-accent-primary" : "text-secondary")}
-          />
+          <button type="button" onClick={() => setIsMobileSidebar(!isMobileSidebar)} aria-label="Toggle sidebar">
+            <PanelLeft className={cn("h-4 w-4", isMobileSidebar ? "text-accent-primary" : "text-secondary")} />
+          </button>
         </div>
       )}
       <div className="flex h-full w-full overflow-hidden bg-surface-1">

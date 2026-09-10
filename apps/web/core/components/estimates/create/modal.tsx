@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
 
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
@@ -155,7 +154,8 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
         <div className="relative flex items-center justify-between gap-2 px-5">
           <div className="relative flex items-center gap-1">
             {estimatePoints && (
-              <div
+              <button
+                type="button"
                 onClick={() => {
                   setEstimateSystem(EEstimateSystem.POINTS);
                   handleUpdatePoints(undefined);
@@ -163,7 +163,7 @@ export const CreateEstimateModal = observer(function CreateEstimateModal(props: 
                 className="flex h-5 w-5 flex-shrink-0 cursor-pointer items-center justify-center"
               >
                 <ChevronLeftIcon className="h-4 w-4" />
-              </div>
+              </button>
             )}
             <div className="text-18 font-medium text-primary">{t("project_settings.estimates.new")}</div>
           </div>

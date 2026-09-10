@@ -56,8 +56,7 @@ export const InboxContentRoot = observer(function InboxContentRoot(props: TInbox
     if (!isIssueAvailable && inboxIssueId && !isNotificationEmbed) {
       router.replace(`/${workspaceSlug}/projects/${projectId}/intake?currentTab=${currentTab}`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isIssueAvailable, isNotificationEmbed]);
+  }, [isIssueAvailable, isNotificationEmbed, inboxIssueId, router, workspaceSlug, projectId, currentTab]);
 
   useSWR(
     workspaceSlug && projectId && inboxIssueId

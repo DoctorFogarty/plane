@@ -22,15 +22,15 @@ export const useDropdownKeyDown: TUseDropdownKeyDown = (onOpen, onClose, isOpen,
         if (!isOpen) {
           event.stopPropagation();
           onOpen();
-        } else {
-          selectActiveItem && selectActiveItem();
+        } else if (selectActiveItem) {
+          selectActiveItem();
         }
       } else if (event.key === "Escape" && isOpen) {
         event.stopPropagation();
         onClose();
       }
     },
-    [isOpen, onOpen, onClose]
+    [isOpen, onOpen, onClose, selectActiveItem]
   );
 
   return handleKeyDown;

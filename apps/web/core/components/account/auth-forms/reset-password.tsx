@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
-
 import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
@@ -80,10 +78,7 @@ export const ResetPasswordForm = observer(function ResetPasswordForm() {
   const requirementCopy = getPasswordRequirementCopy(t);
 
   const isButtonDisabled = useMemo(
-    () =>
-      !!password && ready && assessment?.acceptable === true && password === resetFormData.confirm_password
-        ? false
-        : true,
+    () => !(!!password && ready && assessment?.acceptable === true && password === resetFormData.confirm_password),
     [assessment?.acceptable, password, ready, resetFormData.confirm_password]
   );
 

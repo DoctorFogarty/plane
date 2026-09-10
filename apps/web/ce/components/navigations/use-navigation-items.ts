@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable unicorn/no-array-sort */
-
 import { useMemo } from "react";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
@@ -48,7 +46,7 @@ export const useNavigationItems = ({
       return allowPermissions(item.access, EUserPermissionsLevel.PROJECT, workspaceSlug, project?.id ?? projectId);
     });
 
-    return [...filteredItems].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    return filteredItems.toSorted((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }, [workspaceSlug, projectId, project, allowPermissions]);
 
   return navigationItems;

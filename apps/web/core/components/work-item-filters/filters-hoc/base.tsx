@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useLayoutEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { observer } from "mobx-react";
 import { v4 as uuidv4 } from "uuid";
 // plane imports
@@ -70,6 +70,8 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
   const initialUserFilters = initialWorkItemFilters.richFilters;
   // Stable key so computedIssueFilters object churn does not thrash instance sync
   const initialUserFiltersKey = JSON.stringify(initialUserFilters ?? {});
+  const initialUserFiltersRef = useRef(initialUserFilters);
+  initialUserFiltersRef.current = initialUserFilters;
   const workItemFiltersConfig = useWorkItemFiltersConfig({
     allowedFilters: filtersToShowByLayout ? filtersToShowByLayout : [],
     ...entityConfigProps,
@@ -88,7 +90,7 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
     getOrCreateFilter({
       entityType,
       entityId: workItemEntityID,
-      initialExpression: initialUserFilters,
+      initialExpression: initialUserFiltersRef.current,
       onExpressionChange: updateFilters,
       expressionOptions: {
         saveViewOptions,
@@ -96,7 +98,6 @@ const WorkItemFilterRoot = observer(function WorkItemFilterRoot(props: TWorkItem
       },
       showOnMount,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialUserFiltersKey captures rich filter content
   }, [
     entityType,
     workItemEntityID,

@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable no-unneeded-ternary, no-unused-vars, promise/always-return, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-autofocus */
-
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
@@ -79,7 +77,6 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
     user?.is_password_autoset ? EProfileSetupSteps.USER_DETAILS : EProfileSetupSteps.ALL
   );
   const [isImageUploadModalOpen, setIsImageUploadModalOpen] = useState(false);
-  const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
   const [showPassword, setShowPassword] = useState({
     password: false,
     retypePassword: false,
@@ -113,7 +110,8 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleSetPassword = async (password: string) => {
-    const token = await authService.requestCSRFToken().then((data) => data?.csrf_token);
+    const csrfResponse = await authService.requestCSRFToken();
+    const token = csrfResponse?.csrf_token;
     await authService.setPassword(token, { password });
   };
 
@@ -161,12 +159,10 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
       await Promise.all([
         updateCurrentUser(userDetailsPayload),
         formData.password && handleSetPassword(formData.password),
-      ]).then(() => {
-        if (formData.password) {
-        } else {
-          setProfileSetupStep(EProfileSetupSteps.USER_PERSONALIZATION);
-        }
-      });
+      ]);
+      if (!formData.password) {
+        setProfileSetupStep(EProfileSetupSteps.USER_PERSONALIZATION);
+      }
     } catch {
       setToast({
         type: TOAST_TYPE.ERROR,
@@ -233,8 +229,7 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
 
   // Check for all available fields validation and if password field is available, then checks for password validation (strength + confirmation).
   // Also handles the condition for optional password i.e if password field is optional it only checks for above validation if it's not empty.
-  const isButtonDisabled =
-    !isSubmitting && isValid ? (isPasswordAlreadySetup ? false : isValidPassword ? false : true) : true;
+  const isButtonDisabled = !(!isSubmitting && isValid && (isPasswordAlreadySetup || isValidPassword));
 
   return (
     <div className="flex h-full w-full">
@@ -276,7 +271,6 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                       <img
                         src={getFileURL(userAvatar ?? "")}
                         className="absolute top-0 left-0 h-full w-full rounded-full object-cover"
-                        onClick={() => setIsImageUploadModalOpen(true)}
                         alt={user?.display_name}
                       />
                     </div>
@@ -383,21 +377,20 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                             hasError={Boolean(errors.password)}
                             placeholder="New password..."
                             className="w-full border-[0.5px] border-subtle pr-12 placeholder:text-placeholder"
-                            onFocus={() => setIsPasswordInputFocused(true)}
-                            onBlur={() => setIsPasswordInputFocused(false)}
                             autoComplete="new-password"
                           />
-                          {showPassword.password ? (
-                            <EyeOff
-                              className="absolute right-3 h-4 w-4 stroke-placeholder hover:cursor-pointer"
-                              onClick={() => handleShowPassword("password")}
-                            />
-                          ) : (
-                            <Eye
-                              className="absolute right-3 h-4 w-4 stroke-placeholder hover:cursor-pointer"
-                              onClick={() => handleShowPassword("password")}
-                            />
-                          )}
+                          <button
+                            type="button"
+                            className="absolute right-3"
+                            onClick={() => handleShowPassword("password")}
+                            aria-label={showPassword.password ? "Hide password" : "Show password"}
+                          >
+                            {showPassword.password ? (
+                              <EyeOff className="h-4 w-4 stroke-placeholder hover:cursor-pointer" />
+                            ) : (
+                              <Eye className="h-4 w-4 stroke-placeholder hover:cursor-pointer" />
+                            )}
+                          </button>
                         </div>
                       )}
                     />
@@ -415,9 +408,9 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                       control={control}
                       name="confirm_password"
                       rules={{
-                        required: watch("password") ? true : false,
+                        required: !!watch("password"),
                         validate: (value) =>
-                          watch("password") ? (value === watch("password") ? true : "Passwords don't match") : true,
+                          !watch("password") || value === watch("password") || "Passwords don't match",
                       }}
                       render={({ field: { value, onChange, ref } }) => (
                         <div className="relative flex items-center rounded-md">
@@ -432,17 +425,18 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                             className="w-full border-subtle pr-12 placeholder:text-placeholder"
                             autoComplete="new-password"
                           />
-                          {showPassword.retypePassword ? (
-                            <EyeOff
-                              className="absolute right-3 h-4 w-4 stroke-placeholder hover:cursor-pointer"
-                              onClick={() => handleShowPassword("retypePassword")}
-                            />
-                          ) : (
-                            <Eye
-                              className="absolute right-3 h-4 w-4 stroke-placeholder hover:cursor-pointer"
-                              onClick={() => handleShowPassword("retypePassword")}
-                            />
-                          )}
+                          <button
+                            type="button"
+                            className="absolute right-3"
+                            onClick={() => handleShowPassword("retypePassword")}
+                            aria-label={showPassword.retypePassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword.retypePassword ? (
+                              <EyeOff className="h-4 w-4 stroke-placeholder hover:cursor-pointer" />
+                            ) : (
+                              <Eye className="h-4 w-4 stroke-placeholder hover:cursor-pointer" />
+                            )}
+                          </button>
                         </div>
                       )}
                     />
@@ -474,7 +468,8 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                   render={({ field: { value, onChange } }) => (
                     <div className="flex flex-wrap gap-2 overflow-auto py-2 break-all">
                       {USER_ROLE.map((userRole) => (
-                        <div
+                        <button
+                          type="button"
                           key={userRole}
                           className={cn(
                             "shrink-0 rounded border-[0.5px] px-3 py-1.5 text-13 font-medium hover:cursor-pointer hover:bg-surface-2",
@@ -486,7 +481,7 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                           onClick={() => onChange(userRole)}
                         >
                           {userRole}
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -512,7 +507,8 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                       {USER_DOMAIN.map((userDomain) => {
                         const isSelected = value?.includes(userDomain) || false;
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={userDomain}
                             className={`flex-shrink-0 border-[0.5px] hover:cursor-pointer hover:bg-surface-2 ${
                               isSelected ? "border-accent-strong" : "border-strong"
@@ -527,7 +523,7 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                             }}
                           >
                             {userDomain}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>

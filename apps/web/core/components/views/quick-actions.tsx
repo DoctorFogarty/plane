@@ -51,14 +51,14 @@ export const ViewQuickActions = observer(function ViewQuickActions(props: Props)
   );
 
   const viewLink = `${workspaceSlug}/projects/${projectId}/views/${view.id}`;
-  const handleCopyText = () =>
-    copyUrlToClipboard(viewLink).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Link Copied!",
-        message: "View link copied to clipboard.",
-      });
+  const handleCopyText = async () => {
+    await copyUrlToClipboard(viewLink);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Link Copied!",
+      message: "View link copied to clipboard.",
     });
+  };
   const handleOpenInNewTab = () => window.open(`/${viewLink}`, "_blank");
 
   const menuResult = useViewMenuItems({

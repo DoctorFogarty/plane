@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
@@ -24,6 +24,10 @@ import type { TProject } from "@plane/types";
 import { DropdownButton } from "../buttons";
 import { BUTTON_VARIANTS_WITH_TEXT } from "../constants";
 import type { TDropdownProps } from "../types";
+
+function ComboDropDownRoot(props: ComponentPropsWithoutRef<"div">) {
+  return <div {...props} />;
+}
 
 type Props = TDropdownProps & {
   button?: ReactNode;
@@ -47,6 +51,12 @@ type Props = TDropdownProps & {
         value: string[];
       }
   );
+
+const renderProjectIcon = (logoProps: TProject["logo_props"]) => (
+  <span className="grid h-4 w-4 flex-shrink-0 place-items-center">
+    <Logo logo={logoProps} size={14} />
+  </span>
+);
 
 export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: Props) {
   const {
@@ -139,29 +149,27 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
     if (!multiple) handleClose();
   };
 
-  const getDisplayName = (value: string | string[] | null, placeholder: string = "") => {
-    if (Array.isArray(value)) {
-      const firstProject = getProjectById(value[0]);
-      return value.length ? (value.length === 1 ? firstProject?.name : `${value.length} projects`) : placeholder;
+  const getDisplayName = (projectValue: string | string[] | null, projectPlaceholder: string = "") => {
+    if (Array.isArray(projectValue)) {
+      const firstProject = getProjectById(projectValue[0]);
+      return projectValue.length
+        ? projectValue.length === 1
+          ? firstProject?.name
+          : `${projectValue.length} projects`
+        : projectPlaceholder;
     } else {
-      return value ? (getProjectById(value)?.name ?? placeholder) : placeholder;
+      return projectValue ? (getProjectById(projectValue)?.name ?? projectPlaceholder) : projectPlaceholder;
     }
   };
 
-  const getProjectIcon = (value: string | string[] | null) => {
-    const renderIcon = (logoProps: TProject["logo_props"]) => (
-      <span className="grid h-4 w-4 flex-shrink-0 place-items-center">
-        <Logo logo={logoProps} size={14} />
-      </span>
-    );
-
-    if (Array.isArray(value)) {
+  const getProjectIcon = (projectValue: string | string[] | null) => {
+    if (Array.isArray(projectValue)) {
       return (
         <div className="flex items-center gap-0.5">
-          {value.length > 0 ? (
-            value.map((projectId) => {
+          {projectValue.length > 0 ? (
+            projectValue.map((projectId) => {
               const projectDetails = getProjectById(projectId);
-              return projectDetails?.logo_props ? renderIcon(projectDetails.logo_props) : null;
+              return projectDetails?.logo_props ? renderProjectIcon(projectDetails.logo_props) : null;
             })
           ) : (
             <ProjectIcon className="size-3 text-tertiary" />
@@ -169,8 +177,8 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
         </div>
       );
     } else {
-      const projectDetails = getProjectById(value);
-      return projectDetails?.logo_props ? renderIcon(projectDetails.logo_props) : null;
+      const projectDetails = getProjectById(projectValue);
+      return projectDetails?.logo_props ? renderProjectIcon(projectDetails.logo_props) : null;
     }
   };
 
@@ -225,7 +233,7 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
 
   return (
     <ComboDropDown
-      as="div"
+      as={ComboDropDownRoot}
       ref={dropdownRef}
       tabIndex={tabIndex}
       className={cn("h-full", className)}

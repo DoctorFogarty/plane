@@ -47,12 +47,13 @@ export const ProjectLinkDetail = observer(function ProjectLinkDetail(props: TPro
 
   const handleCopyText = useCallback(() => {
     if (!linkUrl) return;
-    copyTextToClipboard(linkUrl).then(() => {
+    void copyTextToClipboard(linkUrl).then(() => {
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("link_copied"),
         message: t("view_link_copied_to_clipboard"),
       });
+      return;
     });
   }, [linkUrl, t]);
 

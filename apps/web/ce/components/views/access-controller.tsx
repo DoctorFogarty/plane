@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function AccessController(props: any) {
+export function AccessController(_props: unknown) {
   return <></>;
 }

@@ -35,14 +35,14 @@ const ComboDropDown = forwardRef(function ComboDropDown(props: Props, ref) {
   };
 
   useEffect(() => {
-    const element = dropDownButtonRef.current as any;
+    const element = dropDownButtonRef.current;
 
     if (!element) return;
 
     element.addEventListener("mouseenter", onHover);
 
     return () => {
-      element?.removeEventListener("mouseenter", onHover);
+      element.removeEventListener("mouseenter", onHover);
     };
   }, [dropDownButtonRef, shouldRender]);
 
@@ -55,9 +55,7 @@ const ComboDropDown = forwardRef(function ComboDropDown(props: Props, ref) {
   }
 
   return (
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    <Combobox {...rest} ref={ref}>
+    <Combobox {...(rest as React.ComponentPropsWithoutRef<typeof Combobox>)} ref={ref as React.Ref<HTMLElement>}>
       <Combobox.Button as={Fragment}>{button}</Combobox.Button>
       {children}
     </Combobox>

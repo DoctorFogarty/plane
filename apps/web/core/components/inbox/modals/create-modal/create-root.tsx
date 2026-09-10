@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/prefer-tag-over-role, promise/always-return */
 
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -186,81 +185,74 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
     };
     setFormSubmitting(true);
 
-    await createInboxIssue(workspaceSlug, projectId, payload)
-      .then(async (res) => {
-        if (uploadedAssetIds.length > 0) {
-          await fileService.updateBulkProjectAssetsUploadStatus(workspaceSlug, projectId, res?.issue.id ?? "", {
-            asset_ids: uploadedAssetIds,
-          });
-          setUploadedAssetIds([]);
-        }
+    try {
+      const res = await createInboxIssue(workspaceSlug, projectId, payload);
+      if (uploadedAssetIds.length > 0) {
+        await fileService.updateBulkProjectAssetsUploadStatus(workspaceSlug, projectId, res?.issue.id ?? "", {
+          asset_ids: uploadedAssetIds,
+        });
+        setUploadedAssetIds([]);
+      }
 
-        const createdIssueId = res?.issue?.id;
-        if (
-          createdIssueId &&
-          typeId &&
-          issueTypeStore.isIssueTypeEnabled(projectId) &&
-          Object.keys(issuePropertyValues).length > 0
-        ) {
-          await issueTypeStore.upsertPropertyValues(
-            workspaceSlug,
-            projectId,
-            createdIssueId,
-            issuePropertyValues,
-            true
+      const createdIssueId = res?.issue?.id;
+      if (
+        createdIssueId &&
+        typeId &&
+        issueTypeStore.isIssueTypeEnabled(projectId) &&
+        Object.keys(issuePropertyValues).length > 0
+      ) {
+        await issueTypeStore.upsertPropertyValues(workspaceSlug, projectId, createdIssueId, issuePropertyValues, true);
+      }
+
+      let failedAttachmentCount = 0;
+      if (createdIssueId && pendingAttachments.length > 0) {
+        const { failed, attachments } = await uploadPendingIssueAttachments({
+          workspaceSlug,
+          projectId,
+          issueId: createdIssueId,
+          files: pendingAttachments.map((item) => item.file),
+        });
+        failedAttachmentCount = failed;
+        if (attachments.length > 0) addAttachments(createdIssueId, attachments);
+      }
+      setPendingAttachments([]);
+
+      if (!createMore) {
+        router.push(`/${workspaceSlug}/projects/${projectId}/intake/?currentTab=open&inboxIssueId=${res?.issue?.id}`);
+        handleModalClose();
+      } else {
+        descriptionEditorRef?.current?.clearEditor();
+        setFormData(defaultIssueData);
+        const nextTypeId = issueTypeStore.getDefaultIssueTypeId(projectId);
+        if (nextTypeId) {
+          setIssuePropertyValues(
+            buildDefaultPropertyValues(issueTypeStore.getActivePropertiesForType(projectId, nextTypeId))
           );
-        }
-
-        let failedAttachmentCount = 0;
-        if (createdIssueId && pendingAttachments.length > 0) {
-          const { failed, attachments } = await uploadPendingIssueAttachments({
-            workspaceSlug,
-            projectId,
-            issueId: createdIssueId,
-            files: pendingAttachments.map((item) => item.file),
-          });
-          failedAttachmentCount = failed;
-          if (attachments.length > 0) addAttachments(createdIssueId, attachments);
-        }
-        setPendingAttachments([]);
-
-        if (!createMore) {
-          router.push(`/${workspaceSlug}/projects/${projectId}/intake/?currentTab=open&inboxIssueId=${res?.issue?.id}`);
-          handleModalClose();
         } else {
-          descriptionEditorRef?.current?.clearEditor();
-          setFormData(defaultIssueData);
-          const nextTypeId = issueTypeStore.getDefaultIssueTypeId(projectId);
-          if (nextTypeId) {
-            setIssuePropertyValues(
-              buildDefaultPropertyValues(issueTypeStore.getActivePropertiesForType(projectId, nextTypeId))
-            );
-          } else {
-            setIssuePropertyValues({});
-          }
-          setIssuePropertyValueErrors({});
+          setIssuePropertyValues({});
         }
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: `Success!`,
-          message: "Work item created successfully.",
-        });
-        if (failedAttachmentCount > 0) {
-          setToast({
-            type: TOAST_TYPE.WARNING,
-            title: t("error"),
-            message: t("attachment.upload_partial", { count: failedAttachmentCount }),
-          });
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: `Error!`,
-          message: "Some error occurred. Please try again.",
-        });
+        setIssuePropertyValueErrors({});
+      }
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: `Success!`,
+        message: "Work item created successfully.",
       });
+      if (failedAttachmentCount > 0) {
+        setToast({
+          type: TOAST_TYPE.WARNING,
+          title: t("error"),
+          message: t("attachment.upload_partial", { count: failedAttachmentCount }),
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: `Error!`,
+        message: "Some error occurred. Please try again.",
+      });
+    }
     setFormSubmitting(false);
   };
 
@@ -323,15 +315,15 @@ export const InboxIssueCreateRoot = observer(function InboxIssueCreateRoot(props
             </div>
           </div>
           <div className="flex items-center justify-between gap-2 rounded-b-lg border-t-[0.5px] border-subtle bg-surface-1 px-5 py-4">
-            <div
+            <button
+              type="button"
               className="inline-flex cursor-pointer items-center gap-1.5"
               onClick={() => setCreateMore((prevData) => !prevData)}
-              role="button"
               tabIndex={getIndex("create_more")}
             >
               <ToggleSwitch value={createMore} onChange={() => {}} size="sm" />
               <span className="text-11">{t("create_more")}</span>
-            </div>
+            </button>
             <div className="flex items-center gap-3">
               <Button
                 variant="secondary"

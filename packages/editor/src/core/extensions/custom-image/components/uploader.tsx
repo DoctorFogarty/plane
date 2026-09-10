@@ -90,8 +90,7 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
         }
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [imageComponentImageFileMap, imageEntityId, updateAttributes, getPos]
+    [editor, getPos, imageComponentImageFileMap, imageEntityId, node.type.name, setIsUploaded, updateAttributes]
   );
 
   const uploadImageEditorCommand = useCallback(
@@ -208,6 +207,8 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
     [hasDuplicationFailed, editor.isEditable, updateAttributes]
   );
 
+  const canPickImage = !failedToLoadImage && editor.isEditable && !hasDuplicationFailed;
+
   return (
     <div
       className={cn(
@@ -229,14 +230,20 @@ export function CustomImageUploader(props: CustomImageUploaderProps) {
       onDragOver={onDragEnter}
       onDragLeave={onDragLeave}
       contentEditable={false}
-      onClick={() => {
-        if (!failedToLoadImage && editor.isEditable && !hasDuplicationFailed) {
-          fileInputRef.current?.click();
-        }
-      }}
     >
-      <ImageIcon className="size-4" />
-      <div className="flex-1 text-14 font-medium">{getDisplayMessage()}</div>
+      <button
+        type="button"
+        className="flex flex-1 items-center justify-start gap-2 text-left"
+        disabled={!canPickImage}
+        onClick={() => {
+          if (canPickImage) {
+            fileInputRef.current?.click();
+          }
+        }}
+      >
+        <ImageIcon className="size-4" />
+        <div className="flex-1 text-14 font-medium">{getDisplayMessage()}</div>
+      </button>
       {hasDuplicationFailed && editor.isEditable && (
         <button
           type="button"

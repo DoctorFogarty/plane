@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable promise/always-return */
 
 import { useCallback } from "react";
 import { useParams } from "next/navigation";
@@ -78,23 +77,21 @@ export const usePowerKModuleContextBasedActions = (): TPowerKCommandConfig[] => 
     }
   }, [addModuleToFavorites, removeModuleFromFavorites, workspaceSlug, moduleDetails, isFavorite]);
 
-  const copyModuleUrlToClipboard = useCallback(() => {
+  const copyModuleUrlToClipboard = useCallback(async () => {
     const url = new URL(window.location.href);
-    copyTextToClipboard(url.href)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: t("power_k.contextual_actions.module.copy_url_toast_success"),
-        });
-      })
-      .catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: t("power_k.contextual_actions.module.copy_url_toast_error"),
-        });
+    try {
+      await copyTextToClipboard(url.href);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("power_k.contextual_actions.module.copy_url_toast_success"),
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("power_k.contextual_actions.module.copy_url_toast_error"),
+      });
+    }
+  }, [t]);
 
   return [
     {

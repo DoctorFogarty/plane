@@ -134,16 +134,16 @@ export const AuthRoot = observer(function AuthRoot() {
   };
 
   // generating the unique code
-  const generateEmailUniqueCode = async (email: string): Promise<{ code: string } | undefined> => {
-    const payload = { email: email };
-    return await authService
-      .generateUniqueCode(payload)
-      .then(() => ({ code: "" }))
-      .catch((error) => {
-        const errorhandler = authErrorHandler(error?.error_code.toString());
-        if (errorhandler?.type) setErrorInfo(errorhandler);
-        throw error;
-      });
+  const generateEmailUniqueCode = async (emailAddress: string): Promise<{ code: string } | undefined> => {
+    const payload = { email: emailAddress };
+    try {
+      await authService.generateUniqueCode(payload);
+      return { code: "" };
+    } catch (error) {
+      const errorhandler = authErrorHandler((error as { error_code?: string })?.error_code?.toString());
+      if (errorhandler?.type) setErrorInfo(errorhandler);
+      throw error;
+    }
   };
 
   return (
@@ -185,7 +185,7 @@ export const AuthRoot = observer(function AuthRoot() {
             }}
           />
         )}
-        <TermsAndConditions isSignUp={authMode === EAuthModes.SIGN_UP ? true : false} />
+        <TermsAndConditions isSignUp={authMode === EAuthModes.SIGN_UP} />
       </div>
     </div>
   );

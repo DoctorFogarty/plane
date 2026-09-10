@@ -4,7 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 // plane imports
 import type { TBarChartShapeVariant, TBarItem, TChartData } from "@plane/types";

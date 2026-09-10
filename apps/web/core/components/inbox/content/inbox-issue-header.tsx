@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable promise/always-return */
-
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Clock, FileStack, MoreHorizontal, MoveRight } from "lucide-react";
@@ -191,9 +189,8 @@ export const InboxIssueActionsHeader = observer(function InboxIssueActionsHeader
 
   const handleInboxIssueDelete = async () => {
     if (!inboxIssue || !currentInboxIssueId) return;
-    await deleteInboxIssue(workspaceSlug, projectId, currentInboxIssueId).then(() => {
-      if (!isNotificationEmbed) router.push(`/${workspaceSlug}/projects/${projectId}/intake`);
-    });
+    await deleteInboxIssue(workspaceSlug, projectId, currentInboxIssueId);
+    if (!isNotificationEmbed) router.push(`/${workspaceSlug}/projects/${projectId}/intake`);
   };
 
   const handleIssueSnoozeAction = async () => {
@@ -206,14 +203,14 @@ export const InboxIssueActionsHeader = observer(function InboxIssueActionsHeader
     }
   };
 
-  const handleCopyIssueLink = (path: string) =>
-    copyUrlToClipboard(path).then(() =>
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("common.link_copied"),
-        message: t("common.copied_to_clipboard"),
-      })
-    );
+  const handleCopyIssueLink = async (path: string) => {
+    await copyUrlToClipboard(path);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: t("common.link_copied"),
+      message: t("common.copied_to_clipboard"),
+    });
+  };
 
   const currentIssueIndex = filteredInboxIssueIds.findIndex((issueId) => issueId === currentInboxIssueId) ?? 0;
 

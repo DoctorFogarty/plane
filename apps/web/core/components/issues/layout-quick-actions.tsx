@@ -24,14 +24,14 @@ export const LayoutQuickActions = observer(function LayoutQuickActions(props: Pr
 
   const layoutLink = `${workspaceSlug}/projects/${projectId}/${storeType === "EPIC" ? "epics" : "issues"}`;
 
-  const handleCopyLink = () =>
-    copyUrlToClipboard(layoutLink).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Link copied",
-        message: `${storeType === "EPIC" ? "Epics" : "Work items"} link copied to clipboard.`,
-      });
+  const handleCopyLink = async () => {
+    await copyUrlToClipboard(layoutLink);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Link copied",
+      message: `${storeType === "EPIC" ? "Epics" : "Work items"} link copied to clipboard.`,
     });
+  };
 
   const handleOpenInNewTab = () => window.open(`/${layoutLink}`, "_blank");
 

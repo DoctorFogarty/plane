@@ -39,32 +39,30 @@ export function DeleteApiTokenModal(props: Props) {
   const handleDeletion = async () => {
     setDeleteLoading(true);
 
-    await apiTokenService
-      .destroy(tokenId)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: t("workspace_settings.settings.api_tokens.delete.success.title"),
-          message: t("workspace_settings.settings.api_tokens.delete.success.message"),
-        });
-
-        mutate<IApiToken[]>(
-          API_TOKENS_LIST,
-          (prevData) => (prevData ?? []).filter((token) => token.id !== tokenId),
-          false
-        );
-
-        handleClose();
-        setDeleteLoading(false);
-      })
-      .catch((err) => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: t("workspace_settings.settings.api_tokens.delete.error.title"),
-          message: err?.message ?? t("workspace_settings.settings.api_tokens.delete.error.message"),
-        });
-        setDeleteLoading(false);
+    try {
+      await apiTokenService.destroy(tokenId);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("workspace_settings.settings.api_tokens.delete.success.title"),
+        message: t("workspace_settings.settings.api_tokens.delete.success.message"),
       });
+
+      mutate<IApiToken[]>(
+        API_TOKENS_LIST,
+        (prevData) => (prevData ?? []).filter((token) => token.id !== tokenId),
+        false
+      );
+
+      handleClose();
+      setDeleteLoading(false);
+    } catch (err) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("workspace_settings.settings.api_tokens.delete.error.title"),
+        message: err instanceof Error ? err.message : t("workspace_settings.settings.api_tokens.delete.error.message"),
+      });
+      setDeleteLoading(false);
+    }
   };
 
   return (

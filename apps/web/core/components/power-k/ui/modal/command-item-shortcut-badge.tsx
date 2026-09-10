@@ -72,12 +72,17 @@ export function ShortcutBadge({ shortcut }: { shortcut: string | undefined }) {
 
   const formatted = formatShortcutForDisplay(shortcut);
 
+  const shortcutParts = formatted.split("").map((char, index) => ({
+    char,
+    id: `shortcut-${char}-${index}`,
+  }));
+
   return (
     <div className="pointer-events-none inline-flex shrink-0 items-center gap-1 font-medium select-none">
-      {formatted?.split("").map((char, index) => (
-        <React.Fragment key={index}>
+      {shortcutParts.map((part) => (
+        <React.Fragment key={part.id}>
           <kbd className="inline-flex h-5 items-center justify-center rounded-sm border border-strong bg-surface-1 px-1.5 font-code text-10 font-medium text-tertiary">
-            {char.toUpperCase()}
+            {part.char.toUpperCase()}
           </kbd>
         </React.Fragment>
       ))}
@@ -98,16 +103,20 @@ export const formatKeySequenceForDisplay = (sequence: string | undefined): strin
 export function KeySequenceBadge({ sequence }: { sequence: string | undefined }) {
   if (!sequence) return null;
 
-  const chars = sequence.split("");
+  const sequenceParts = sequence.split("").map((char, index) => ({
+    char,
+    id: `sequence-${char}-${index}`,
+    isLast: index === sequence.length - 1,
+  }));
 
   return (
     <div className="pointer-events-none inline-flex shrink-0 items-center gap-1 font-medium select-none">
-      {chars.map((char, index) => (
-        <React.Fragment key={index}>
+      {sequenceParts.map((part) => (
+        <React.Fragment key={part.id}>
           <kbd className="inline-flex h-5 items-center justify-center rounded-sm border border-strong bg-surface-1 px-1.5 font-code text-10 font-medium text-tertiary">
-            {char.toUpperCase()}
+            {part.char.toUpperCase()}
           </kbd>
-          {index < chars.length - 1 && <span className="text-10 text-placeholder">then</span>}
+          {!part.isLast && <span className="text-10 text-placeholder">then</span>}
         </React.Fragment>
       ))}
     </div>

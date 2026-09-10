@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import axios from "axios";
+import { CancelToken, isCancel } from "axios";
 // api service
 import { APIService } from "../api.service";
 
@@ -28,7 +28,7 @@ export class FileUploadService extends APIService {
    * @throws {Error} If the request fails
    */
   async uploadFile(url: string, data: FormData): Promise<void> {
-    this.cancelSource = axios.CancelToken.source();
+    this.cancelSource = CancelToken.source();
     return this.post(url, data, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -38,7 +38,7 @@ export class FileUploadService extends APIService {
     })
       .then((response) => response?.data)
       .catch((error) => {
-        if (axios.isCancel(error)) {
+        if (isCancel(error)) {
           console.log(error.message);
         } else {
           throw error?.response?.data;

@@ -73,12 +73,13 @@ export const NavbarControls = observer(function NavbarControls(props: NavbarCont
       if (currentBoard) {
         if (activeLayout === undefined || activeLayout !== currentBoard) {
           const { query, queryParam } = queryParamGenerator({ board: currentBoard, peekId, priority, state, labels });
-          const params: any = {
-            display_filters: { layout: (query?.board as string[])[0] },
+          const boardValues = query.board;
+          const params = {
+            display_filters: { layout: Array.isArray(boardValues) ? boardValues[0] : currentBoard },
             filters: {
-              priority: query?.priority ?? undefined,
-              state: query?.state ?? undefined,
-              labels: query?.labels ?? undefined,
+              priority: query.priority ?? undefined,
+              state: query.state ?? undefined,
+              labels: query.labels ?? undefined,
             },
           };
 

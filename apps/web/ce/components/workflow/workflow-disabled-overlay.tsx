@@ -12,7 +12,8 @@ export type TWorkflowDisabledOverlayProps = {
   shouldOverlayBeVisible: boolean;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const WorkFlowDisabledOverlay = observer(function WorkFlowDisabledOverlay(props: TWorkflowDisabledOverlayProps) {
+export const WorkFlowDisabledOverlay = observer(function WorkFlowDisabledOverlay(
+  _props: TWorkflowDisabledOverlayProps
+) {
   return <></>;
 });

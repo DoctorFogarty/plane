@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable jsx-a11y/no-autofocus */
-
 import { useState } from "react";
 import { TwitterPicker } from "react-color";
 import { STATE_GROUPS } from "@plane/constants";

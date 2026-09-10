@@ -92,15 +92,14 @@ export function Sortable<T>({ data, render, onChange, keyExtractor, containerCla
 
   return (
     <>
-      {data.map((item, index) => (
-        <Draggable
-          key={keyExtractor(enhancedData[index], index)}
-          data={enhancedData[index]}
-          className={containerClassName}
-        >
-          <Fragment>{render(item, index)}</Fragment>
-        </Draggable>
-      ))}
+      {data.map((item, index) => {
+        const itemKey = keyExtractor(enhancedData[index], index);
+        return (
+          <Draggable key={itemKey} data={enhancedData[index]} className={containerClassName}>
+            <Fragment>{render(item, index)}</Fragment>
+          </Draggable>
+        );
+      })}
     </>
   );
 }

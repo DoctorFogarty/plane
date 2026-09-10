@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
-
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -55,7 +53,8 @@ export const ModuleGanttBlock = observer(function ModuleGanttBlock(props: Props)
       }
       position="top-start"
     >
-      <div
+      <button
+        type="button"
         className="relative flex h-full w-full cursor-pointer items-center rounded-sm"
         style={blockStyle}
         onClick={() =>
@@ -71,7 +70,7 @@ export const ModuleGanttBlock = observer(function ModuleGanttBlock(props: Props)
         >
           {moduleDetails?.name}
         </div>
-      </div>
+      </button>
     </Tooltip>
   );
 });

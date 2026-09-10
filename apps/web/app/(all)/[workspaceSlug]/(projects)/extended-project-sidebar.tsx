@@ -84,15 +84,15 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
 
   const handleClose = useCallback(() => toggleExtendedProjectSidebar(false), [toggleExtendedProjectSidebar]);
 
-  const handleCopyText = (projectId: string) => {
-    copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() => {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("link_copied"),
-        message: t("project_link_copied_to_clipboard"),
-      });
+  const handleCopyText = async (projectId: string) => {
+    await copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: t("link_copied"),
+      message: t("project_link_copied_to_clipboard"),
     });
   };
+
   return (
     <>
       {workspaceSlug && (
@@ -131,10 +131,11 @@ export const ExtendedProjectSidebar = observer(function ExtendedProjectSidebar()
           <div className="ml-auto flex w-full items-center gap-1.5 rounded-md border border-subtle bg-surface-1 px-2.5 py-1">
             <SearchIcon className="h-3.5 w-3.5 text-placeholder" />
             <input
+              key={isExtendedProjectSidebarOpened ? "open" : "closed"}
               className="w-full max-w-[234px] border-none bg-transparent text-13 outline-none placeholder:text-placeholder"
               placeholder={t("search")}
               value={searchQuery}
-              autoFocus
+              autoFocus={!!isExtendedProjectSidebarOpened}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>

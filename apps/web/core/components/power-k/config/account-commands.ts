@@ -27,15 +27,14 @@ export const usePowerKAccountCommands = (): TPowerKCommandConfig[] => {
   const { t } = useTranslation();
 
   const handleSignOut = useCallback(() => {
-    signOut().catch(() =>
+    void signOut().catch(() =>
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("auth.sign_out.toast.error.title"),
         message: t("auth.sign_out.toast.error.message"),
       })
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signOut]);
+  }, [signOut, t]);
 
   return [
     {

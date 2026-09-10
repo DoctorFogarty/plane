@@ -4,20 +4,19 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { TIssueGroupByOptions } from "@plane/types";
 
 export const useWorkFlowFDragNDrop = (
-  groupBy: TIssueGroupByOptions | undefined,
-  subGroupBy?: TIssueGroupByOptions
+  _groupBy: TIssueGroupByOptions | undefined,
+  _subGroupBy?: TIssueGroupByOptions
 ) => ({
   workflowDisabledSource: undefined,
   isWorkflowDropDisabled: false,
-  getIsWorkflowWorkItemCreationDisabled: (groupId: string, subGroupId?: string) => false,
+  getIsWorkflowWorkItemCreationDisabled: (_groupId: string, _subGroupId?: string) => false,
   handleWorkFlowState: (
-    sourceGroupId: string,
-    destinationGroupId: string,
-    sourceSubGroupId?: string,
-    destinationSubGroupId?: string
+    _sourceGroupId: string,
+    _destinationGroupId: string,
+    _sourceSubGroupId?: string,
+    _destinationSubGroupId?: string
   ) => {},
 });

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-unneeded-ternary */
 
 import { useCallback, useRef, useState } from "react";
 import { observer } from "mobx-react";
@@ -33,7 +32,7 @@ export const ArchivedCyclesHeader = observer(function ArchivedCyclesHeader() {
   const { currentProjectArchivedFilters, archivedCyclesSearchQuery, updateFilters, updateArchivedCyclesSearchQuery } =
     useCycleFilter();
   // states
-  const [isSearchOpen, setIsSearchOpen] = useState(archivedCyclesSearchQuery !== "" ? true : false);
+  const [isSearchOpen, setIsSearchOpen] = useState(archivedCyclesSearchQuery !== "");
   // outside click detector hook
   useOutsideClickDetector(inputRef, () => {
     if (isSearchOpen && archivedCyclesSearchQuery.trim() === "") setIsSearchOpen(false);

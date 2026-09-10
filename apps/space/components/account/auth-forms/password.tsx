@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
-
 import React, { useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Eye, EyeOff, XCircle } from "lucide-react";
@@ -78,13 +76,10 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   const isButtonDisabled = useMemo(
     () =>
-      !isSubmitting &&
-      !!password &&
-      (mode === EAuthModes.SIGN_UP
-        ? ready && assessment?.acceptable === true && password === passwordFormData.confirm_password
-        : true)
-        ? false
-        : true,
+      isSubmitting ||
+      !password ||
+      (mode === EAuthModes.SIGN_UP &&
+        !(ready && assessment?.acceptable === true && password === passwordFormData.confirm_password)),
     [assessment?.acceptable, isSubmitting, mode, password, passwordFormData.confirm_password, ready]
   );
 

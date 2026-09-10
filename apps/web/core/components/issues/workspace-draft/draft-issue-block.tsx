@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-shadow, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
-
 import React, { useRef, useState } from "react";
 import { omit } from "lodash-es";
 import { observer } from "mobx-react";
@@ -24,6 +22,7 @@ import { useWorkspaceDraftIssues } from "@/hooks/store/workspace-draft";
 // plane-web imports
 import { IssueTypeIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 // local imports
+import { bindStopPropagation } from "../issue-layouts/utils";
 import { IdentifierText } from "../issue-detail/identifier-text";
 import { CreateUpdateIssueModal } from "../issue-modal/modal";
 import { WorkspaceDraftIssueDeleteIssueModal } from "./delete-modal";
@@ -189,8 +188,8 @@ export const DraftIssueBlock = observer(function DraftIssueBlock(props: Props) {
             <DraftIssueProperties
               className={`relative flex flex-wrap ${isSidebarCollapsed ? "md:flex-shrink-0 md:flex-grow" : "lg:flex-shrink-0 lg:flex-grow"} items-center gap-2 whitespace-nowrap`}
               issue={issue}
-              updateIssue={async (projectId, issueId, data) => {
-                await updateIssue(workspaceSlug, issueId, data);
+              updateIssue={async (_projectId, draftIssueId, data) => {
+                await updateIssue(workspaceSlug, draftIssueId, data);
               }}
             />
             <div
@@ -198,10 +197,7 @@ export const DraftIssueBlock = observer(function DraftIssueBlock(props: Props) {
                 "md:flex": isSidebarCollapsed,
                 "lg:flex": !isSidebarCollapsed,
               })}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
+              ref={bindStopPropagation}
             >
               <WorkspaceDraftIssueQuickActions parentRef={issueRef} MENU_ITEMS={MENU_ITEMS} />
             </div>

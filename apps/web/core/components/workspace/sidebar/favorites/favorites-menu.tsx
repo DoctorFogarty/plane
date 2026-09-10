@@ -109,22 +109,22 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
   };
 
   const handleRemoveFromFavorites = (favorite: IFavorite) => {
-    deleteFavorite(workspaceSlug.toString(), favorite.id)
-      .then(() => {
+    void (async () => {
+      try {
+        await deleteFavorite(workspaceSlug.toString(), favorite.id);
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: t("success"),
           message: t("favorite_removed_successfully"),
         });
-        return;
-      })
-      .catch(() => {
+      } catch {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("error"),
           message: t("something_went_wrong"),
         });
-      });
+      }
+    })();
   };
 
   const handleRemoveFromFavoritesFolder = (favoriteId: string) => {
@@ -175,8 +175,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
         },
       })
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elementRef.current, isDragging]);
+  }, [elementRef, groupedFavorites, isDragging]);
 
   return (
     <>

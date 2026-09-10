@@ -65,10 +65,8 @@ export function AvatarGroup(props: Props) {
 
   return (
     <div className={cn("flex", sizeInfo.spacing)}>
-      {avatarsWithUpdatedProps.map((avatar, index) => (
-        <div key={index} className="rounded-full border border-subtle-1">
-          {avatar}
-        </div>
+      {React.Children.map(avatarsWithUpdatedProps, (avatar) => (
+        <div className="rounded-full border border-subtle-1">{avatar}</div>
       ))}
       {maxAvatarsToRender < totalAvatars && (
         <Tooltip tooltipContent={`${totalAvatars} total`} disabled={!showTooltip}>

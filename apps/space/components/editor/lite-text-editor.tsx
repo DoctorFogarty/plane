@@ -38,6 +38,10 @@ type LiteTextEditorWrapperProps = MakeOptional<
       }
   );
 
+function isMutableRefObject<T>(forwardedRef: React.ForwardedRef<T>): forwardedRef is React.MutableRefObject<T | null> {
+  return !!forwardedRef && typeof forwardedRef === "object" && "current" in forwardedRef;
+}
+
 export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   props: LiteTextEditorWrapperProps,
   ref: React.ForwardedRef<EditorRefApi>
@@ -52,9 +56,6 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
     workspaceId,
     ...rest
   } = props;
-  function isMutableRefObject<T>(ref: React.ForwardedRef<T>): ref is React.MutableRefObject<T | null> {
-    return !!ref && typeof ref === "object" && "current" in ref;
-  }
   // derived values
   const isEmpty = isCommentEmpty(props.initialValue);
   const editorRef = isMutableRefObject<EditorRefApi>(ref) ? ref.current : null;
@@ -78,7 +79,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
         })}
         getEditorMetaData={getEditorMetaData}
         mentionHandler={{
-          renderComponent: (props) => <EditorMentionsRoot {...props} />,
+          renderComponent: (mentionProps) => <EditorMentionsRoot {...mentionProps} />,
         }}
         extendedEditorProps={{}}
         {...rest}

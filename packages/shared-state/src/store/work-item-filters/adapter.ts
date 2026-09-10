@@ -22,6 +22,8 @@ import { createConditionNode, createAndGroupNode, isAndGroupNode, isConditionNod
 // local imports
 import { FilterAdapter } from "../rich-filters/adapter";
 
+const WORK_ITEM_FILTER_PROPERTY_KEY_SET = new Set<string>(WORK_ITEM_FILTER_PROPERTY_KEYS);
+
 class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWorkItemFilterExpression> {
   /**
    * Converts external work item filter expression to internal filter tree
@@ -166,8 +168,7 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
     const operator = key.substring(lastDoubleUnderscoreIndex + 2);
 
     // Validate property is in allowed list
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!WORK_ITEM_FILTER_PROPERTY_KEYS.includes(property as any) && !property.startsWith("customproperty_")) {
+    if (!WORK_ITEM_FILTER_PROPERTY_KEY_SET.has(property) && !property.startsWith("customproperty_")) {
       return false;
     }
 

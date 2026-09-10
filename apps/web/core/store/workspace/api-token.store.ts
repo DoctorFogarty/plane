@@ -63,19 +63,19 @@ export class ApiTokenStore implements IApiTokenStore {
   /**
    * fetch all the API tokens
    */
-  fetchApiTokens = async () =>
-    await this.apiTokenService.list().then((response) => {
-      const apiTokensObject: { [apiTokenId: string]: IApiToken } = response.reduce((accumulator, currentWebhook) => {
-        if (currentWebhook && currentWebhook.id) {
-          return { ...accumulator, [currentWebhook.id]: currentWebhook };
-        }
-        return accumulator;
-      }, {});
-      runInAction(() => {
-        this.apiTokens = apiTokensObject;
-      });
-      return response;
+  fetchApiTokens = async () => {
+    const response = await this.apiTokenService.list();
+    const apiTokensObject: { [apiTokenId: string]: IApiToken } = {};
+    for (const currentWebhook of response) {
+      if (currentWebhook && currentWebhook.id) {
+        apiTokensObject[currentWebhook.id] = currentWebhook;
+      }
+    }
+    runInAction(() => {
+      this.apiTokens = apiTokensObject;
     });
+    return response;
+  };
 
   /**
    * fetch API token details using token id
@@ -105,12 +105,12 @@ export class ApiTokenStore implements IApiTokenStore {
    * delete API token using token id
    * @param tokenId
    */
-  deleteApiToken = async (tokenId: string) =>
-    await this.apiTokenService.destroy(tokenId).then(() => {
-      const updatedApiTokens = { ...this.apiTokens };
-      delete updatedApiTokens[tokenId];
-      runInAction(() => {
-        this.apiTokens = updatedApiTokens;
-      });
+  deleteApiToken = async (tokenId: string) => {
+    await this.apiTokenService.destroy(tokenId);
+    const updatedApiTokens = { ...this.apiTokens };
+    delete updatedApiTokens[tokenId];
+    runInAction(() => {
+      this.apiTokens = updatedApiTokens;
     });
+  };
 }

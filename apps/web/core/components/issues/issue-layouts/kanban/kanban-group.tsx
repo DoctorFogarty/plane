@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-array-sort, unicorn/no-empty-file, promise/always-return, jsx-a11y/no-autofocus, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, react-hooks/exhaustive-deps, react/no-array-index-key, no-shadow, no-unneeded-ternary, no-unused-expressions, no-useless-constructor */
 /**
  * Copyright (c) 2023-present Plane Software, Inc. and contributors
  * SPDX-License-Identifier: AGPL-3.0-only
@@ -192,6 +191,8 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
     isWorkflowDropDisabled,
     dropErrorMessage,
     handleOnDrop,
+    handleWorkFlowState,
+    t,
   ]);
 
   const prePopulateQuickAddData = (
@@ -259,12 +260,13 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
   const loadMore = isPaginating ? (
     <KanbanIssueBlockLoader />
   ) : (
-    <div
-      className="sticky bottom-0 w-full cursor-pointer p-3 text-13 font-medium text-accent-primary hover:text-accent-secondary hover:underline"
+    <button
+      type="button"
+      className="sticky bottom-0 w-full cursor-pointer p-3 text-left text-13 font-medium text-accent-primary hover:text-accent-secondary hover:underline"
       onClick={loadMoreIssuesInThisGroup}
     >
       {t("common.load_more")} &darr;
-    </div>
+    </button>
   );
 
   const shouldLoadMore = nextPageResults === undefined ? issueIds?.length < groupIssueCount : !!nextPageResults;
@@ -314,8 +316,8 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
           <>{loadMore}</>
         ) : (
           <div className="flex flex-col gap-2">
-            {Array.from({ length: 2 }).map((_, index) => (
-              <KanbanIssueBlockLoader key={index} />
+            {["kanban-loader-placeholder-a", "kanban-loader-placeholder-b"].map((loaderKey) => (
+              <KanbanIssueBlockLoader key={loaderKey} />
             ))}
             <KanbanIssueBlockLoader ref={setIntersectionElement} />
           </div>

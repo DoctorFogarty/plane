@@ -6,6 +6,7 @@
 
 import { enableStaticRendering } from "mobx-react";
 // store imports
+import type { IInstance, IUser } from "@plane/types";
 import type { IInstanceStore } from "@/store/instance.store";
 import { InstanceStore } from "@/store/instance.store";
 import type { IIssueDetailStore } from "@/store/issue-detail.store";
@@ -58,8 +59,7 @@ export class RootStore {
     this.publishList = new PublishListStore(this);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  hydrate = (data: any) => {
+  hydrate = (data?: { instance?: IInstance; user?: IUser }) => {
     if (!data) return;
     this.instance.hydrate(data?.instance || undefined);
     this.user.hydrate(data?.user || undefined);

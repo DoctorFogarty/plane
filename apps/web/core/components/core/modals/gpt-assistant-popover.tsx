@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/no-autofocus */
 
 import type { Ref } from "react";
 import React, { useEffect, useState, useRef, Fragment } from "react";
@@ -88,6 +87,8 @@ export function GptAssistantPopover(props: Props) {
     setInvalidResponse(false);
     reset();
   };
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   const handleServiceError = (err: any) => {
     const error = err?.data?.error;
@@ -139,6 +140,8 @@ export function GptAssistantPopover(props: Props) {
 
     await callAIService(formData);
   };
+  const handleAIResponseRef = useRef(handleAIResponse);
+  handleAIResponseRef.current = handleAIResponse;
 
   useEffect(() => {
     editorRef.current?.setEditorValue(prompt || "");
@@ -152,13 +155,13 @@ export function GptAssistantPopover(props: Props) {
     const handleEnterKeyPress = (event: KeyboardEvent) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        handleSubmit(handleAIResponse)();
+        handleSubmit((formData) => handleAIResponseRef.current(formData))();
       }
     };
 
     const handleEscapeKeyPress = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        onCloseRef.current();
       }
     };
 
@@ -171,8 +174,7 @@ export function GptAssistantPopover(props: Props) {
       window.removeEventListener("keydown", handleEnterKeyPress);
       window.removeEventListener("keydown", handleEscapeKeyPress);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, handleSubmit, onClose]);
+  }, [isOpen, handleSubmit]);
 
   const responseActionButton = response !== "" && (
     <Button

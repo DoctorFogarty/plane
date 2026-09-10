@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
-
 import React from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
@@ -197,7 +195,8 @@ const IssueRelationItem = observer(function IssueRelationItem(props: {
       </Tooltip>
       {!disabled && (
         <Tooltip tooltipContent="Remove" position="bottom" isMobile={isMobile}>
-          <span
+          <button
+            type="button"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -205,7 +204,7 @@ const IssueRelationItem = observer(function IssueRelationItem(props: {
             }}
           >
             <CloseIcon className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
-          </span>
+          </button>
         </Tooltip>
       )}
     </div>

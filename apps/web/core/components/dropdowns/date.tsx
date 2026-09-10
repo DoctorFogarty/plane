@@ -27,6 +27,10 @@ import { BUTTON_VARIANTS_WITH_TEXT } from "./constants";
 // types
 import type { TDropdownProps } from "./types";
 
+function ComboDropDownRoot(props: React.ComponentPropsWithoutRef<"div">) {
+  return <div {...props} />;
+}
+
 type Props = TDropdownProps & {
   clearIconClassName?: string;
   defaultOpen?: boolean;
@@ -166,7 +170,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
 
   return (
     <ComboDropDown
-      as="div"
+      as={ComboDropDownRoot}
       ref={dropdownRef}
       tabIndex={tabIndex}
       className={cn("h-full", className)}

@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable promise/always-return */
-
 import { uniq, unset, set, update, sortBy } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
@@ -298,19 +296,19 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
    * @param workspaceSlug
    * @param projectId
    */
-  fetchProjectMembers = async (workspaceSlug: string, projectId: string, clearExistingMembers: boolean = false) =>
-    await this.projectMemberService.fetchProjectMembers(workspaceSlug, projectId).then((response) => {
-      runInAction(() => {
-        if (clearExistingMembers) {
-          unset(this.projectMemberMap, [projectId]);
-        }
-        response.forEach((member) => {
-          set(this.projectMemberMap, [projectId, member.member], member);
-        });
-        set(this.projectMemberFetchStatusMap, [projectId], true);
+  fetchProjectMembers = async (workspaceSlug: string, projectId: string, clearExistingMembers: boolean = false) => {
+    const response = await this.projectMemberService.fetchProjectMembers(workspaceSlug, projectId);
+    runInAction(() => {
+      if (clearExistingMembers) {
+        unset(this.projectMemberMap, [projectId]);
+      }
+      response.forEach((member) => {
+        set(this.projectMemberMap, [projectId, member.member], member);
       });
-      return response;
+      set(this.projectMemberFetchStatusMap, [projectId], true);
     });
+    return response;
+  };
 
   /**
    * @description bulk add members to a project
@@ -319,26 +317,26 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
    * @param data
    * @returns Promise<TProjectMembership[]>
    */
-  bulkAddMembersToProject = async (workspaceSlug: string, projectId: string, data: IProjectBulkAddFormData) =>
-    await this.projectMemberService.bulkAddMembersToProject(workspaceSlug, projectId, data).then((response) => {
-      runInAction(() => {
-        response.forEach((member) => {
-          set(this.projectMemberMap, [projectId, member.member], {
-            ...member,
-            role: this.getUserProjectRole(member.member, projectId) ?? member.role,
-            original_role: member.role,
-          });
+  bulkAddMembersToProject = async (workspaceSlug: string, projectId: string, data: IProjectBulkAddFormData) => {
+    const response = await this.projectMemberService.bulkAddMembersToProject(workspaceSlug, projectId, data);
+    runInAction(() => {
+      response.forEach((member) => {
+        set(this.projectMemberMap, [projectId, member.member], {
+          ...member,
+          role: this.getUserProjectRole(member.member, projectId) ?? member.role,
+          original_role: member.role,
         });
       });
-      update(this.projectRoot.projectMap, [projectId, "members"], (memberIds) =>
-        uniq([...memberIds, ...data.members.map((m) => m.member_id)])
-      );
-      this.projectRoot.projectMap[projectId].members = this.projectRoot.projectMap?.[projectId]?.members?.concat(
-        data.members.map((m) => m.member_id)
-      );
-
-      return response;
     });
+    update(this.projectRoot.projectMap, [projectId, "members"], (memberIds) =>
+      uniq([...memberIds, ...data.members.map((m) => m.member_id)])
+    );
+    this.projectRoot.projectMap[projectId].members = this.projectRoot.projectMap?.[projectId]?.members?.concat(
+      data.members.map((m) => m.member_id)
+    );
+
+    return response;
+  };
 
   /**
    * @description update the role of a member in a project
@@ -444,10 +442,9 @@ export abstract class BaseProjectMemberStore implements IBaseProjectMemberStore 
   removeMemberFromProject = async (workspaceSlug: string, projectId: string, userId: string) => {
     const memberDetails = this.getProjectMemberDetails(userId, projectId);
     if (!memberDetails || !memberDetails?.id) throw new Error("Member not found");
-    await this.projectMemberService.deleteProjectMember(workspaceSlug, projectId, memberDetails?.id).then(() => {
-      runInAction(() => {
-        this.processMemberRemoval(projectId, userId);
-      });
+    await this.projectMemberService.deleteProjectMember(workspaceSlug, projectId, memberDetails?.id);
+    runInAction(() => {
+      this.processMemberRemoval(projectId, userId);
     });
   };
 

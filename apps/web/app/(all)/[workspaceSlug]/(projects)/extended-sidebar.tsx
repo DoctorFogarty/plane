@@ -8,8 +8,8 @@ import { useCallback, useMemo, useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
+import type { IWorkspaceSidebarNavigationItem } from "@plane/constants";
 import { WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS, EUserPermissionsLevel } from "@plane/constants";
-import type { EUserWorkspaceRoles } from "@plane/types";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -17,6 +17,40 @@ import { useWorkspaceNavigationPreferences } from "@/hooks/use-navigation-prefer
 // plane-web imports
 import { ExtendedSidebarItem } from "@/plane-web/components/workspace/sidebar/extended-sidebar-item";
 import { ExtendedSidebarWrapper } from "./extended-sidebar-wrapper";
+
+type TOrderableNavigationItem = IWorkspaceSidebarNavigationItem & {
+  sort_order: number;
+  is_pinned: boolean;
+};
+
+const orderNavigationItem = (
+  sourceIndex: number,
+  destinationIndex: number,
+  navigationList: TOrderableNavigationItem[]
+): number | undefined => {
+  if (sourceIndex < 0 || destinationIndex < 0 || navigationList.length <= 0) return undefined;
+
+  let updatedSortOrder: number | undefined = undefined;
+  const sortOrderDefaultValue = 10000;
+
+  if (destinationIndex === 0) {
+    // updating project at the top of the project
+    const currentSortOrder = navigationList[destinationIndex].sort_order || 0;
+    updatedSortOrder = currentSortOrder - sortOrderDefaultValue;
+  } else if (destinationIndex === navigationList.length) {
+    // updating project at the bottom of the project
+    const currentSortOrder = navigationList[destinationIndex - 1].sort_order || 0;
+    updatedSortOrder = currentSortOrder + sortOrderDefaultValue;
+  } else {
+    // updating project in the middle of the project
+    const destinationTopProjectSortOrder = navigationList[destinationIndex - 1].sort_order || 0;
+    const destinationBottomProjectSortOrder = navigationList[destinationIndex].sort_order || 0;
+    const updatedValue = (destinationTopProjectSortOrder + destinationBottomProjectSortOrder) / 2;
+    updatedSortOrder = updatedValue;
+  }
+
+  return updatedSortOrder;
+};
 
 export const ExtendedAppSidebar = observer(function ExtendedAppSidebar() {
   // refs
@@ -40,15 +74,19 @@ export const ExtendedAppSidebar = observer(function ExtendedAppSidebar() {
 
       return hasPermission;
     })
-      .map((item) => {
+      .map((item): TOrderableNavigationItem => {
         const preference = currentWorkspaceNavigationPreferences?.[item.key];
         return {
-          ...item,
+          key: item.key,
+          labelTranslationKey: item.labelTranslationKey,
+          href: item.href,
+          access: item.access,
+          highlight: item.highlight,
           sort_order: preference?.sort_order ?? 0,
           is_pinned: preference?.is_pinned ?? false,
         };
       })
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         // First sort by pinned status (pinned items first)
         if (a.is_pinned !== b.is_pinned) {
           return b.is_pinned ? 1 : -1;
@@ -59,41 +97,6 @@ export const ExtendedAppSidebar = observer(function ExtendedAppSidebar() {
   }, [workspaceSlug, currentWorkspaceNavigationPreferences, allowPermissions]);
 
   const sortedNavigationItemsKeys = sortedNavigationItems.map((item) => item.key);
-
-  const orderNavigationItem = (
-    sourceIndex: number,
-    destinationIndex: number,
-    navigationList: {
-      sort_order: number;
-      key: string;
-      labelTranslationKey: string;
-      href: string;
-      access: EUserWorkspaceRoles[];
-    }[]
-  ): number | undefined => {
-    if (sourceIndex < 0 || destinationIndex < 0 || navigationList.length <= 0) return undefined;
-
-    let updatedSortOrder: number | undefined = undefined;
-    const sortOrderDefaultValue = 10000;
-
-    if (destinationIndex === 0) {
-      // updating project at the top of the project
-      const currentSortOrder = navigationList[destinationIndex].sort_order || 0;
-      updatedSortOrder = currentSortOrder - sortOrderDefaultValue;
-    } else if (destinationIndex === navigationList.length) {
-      // updating project at the bottom of the project
-      const currentSortOrder = navigationList[destinationIndex - 1].sort_order || 0;
-      updatedSortOrder = currentSortOrder + sortOrderDefaultValue;
-    } else {
-      // updating project in the middle of the project
-      const destinationTopProjectSortOrder = navigationList[destinationIndex - 1].sort_order || 0;
-      const destinationBottomProjectSortOrder = navigationList[destinationIndex].sort_order || 0;
-      const updatedValue = (destinationTopProjectSortOrder + destinationBottomProjectSortOrder) / 2;
-      updatedSortOrder = updatedValue;
-    }
-
-    return updatedSortOrder;
-  };
 
   const handleOnNavigationItemDrop = (
     sourceId: string | undefined,

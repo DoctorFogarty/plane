@@ -93,18 +93,20 @@ export const IssueAttachmentActionButton = observer(function IssueAttachmentActi
     multiple: false,
     disabled: isLoading || disabled,
   });
+  const { onClick: onDropzoneClick, ...rootProps } = getRootProps();
 
   return (
-    <div
+    <button
+      {...rootProps}
+      type="button"
+      disabled={disabled}
       onClick={(e) => {
-        // TODO: Remove extra div and move event propagation to button
         e.stopPropagation();
+        onDropzoneClick?.(e);
       }}
     >
-      <button {...getRootProps()} type="button" disabled={disabled}>
-        <input {...getInputProps()} />
-        {customButton ? customButton : <PlusIcon className="h-4 w-4" />}
-      </button>
-    </div>
+      <input {...getInputProps()} />
+      {customButton ? customButton : <PlusIcon className="h-4 w-4" />}
+    </button>
   );
 });

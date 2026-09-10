@@ -52,14 +52,13 @@ const InstanceGiteaAuthenticationPage = observer(function InstanceGiteaAuthentic
       },
     });
 
-    await updateConfigPromise
-      .then(() => {
-        setIsSubmitting(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setIsSubmitting(false);
-      });
+    try {
+      await updateConfigPromise;
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isGiteaEnabled = enableGiteaConfig === "1";

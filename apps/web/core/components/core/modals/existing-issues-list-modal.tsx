@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable react-hooks/exhaustive-deps, promise/always-return */
 
 import { useEffect, useState, useRef } from "react";
 import { Rocket } from "lucide-react";
@@ -99,39 +98,45 @@ export function ExistingIssuesListModal(props: Props) {
     handleClose();
   };
 
-  const handleSearch = () => {
-    if (!isOpen || !workspaceSlug) return;
-    setIsLoading(true);
-    const searchService =
-      workItemSearchServiceCallback ??
-      (projectId
-        ? projectService.projectIssuesSearch.bind(projectService, workspaceSlug?.toString(), projectId?.toString())
-        : undefined);
-    if (!searchService) return;
-    searchService({
-      search: debouncedSearchTerm,
-      ...searchParams,
-      workspace_search: isWorkspaceLevel,
-    })
-      .then((res) => {
-        setIssues(res);
-        if (!hasInitializedSelection.current && selectedWorkItemIds) {
-          setSelectedIssues(res.filter((issue) => selectedWorkItemIds.includes(issue.id)));
-          hasInitializedSelection.current = true;
-        }
-      })
-      .finally(() => {
-        setIsSearching(false);
-        setIsLoading(false);
-      });
-  };
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
+  const selectedWorkItemIdsRef = useRef(selectedWorkItemIds);
+  selectedWorkItemIdsRef.current = selectedWorkItemIds;
+  const workItemSearchServiceCallbackRef = useRef(workItemSearchServiceCallback);
+  workItemSearchServiceCallbackRef.current = workItemSearchServiceCallback;
 
   const handleSelectIssues = () => {
     setSelectedIssues((prevData) => (prevData.length === filteredIssues.length ? [] : [...filteredIssues]));
   };
 
   useEffect(() => {
-    handleSearch();
+    const runSearch = async () => {
+      if (!isOpen || !workspaceSlug) return;
+      setIsLoading(true);
+      const searchService =
+        workItemSearchServiceCallbackRef.current ??
+        (projectId
+          ? projectService.projectIssuesSearch.bind(projectService, workspaceSlug.toString(), projectId.toString())
+          : undefined);
+      if (!searchService) return;
+      try {
+        const res = await searchService({
+          search: debouncedSearchTerm,
+          ...searchParamsRef.current,
+          workspace_search: isWorkspaceLevel,
+        });
+        setIssues(res);
+        if (!hasInitializedSelection.current && selectedWorkItemIdsRef.current) {
+          setSelectedIssues(res.filter((issue) => selectedWorkItemIdsRef.current?.includes(issue.id)));
+          hasInitializedSelection.current = true;
+        }
+      } finally {
+        setIsSearching(false);
+        setIsLoading(false);
+      }
+    };
+
+    void runSearch();
   }, [debouncedSearchTerm, isOpen, isWorkspaceLevel, projectId, workspaceSlug]);
 
   const filteredIssues = issues.filter((issue) => !shouldHideIssue?.(issue));

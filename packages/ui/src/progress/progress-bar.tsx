@@ -15,6 +15,12 @@ type Props = {
   inactiveStrokeColor?: string;
 };
 
+function calculatePieValue(numberOfBars: number) {
+  const angle = 360 / numberOfBars;
+  const pieValue = Math.floor(angle / 4);
+  return pieValue < 1 ? 1 : Math.floor(angle / 4);
+}
+
 export function ProgressBar({
   maxValue = 0,
   value = 0,
@@ -24,20 +30,13 @@ export function ProgressBar({
   inactiveStrokeColor = "#ddd",
 }: Props) {
   // PIE Calc Fn
-  const generatePie = (value: any) => {
-    const x = radius - Math.cos((2 * Math.PI) / (100 / value)) * radius;
-    const y = radius + Math.sin((2 * Math.PI) / (100 / value)) * radius;
-    const long = value <= 50 ? 0 : 1;
+  const generatePie = (percent: number) => {
+    const x = radius - Math.cos((2 * Math.PI) / (100 / percent)) * radius;
+    const y = radius + Math.sin((2 * Math.PI) / (100 / percent)) * radius;
+    const long = percent <= 50 ? 0 : 1;
     const d = `M${radius} ${radius} L${radius} ${0} A${radius} ${radius} 0 ${long} 1 ${y} ${x} Z`;
 
     return d;
-  };
-
-  // ----  PIE Area Calc  --------
-  const calculatePieValue = (numberOfBars: any) => {
-    const angle = 360 / numberOfBars;
-    const pieValue = Math.floor(angle / 4);
-    return pieValue < 1 ? 1 : Math.floor(angle / 4);
   };
 
   // ----  PIE Render Fn --------

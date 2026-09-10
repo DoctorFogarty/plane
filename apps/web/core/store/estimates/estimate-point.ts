@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable no-useless-catch */
-
 import { set } from "lodash-es";
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 // types
@@ -130,28 +128,24 @@ export class EstimatePoint implements IEstimatePoint {
     projectId: string,
     payload: Partial<IEstimatePointType>
   ): Promise<IEstimatePointType | undefined> => {
-    try {
-      if (!this.projectEstimate?.id || !this.id || !payload) return undefined;
+    if (!this.projectEstimate?.id || !this.id || !payload) return undefined;
 
-      const estimatePoint = await estimateService.updateEstimatePoint(
-        workspaceSlug,
-        projectId,
-        this.projectEstimate?.id,
-        this.id,
-        payload
-      );
-      if (estimatePoint) {
-        runInAction(() => {
-          Object.keys(payload).map((key) => {
-            const estimatePointKey = key as keyof IEstimatePointType;
-            set(this, estimatePointKey, estimatePoint[estimatePointKey]);
-          });
+    const estimatePoint = await estimateService.updateEstimatePoint(
+      workspaceSlug,
+      projectId,
+      this.projectEstimate?.id,
+      this.id,
+      payload
+    );
+    if (estimatePoint) {
+      runInAction(() => {
+        Object.keys(payload).forEach((key) => {
+          const estimatePointKey = key as keyof IEstimatePointType;
+          set(this, estimatePointKey, estimatePoint[estimatePointKey]);
         });
-      }
-
-      return estimatePoint;
-    } catch (error) {
-      throw error;
+      });
     }
+
+    return estimatePoint;
   };
 }

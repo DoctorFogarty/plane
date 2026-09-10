@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable unicorn/consistent-function-scoping */
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
@@ -17,6 +16,8 @@ import { AccountTypeColumn, NameColumn } from "@/components/workspace/settings/m
 import { useMember } from "@/hooks/store/use-member";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import type { IMemberFilters } from "@/store/member/utils";
+
+const isSuspended = (rowData: RowData) => rowData.is_active === false;
 
 export type TMemberActionModal = {
   rowData: RowData;
@@ -40,8 +41,6 @@ export const useMemberColumns = () => {
 
   // derived values
   const isAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
-
-  const isSuspended = (rowData: RowData) => rowData.is_active === false;
 
   // handlers
   const handleDisplayFilterUpdate = (filterUpdates: Partial<IMemberFilters>) => {

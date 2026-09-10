@@ -284,7 +284,7 @@ export const getDate = (date: string | Date | undefined | null): Date | undefine
   try {
     if (!date || date === "") return;
 
-    if (typeof date !== "string" && !(date instanceof String)) return date;
+    if (typeof date !== "string") return date;
 
     const [yearString, monthString, dayString] = date.substring(0, 10).split("-");
     const year = parseInt(yearString);
@@ -391,22 +391,24 @@ export const getReadTimeFromWordsCount = (wordsCount: number): number => {
  */
 export const generateDateArray = (startDate: string | Date, endDate: string | Date) => {
   // Convert the start and end dates to Date objects if they aren't already
-  const start = new Date(startDate);
-  // start.setDate(start.getDate() + 1);
+  let current = new Date(startDate);
   const end = new Date(endDate);
   end.setDate(end.getDate() + 2);
+  const endTime = end.getTime();
 
   // Create an empty array to store the dates
   const dateArray = [];
 
   // Use a while loop to generate dates between the range
-  while (start <= end) {
+  while (current.getTime() <= endTime) {
     // Push the current date (converted to ISO string for consistency)
     dateArray.push({
-      date: new Date(start).toISOString().split("T")[0],
+      date: new Date(current).toISOString().split("T")[0],
     });
-    // Increment the date by 1 day (86400000 milliseconds)
-    start.setDate(start.getDate() + 1);
+    // Increment the date by 1 day (preserving calendar-day math via setDate)
+    const next = new Date(current);
+    next.setDate(next.getDate() + 1);
+    current = next;
   }
 
   return dateArray;

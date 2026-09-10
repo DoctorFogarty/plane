@@ -37,7 +37,7 @@ export function ColorPicker(props: ColorPickerProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="invisible absolute inset-0 size-4"
-        aria-hidden="true"
+        tabIndex={-1}
       />
     </div>
   );

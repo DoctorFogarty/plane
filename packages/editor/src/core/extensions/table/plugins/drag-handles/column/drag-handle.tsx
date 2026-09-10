@@ -161,9 +161,9 @@ export function ColumnDragHandle(props: ColumnDragHandleProps) {
           let tr = editor.state.tr;
           const selection = editor.state.selection;
           if (isCellSelection(selection)) {
-            const table = findTable(selection);
-            if (table) {
-              tr = moveSelectedColumns(editor, table, selection, dropIndex, tr);
+            const selectionTable = findTable(selection);
+            if (selectionTable) {
+              tr = moveSelectedColumns(editor, selectionTable, selection, dropIndex, tr);
             }
           }
           editor.view.dispatch(tr);

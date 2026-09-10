@@ -4,8 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import "reflect-metadata";
 import type { RequestHandler } from "express";
+import * as reflectMetadata from "reflect-metadata";
+
+void reflectMetadata;
 
 // Define valid HTTP methods
 type RestMethod = "get" | "post" | "put" | "patch" | "delete";
@@ -16,8 +18,7 @@ type RestMethod = "get" | "post" | "put" | "patch" | "delete";
  * @returns
  */
 export function Controller(baseRoute: string = ""): ClassDecorator {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  return function (target: Function) {
+  return function (target) {
     Reflect.defineMetadata("baseRoute", baseRoute, target);
   };
 }

@@ -40,8 +40,7 @@ export const FilterProjects = observer(function FilterProjects(props: Props) {
       (project) => !(appliedFilters ?? []).includes(project.id),
       (project) => project.name.toLowerCase(),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [appliedFilters, projects, searchQuery]);
 
   const handleViewToggle = () => {
     if (!sortedOptions) return;
@@ -65,7 +64,7 @@ export const FilterProjects = observer(function FilterProjects(props: Props) {
                 {sortedOptions.slice(0, itemsToRender).map((project) => (
                   <FilterOption
                     key={`project-${project.id}`}
-                    isChecked={appliedFilters?.includes(project.id) ? true : false}
+                    isChecked={Boolean(appliedFilters?.includes(project.id))}
                     onClick={() => handleUpdate(project.id)}
                     icon={
                       <span className="grid h-4 w-4 flex-shrink-0 place-items-center">

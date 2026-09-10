@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
-/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
-
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
@@ -77,8 +75,12 @@ export function InstanceSignInForm() {
     setFormData((prev) => ({ ...prev, [key]: value }));
 
   useEffect(() => {
-    if (csrfToken === undefined)
-      authService.requestCSRFToken().then((data) => data?.csrf_token && setCsrfToken(data.csrf_token));
+    if (csrfToken !== undefined) return;
+    const loadCsrfToken = async () => {
+      const data = await authService.requestCSRFToken();
+      if (data?.csrf_token) setCsrfToken(data.csrf_token);
+    };
+    void loadCsrfToken();
   }, [csrfToken]);
 
   const errorData: TError = useMemo(() => {
@@ -109,7 +111,7 @@ export function InstanceSignInForm() {
     urlErrorInfo && dismissedErrorCode !== errorCode ? urlErrorInfo : undefined;
 
   const isButtonDisabled = useMemo(
-    () => (!isSubmitting && formData.email && formData.password ? false : true),
+    () => isSubmitting || !formData.email || !formData.password,
     [formData.email, formData.password, isSubmitting]
   );
 

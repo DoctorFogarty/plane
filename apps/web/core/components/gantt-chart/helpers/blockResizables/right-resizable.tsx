@@ -43,11 +43,24 @@ export const RightResizable = observer(function RightResizable(props: RightResiz
         </div>
       )}
       <div
+        role="slider"
+        aria-label="Resize target date"
+        aria-orientation="horizontal"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={0}
+        tabIndex={0}
         onMouseDown={(e) => handleBlockDrag(e, "right")}
         onMouseOver={() => {
           setIsHovering(true);
         }}
         onMouseOut={() => {
+          setIsHovering(false);
+        }}
+        onFocus={() => {
+          setIsHovering(true);
+        }}
+        onBlur={() => {
           setIsHovering(false);
         }}
         className="absolute top-1/2 -right-1.5 z-[6] h-full w-3 -translate-y-1/2 cursor-col-resize rounded-md"

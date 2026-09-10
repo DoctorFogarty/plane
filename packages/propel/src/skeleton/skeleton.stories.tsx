@@ -21,6 +21,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const SKELETON_LIST_KEYS = ["sk-list-1", "sk-list-2", "sk-list-3", "sk-list-4", "sk-list-5"] as const;
+const SKELETON_TABLE_KEYS = ["sk-table-1", "sk-table-2", "sk-table-3", "sk-table-4", "sk-table-5"] as const;
+const SKELETON_AVATAR_KEYS = ["sk-avatar-1", "sk-avatar-2", "sk-avatar-3", "sk-avatar-4"] as const;
+
 export const Default: Story = {
   render() {
     return (
@@ -49,8 +53,8 @@ export const List: Story = {
   render() {
     return (
       <Skeleton className="flex w-96 flex-col gap-3">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex gap-3">
+        {SKELETON_LIST_KEYS.map((itemKey) => (
+          <div key={itemKey} className="flex gap-3">
             <Skeleton.Item height="40px" width="40px" className="rounded-full" />
             <div className="flex flex-1 flex-col gap-2">
               <Skeleton.Item height="16px" width="70%" />
@@ -72,8 +76,8 @@ export const Table: Story = {
           <Skeleton.Item height="20px" width="200px" />
           <Skeleton.Item height="20px" width="120px" />
         </div>
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex gap-4">
+        {SKELETON_TABLE_KEYS.map((itemKey) => (
+          <div key={itemKey} className="flex gap-4">
             <Skeleton.Item height="40px" width="150px" />
             <Skeleton.Item height="40px" width="200px" />
             <Skeleton.Item height="40px" width="120px" />
@@ -119,8 +123,8 @@ export const AvatarGroup: Story = {
   render() {
     return (
       <Skeleton className="flex -space-x-2">
-        {[...Array(4)].map((_, i) => (
-          <Skeleton.Item key={i} height="40px" width="40px" className="rounded-full border-2 border-white" />
+        {SKELETON_AVATAR_KEYS.map((itemKey) => (
+          <Skeleton.Item key={itemKey} height="40px" width="40px" className="rounded-full border-2 border-white" />
         ))}
       </Skeleton>
     );

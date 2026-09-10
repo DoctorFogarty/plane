@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-/* eslint-disable no-unneeded-ternary, jsx-a11y/no-autofocus */
-
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
@@ -80,10 +78,7 @@ export const SetPasswordForm = observer(function SetPasswordForm() {
   const requirementCopy = getPasswordRequirementCopy(t);
 
   const isButtonDisabled = useMemo(
-    () =>
-      !!password && ready && assessment?.acceptable === true && password === passwordFormData.confirm_password
-        ? false
-        : true,
+    () => !(!!password && ready && assessment?.acceptable === true && password === passwordFormData.confirm_password),
     [assessment?.acceptable, password, passwordFormData.confirm_password, ready]
   );
 

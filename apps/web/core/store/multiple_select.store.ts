@@ -25,8 +25,8 @@ export type IMultipleSelectStore = {
   getActiveEntityDetails: () => TEntityDetails | null;
   getEntityDetailsFromEntityID: (entityID: string) => TEntityDetails | null;
   // entity actions
-  updateSelectedEntityDetails: (entityDetails: TEntityDetails, action: "add" | "remove") => void;
-  bulkUpdateSelectedEntityDetails: (entitiesList: TEntityDetails[], action: "add" | "remove") => void;
+  updateSelectedEntityDetails: (entityDetails: TEntityDetails, selectAction: "add" | "remove") => void;
+  bulkUpdateSelectedEntityDetails: (entitiesList: TEntityDetails[], selectAction: "add" | "remove") => void;
   updateLastSelectedEntityDetails: (entityDetails: TEntityDetails | null) => void;
   updatePreviousActiveEntity: (entityDetails: TEntityDetails | null) => void;
   updateNextActiveEntity: (entityDetails: TEntityDetails | null) => void;
@@ -138,10 +138,10 @@ export class MultipleSelectStore implements IMultipleSelectStore {
   /**
    * @description add or remove entities
    * @param {TEntityDetails} entityDetails
-   * @param {"add" | "remove"} action
+   * @param {"add" | "remove"} selectAction
    */
-  updateSelectedEntityDetails = (entityDetails: TEntityDetails, action: "add" | "remove") => {
-    if (action === "add") {
+  updateSelectedEntityDetails = (entityDetails: TEntityDetails, selectAction: "add" | "remove") => {
+    if (selectAction === "add") {
       runInAction(() => {
         if (this.getIsEntitySelected(entityDetails.entityID)) {
           remove(this.selectedEntityDetails, (en) => en.entityID === entityDetails.entityID);
@@ -162,10 +162,10 @@ export class MultipleSelectStore implements IMultipleSelectStore {
   /**
    * @description add or remove multiple entities
    * @param {TEntityDetails[]} entitiesList
-   * @param {"add" | "remove"} action
+   * @param {"add" | "remove"} selectAction
    */
-  bulkUpdateSelectedEntityDetails = (entitiesList: TEntityDetails[], action: "add" | "remove") => {
-    if (action === "add") {
+  bulkUpdateSelectedEntityDetails = (entitiesList: TEntityDetails[], selectAction: "add" | "remove") => {
+    if (selectAction === "add") {
       runInAction(() => {
         let newEntities: TEntityDetails[] = [];
         newEntities = differenceWith(this.selectedEntityDetails, entitiesList, isEqual);

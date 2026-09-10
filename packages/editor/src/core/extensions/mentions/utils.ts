@@ -24,14 +24,14 @@ export const renderMentionsDropdown =
   () => {
     const { searchCallback } = args;
     let component: ReactRenderer<CommandListInstance, MentionsListDropdownProps> | null = null;
-    let cleanup: () => void = () => {};
+    let cleanup: (() => void) | undefined;
     let editorRef: Editor | null = null;
 
     const handleClose = (editor?: Editor) => {
       component?.destroy();
       component = null;
       (editor || editorRef)?.commands.removeActiveDropbarExtension(CORE_EXTENSIONS.MENTION);
-      cleanup();
+      cleanup?.();
     };
 
     return {
@@ -56,7 +56,7 @@ export const renderMentionsDropdown =
         if (!component || !component.element) return;
         component.updateProps(props);
         if (!props.clientRect) return;
-        cleanup();
+        cleanup?.();
         cleanup = updateFloatingUIFloaterPosition(props.editor, component.element as HTMLElement).cleanup;
       },
       onKeyDown: ({ event }) => {

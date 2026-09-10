@@ -82,7 +82,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
         targetZoom = ZOOM_STEPS.find((step) => step > prev) ?? MAX_ZOOM;
       } else {
         // Reverse the array to find the next lower step
-        targetZoom = [...ZOOM_STEPS].reverse().find((step) => step < prev) ?? MIN_ZOOM;
+        targetZoom = ZOOM_STEPS.findLast((step) => step < prev) ?? MIN_ZOOM;
       }
 
       // Reset position when zoom matches initial magnification
@@ -207,12 +207,9 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
       role="dialog"
       aria-modal="true"
       aria-label="Fullscreen image viewer"
+      onMouseDown={(e) => e.target === modalRef.current && handleClose()}
     >
-      <div
-        ref={modalRef}
-        onMouseDown={(e) => e.target === modalRef.current && handleClose()}
-        className="relative grid size-full place-items-center overflow-hidden"
-      >
+      <div ref={modalRef} className="relative grid size-full place-items-center overflow-hidden">
         <button
           type="button"
           onClick={handleClose}
@@ -224,6 +221,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
         <img
           ref={setImageRef}
           src={src}
+          alt=""
           className="read-only-image rounded-lg"
           style={{
             width: `${widthInNumber * initialMagnification}px`,

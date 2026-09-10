@@ -281,10 +281,10 @@ export const CloseOnSelectDisabled: Story = {
   },
   render() {
     const [isOpen, setIsOpen] = useState(false);
-    const [selectedEmojis, setSelectedEmojis] = useState<string[]>([]);
+    const [selectedEmojis, setSelectedEmojis] = useState<Array<{ id: string; emoji: string }>>([]);
 
     const handleChange = (emoji: string) => {
-      setSelectedEmojis((prev) => [...prev, emoji]);
+      setSelectedEmojis((prev) => [...prev, { id: crypto.randomUUID(), emoji }]);
     };
 
     return (
@@ -312,9 +312,9 @@ export const CloseOnSelectDisabled: Story = {
           <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">
             <div className="mb-2 font-medium">Selected ({selectedEmojis.length}):</div>
             <div className="flex flex-wrap gap-2">
-              {selectedEmojis.map((emoji, idx) => (
-                <span key={idx} className="text-18">
-                  {emoji}
+              {selectedEmojis.map((item) => (
+                <span key={item.id} className="text-18">
+                  {item.emoji}
                 </span>
               ))}
             </div>
